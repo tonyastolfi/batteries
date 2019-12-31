@@ -14,6 +14,12 @@ class BatteriesConan(ConanFile):
     default_options = {"shared": False}
     generators = "cmake"
     exports_sources = "src/*"
+    build_policy = "missing"
+    requires = "gtest/1.8.0@conan/stable", "boost/1.71.0@conan/stable"
+
+    def configure(self):
+        self.options["gtest"].shared = False
+        self.options["boost"].shared = False
 
     def build(self):
         cmake = CMake(self)

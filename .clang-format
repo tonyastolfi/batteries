@@ -25,3 +25,4 @@ NamespaceIndentation: Inner
 PointerAlignment: Right
 SortIncludes: true
 SortUsingDeclarations: true
+SpaceAfterTemplateKeyword: true
