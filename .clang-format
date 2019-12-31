@@ -1,0 +1,27 @@
+---
+BasedOnStyle: Mozilla
+IndentWidth: 4
+---
+Language: Cpp
+ColumnLimit: 100
+AccessModifierOffset: -2
+#AlignConsecutiveAssignments: true
+#AlignConsecutiveDeclarations: false
+#AlignConsecutiveMacros: false
+#AlignEscapedNewlines: Right
+#AlignOperands: true
+#AlignTrailingComments: true
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLambdasOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeTernaryOperators: true
+FixNamespaceComments: true
+# IndentCaseLabels: true
+IndentPPDirectives: AfterHash
+NamespaceIndentation: Inner
+PointerAlignment: Right
+SortIncludes: true
+SortUsingDeclarations: true
