@@ -43,3 +43,17 @@ static_assert(batt::IsRange<IsARange>{}, "IsRangeCustomType");
 static_assert(!batt::IsRange<NotARange>{}, "IsRangeCustomTypeFail");
 static_assert(!batt::IsRange<int>{}, "IsRangeInt");
 static_assert(!batt::IsRange<std::array<int, 4> *>{}, "IsRangePointer");
+
+// =============================================================================
+// IsVariant tests.
+//
+static_assert(batt::IsVariant<std::variant<int, double>>{}, "IsVariantTrue");
+static_assert(!batt::IsVariant<const std::variant<int, double>>{}, "IsVariantFalse1");
+static_assert(!batt::IsVariant<std::tuple<int, double>>{}, "IsVariantFalse2");
+
+// =============================================================================
+// IsTuple tests.
+//
+static_assert(batt::IsTuple<std::tuple<int, double>>{}, "IsTupleTrue");
+static_assert(!batt::IsTuple<const std::tuple<int, double>>{}, "IsTupleFalse1");
+static_assert(!batt::IsTuple<std::variant<int, double>>{}, "IsTupleFalse1");
