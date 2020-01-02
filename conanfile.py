@@ -32,7 +32,7 @@ class BatteriesConan(ConanFile):
         cmake = CMake(self)
         cmake.configure(source_folder="src")
         cmake.build()
-        cmake.test()
+        cmake.test(output_on_failure=True)
 
         # Explicit way:
         # self.run('cmake %s/hello %s'

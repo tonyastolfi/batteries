@@ -41,7 +41,7 @@ class DumpRangeTest : public ::testing::Test
   protected:
     std::vector<u8> bytes_{ { 11, 14, 14, 15 } };
     std::vector<int> empty_;
-    std::vector<int> single_{ { 1 } };
+    std::vector<int> single_{ 1 };
     std::vector<int> many_{ { 2, 4, 6, 8 } };
     std::vector<std::vector<int>> nested_empty_{ { empty_ } };
     std::vector<std::vector<int>> nested_single_{ { single_ } };

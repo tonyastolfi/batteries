@@ -28,9 +28,12 @@ level_one()
 
 TEST(Segv, StackTraceOnSegv)
 {
-    EXPECT_DEATH(
-      level_one(),
-      "Seg.*fault.*level_three.*level_two.*level_one.*Segv_StackTraceOnSegv_Test::TestBody()");
+    EXPECT_DEATH(level_one(),
+                 "Seg.*fault"
+#ifndef __APPLE__
+                 ".*level_three.*level_two.*level_one.*Segv_StackTraceOnSegv_Test::TestBody()"
+#endif // __APPLE__
+    );
 }
 
 } // namespace

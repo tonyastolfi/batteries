@@ -21,4 +21,8 @@
 // void BATT_NO_OPTIMIZE empty_function() {}
 // ```
 //
-#define BATT_NO_OPTIMIZE __attribute__((optimize("O0")))
+#ifdef __APPLE__
+#    define BATT_NO_OPTIMIZE __attribute__((optnone))
+#else
+#    define BATT_NO_OPTIMIZE __attribute__((optimize("O0")))
+#endif
