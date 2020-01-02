@@ -3,6 +3,7 @@
 #pragma once
 
 #include "batteries/assert.hpp"
+#include "batteries/case_of.hpp"
 #include "batteries/hint.hpp"
 #include "batteries/int_types.hpp"
 #include "batteries/segv.hpp"

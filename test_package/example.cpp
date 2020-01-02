@@ -1,7 +1,10 @@
-#include <iostream>
-#include <vector>
-
 #include <batteries.hpp>
+//
+#include <batteries.hpp>
+
+#include <iostream>
+#include <variant>
+#include <vector>
 
 int
 main()
@@ -9,6 +12,28 @@ main()
     // Smoke test for <batteries/assert.hpp>
     //
     BATT_CHECK_EQ(1 + 1, 2);
+
+    // Smoke test for <batteries/case_of.hpp>
+    //
+    {
+        struct Foo
+        {};
+        struct Bar
+        {};
+
+        std::variant<Foo, Bar> var = Bar{};
+
+        int result = batt::case_of(
+          var,
+          [](const Foo &) {
+              return 1;
+          },
+          [](const Bar &) {
+              return 2;
+          });
+
+        BATT_CHECK_EQ(result, 2);
+    }
 
     // Smoke test for <batteries/hint.hpp>
     //
@@ -18,14 +43,16 @@ main()
 
     // Smoke test for <batteries/int_types.hpp>
     //
-    using namespace batt::int_types;
+    {
+        using namespace batt::int_types;
 
-    u8 x_8 = 0xff;
-    u16 x_16 = 0xffff;
-    u32 x_32 = 0xffffffff;
-    (void)x_8;
-    (void)x_16;
-    (void)x_32;
+        u8 x_8 = 0xff;
+        u16 x_16 = 0xffff;
+        u32 x_32 = 0xffffffff;
+        (void)x_8;
+        (void)x_16;
+        (void)x_32;
+    }
 
     // Smoke test for <batteries/int_types.hpp>
     //
@@ -38,9 +65,11 @@ main()
 
     // Smoke test for <batteries/suppress.hpp>
     //
-    BATT_SUPPRESS("-Wunused-variable")
-    int not_used = 4;
-    BATT_UNSUPPRESS()
+    {
+        BATT_SUPPRESS("-Wunused-variable")
+        int not_used = 4;
+        BATT_UNSUPPRESS()
+    }
 
     // Smoke test for <batteries/type_traits.hpp>
     //
