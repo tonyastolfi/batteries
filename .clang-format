@@ -1,28 +1,33 @@
----
-BasedOnStyle: Mozilla
-IndentWidth: 4
----
-Language: Cpp
-ColumnLimit: 100
-AccessModifierOffset: -2
-#AlignConsecutiveAssignments: true
-#AlignConsecutiveDeclarations: false
-#AlignConsecutiveMacros: false
-#AlignEscapedNewlines: Right
-#AlignOperands: true
-#AlignTrailingComments: true
-AllowShortBlocksOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: true
+BasedOnStyle: Google
+
+ColumnLimit: 80
+
+AlignEscapedNewlines: Right
+AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: false
-AllowShortLambdasOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
-AlwaysBreakTemplateDeclarations: Yes
-BreakBeforeTernaryOperators: true
+BreakBeforeBraces: Custom
+DerivePointerAlignment: false
 FixNamespaceComments: true
-# IndentCaseLabels: true
-IndentPPDirectives: AfterHash
-NamespaceIndentation: Inner
-PointerAlignment: Right
+IndentCaseLabels: false
+IndentPPDirectives: None
+IndentWidth: 4
+PointerAlignment: Left
 SortIncludes: true
 SortUsingDeclarations: true
-SpaceAfterTemplateKeyword: true
+SpaceBeforeParens: ControlStatements
+
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
