@@ -63,6 +63,10 @@ TEST(UniqueSmallFnTest, MoveAndInvoke)
 
     ASSERT_TRUE(fn2);
     ASSERT_FALSE(fn);
+
+    SmallFn<auto(int)->int> fn3 = [](int i) { return i + i + 1; };
+
+    fn2 = fn3;
 }
 
 }  // namespace
