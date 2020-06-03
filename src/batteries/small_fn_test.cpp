@@ -65,8 +65,31 @@ TEST(UniqueSmallFnTest, MoveAndInvoke)
     ASSERT_FALSE(fn);
 
     SmallFn<auto(int)->int> fn3 = [](int i) { return i + i + 1; };
+    const SmallFn<auto(int)->int> fn4 = [](int i) { return i + i + 1; };
 
     fn2 = fn3;
+
+    ASSERT_TRUE(fn2);
+    ASSERT_TRUE(fn3);
+    EXPECT_EQ(5, fn2(2));
+
+    fn2 = fn4;
+
+    ASSERT_TRUE(fn2);
+    ASSERT_TRUE(fn4);
+    EXPECT_EQ(7, fn2(3));
+
+    UniqueSmallFn<auto(int)->int> fn5 = fn3;
+
+    ASSERT_TRUE(fn5);
+    ASSERT_TRUE(fn3);
+    EXPECT_EQ(9, fn5(4));
+
+    UniqueSmallFn<auto(int)->int> fn6 = fn4;
+
+    ASSERT_TRUE(fn6);
+    ASSERT_TRUE(fn4);
+    EXPECT_EQ(11, fn5(5));
 }
 
 }  // namespace

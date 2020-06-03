@@ -4,9 +4,11 @@
 
 #include "batteries/assert.hpp"
 #include "batteries/case_of.hpp"
+#include "batteries/finally.hpp"
 #include "batteries/hint.hpp"
 #include "batteries/int_types.hpp"
 #include "batteries/segv.hpp"
+#include "batteries/small_fn.hpp"
 #include "batteries/stream_util.hpp"
 #include "batteries/strict.hpp"
 #include "batteries/suppress.hpp"
