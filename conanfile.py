@@ -3,7 +3,7 @@ from conans import ConanFile, CMake
 
 class BatteriesConan(ConanFile):
     name = "batteries"
-    version = "0.2.0+"
+    version = "0.3.0-devel"
     license = "Apache Public License 2.0"
     author = "Tony Astolfi <tastolfi@gmail.com>"
     url = "https://github.com/tonyastolfi/batteries.git"

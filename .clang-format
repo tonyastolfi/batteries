@@ -1,10 +1,14 @@
 BasedOnStyle: Google
 
-ColumnLimit: 80
+ColumnLimit: 110
 
 AlignEscapedNewlines: Right
+AllowAllArgumentsOnNextLine: false
+AllowAllConstructorInitializersOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: false
+AllowShortLambdasOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 BreakBeforeBraces: Custom
 DerivePointerAlignment: false
@@ -31,3 +35,7 @@ BraceWrapping:
   SplitEmptyFunction: true
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
+
+BreakConstructorInitializers: "BeforeComma"
+BreakInheritanceList: "BeforeComma"
+  
