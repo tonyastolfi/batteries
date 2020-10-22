@@ -37,11 +37,18 @@ namespace batt {
 // MyStruct ex4_BAD{flag_arg2};
 // ```
 //
-template<typename T>
-T
-make_copy(const T &value)
+template <typename T>
+T make_copy(const T& value)
 {
     return value;
 }
 
-} // namespace batt
+// Warn/error if a function's return value is ignored:
+//
+// ```
+// int fn_returning_status_code() BATT_
+// ```
+//
+#define BATT_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+
+}  // namespace batt
