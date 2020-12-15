@@ -27,6 +27,22 @@ template <typename Fn, typename... Args>
 using IsCallable = decltype(detail::is_callable_impl<Fn, Args...>(nullptr));
 
 // =============================================================================
+// IsPrintable<T>
+//
+namespace detail {
+
+template <typename T, typename Result = decltype(std::declval<std::ostream&>() << std::declval<T>())>
+std::true_type is_printable_impl(void*);
+
+template <typename Fn, typename... Args>
+std::false_type is_printable_impl(...);
+
+}  // namespace detail
+
+template <typename T>
+using IsPrintable = decltype(detail::is_printable_impl<T>(nullptr));
+
+// =============================================================================
 // IsRange<T>
 //
 //  Type alias for std::true_type if `T` is a range type.
@@ -76,6 +92,44 @@ struct IsTuple<std::tuple<Ts...>> : std::true_type {
 };
 
 // =============================================================================
+// StaticType<T>
+//
+template <typename T>
+struct StaticType {
+    using type = T;
+};
+
+template <typename L, typename R>
+inline constexpr bool operator==(StaticType<L>, StaticType<R>)
+{
+    return std::is_same_v<L, R>;
+}
+template <typename L, typename R>
+inline constexpr bool operator!=(StaticType<L>, StaticType<R>)
+{
+    return !std::is_same_v<L, R>;
+}
+
+static_assert(StaticType<int>{} == StaticType<int>{}, "");
+static_assert(StaticType<int>{} != StaticType<unsigned>{}, "");
+
+// =============================================================================
+//
+template <typename T, T kValue>
+struct StaticValue {
+    static constexpr T value = kValue;
+
+    constexpr StaticValue() = default;
+
+    constexpr operator T() const
+    {
+        return value;
+    }
+};
+
+#define BATT_STATIC_VALUE(expr) ::batt::StaticValue<decltype(expr), (expr)>
+
+// =============================================================================
 // Enables/disables a constructor template when the argments do not cause it to
 // shadow a built-in method.
 //
@@ -90,9 +144,10 @@ struct IsTuple<std::tuple<Ts...>> : std::true_type {
 // ```
 //
 template <typename T, typename... Args>
-using EnableIfNoShadow = std::enable_if_t<
-    !std::is_same<std::tuple<T>, std::tuple<std::decay_t<Args>...>>{}    // Copy or move ctor
-    && !std::is_same<std::tuple<>, std::tuple<std::decay_t<Args>...>>{}  // Default ctor
-    >;
+using EnableIfNoShadow =
+    std::enable_if_t<!std::is_same<std::tuple<std::decay_t<T>*>, std::tuple<std::decay_t<Args>*...>>{}
+                     // Copy or move ctor
+                     && !std::is_same<std::tuple<>, std::tuple<std::decay_t<Args>*...>>{}  // Default ctor
+                     >;
 
 }  // namespace batt

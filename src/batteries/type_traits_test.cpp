@@ -1,8 +1,7 @@
 #include <batteries/type_traits.hpp>
 //
-#include <batteries/type_traits.hpp>
-
 #include <array>
+#include <batteries/type_traits.hpp>
 #include <map>
 #include <string>
 #include <vector>
@@ -23,15 +22,20 @@ static_assert(!batt::IsCallable<FunctionPointer, char>{}, "IsCallableTooFewArgs"
 // =============================================================================
 // IsRange tests.
 //
-struct NotARange
-{};
+struct NotARange {
+};
 
-struct IsARange
-{
-    const char *str_ = "abc";
+struct IsARange {
+    const char* str_ = "abc";
 
-    const char *begin() const { return str_; }
-    const char *end() const { return str_ + 3; }
+    const char* begin() const
+    {
+        return str_;
+    }
+    const char* end() const
+    {
+        return str_ + 3;
+    }
 };
 
 static_assert(batt::IsRange<std::string>{}, "IsRangeString");
@@ -42,7 +46,7 @@ static_assert(batt::IsRange<IsARange>{}, "IsRangeCustomType");
 
 static_assert(!batt::IsRange<NotARange>{}, "IsRangeCustomTypeFail");
 static_assert(!batt::IsRange<int>{}, "IsRangeInt");
-static_assert(!batt::IsRange<std::array<int, 4> *>{}, "IsRangePointer");
+static_assert(!batt::IsRange<std::array<int, 4>*>{}, "IsRangePointer");
 
 // =============================================================================
 // IsVariant tests.
@@ -57,3 +61,8 @@ static_assert(!batt::IsVariant<std::tuple<int, double>>{}, "IsVariantFalse2");
 static_assert(batt::IsTuple<std::tuple<int, double>>{}, "IsTupleTrue");
 static_assert(!batt::IsTuple<const std::tuple<int, double>>{}, "IsTupleFalse1");
 static_assert(!batt::IsTuple<std::variant<int, double>>{}, "IsTupleFalse1");
+
+// =============================================================================
+// StaticValue tests.
+//
+static_assert(BATT_STATIC_VALUE(&IsARange::begin){} == &IsARange::begin, "");

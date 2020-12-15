@@ -45,6 +45,8 @@ struct FirstMatchImpl<std::tuple<CaseFirst, CaseRest...>, std::tuple<Args...>>
     template <typename Cases>
     decltype(auto) operator()(Cases&& cases, Args&&... args) const
     {
+        static_assert(FirstMatchImpl::value < std::tuple_size_v<std::decay_t<decltype(cases)>>,
+                      "Unhandled case in case_of");
         return std::get<FirstMatchImpl::value>(BATT_FORWARD(cases))(BATT_FORWARD(args)...);
     }
 };

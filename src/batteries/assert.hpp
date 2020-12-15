@@ -1,10 +1,27 @@
 #pragma once
 
 #include <batteries/hint.hpp>
+#include <batteries/type_traits.hpp>
+#include <batteries/utility.hpp>
+//
 #include <boost/stacktrace.hpp>
+//
 #include <iostream>
+#include <mutex>
 
 namespace batt {
+
+template <typename T, typename = std::enable_if_t<IsPrintable<T>{}>>
+decltype(auto) make_printable(T&& obj)
+{
+    return BATT_FORWARD(obj);
+}
+
+template <typename T, typename = std::enable_if_t<!IsPrintable<T>{}>, typename = void>
+const char* make_printable(T&&)
+{
+    return "(obj)";
+}
 
 // =============================================================================
 // ASSERT and CHECK macros with ostream-style message appending, stack trace on
@@ -20,9 +37,9 @@ inline std::ostream& fail_check_message(const char* left_str, LeftT&& left_val, 
 {
     return std::cerr << "FATAL: " << file << ":" << line << ": Assertion failed: " << left_str << " "
                      << op_str << " " << right_str << "\n (in `" << fn_name << "`)\n\n"
-                     << "  " << left_str << " == " << left_val << std::endl
+                     << "  " << left_str << " == " << make_printable(left_val) << std::endl
                      << std::endl
-                     << "  " << right_str << " == " << right_val << std::endl
+                     << "  " << right_str << " == " << make_printable(right_val) << std::endl
                      << std::endl;
 }
 
@@ -32,9 +49,26 @@ inline void fail_check_exit()
     std::abort();
 }
 
+template <typename... Ts>
+inline bool ignore(Ts&&...)
+{
+    return false;
+}
+
+inline bool lock_fail_check_mutex()
+{
+    static std::mutex m;
+    m.lock();
+    return false;
+}
+
 #define BATT_CHECK_RELATION(left, op, right)                                                                 \
-    for (; !BATT_HINT_TRUE((left)op(right)); ::batt::fail_check_exit())                                      \
+    for (; !BATT_HINT_TRUE(((left)op(right)) || ::batt::lock_fail_check_mutex()); ::batt::fail_check_exit()) \
     ::batt::fail_check_message(#left, (left), #op, #right, (right), __FILE__, __LINE__, __PRETTY_FUNCTION__)
+
+#define BATT_CHECK_IMPLIES(p, q)                                                                             \
+    for (; !BATT_HINT_TRUE(!(p) || (q)); ::batt::fail_check_exit())                                          \
+    ::batt::fail_check_message(#p, (p), "implies", #q, (q), __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
 #define BATT_CHECK(x) BATT_CHECK_RELATION(bool{x}, ==, true)
 #define BATT_CHECK_EQ(x, y) BATT_CHECK_RELATION(x, ==, y)
@@ -45,11 +79,12 @@ inline void fail_check_exit()
 #define BATT_CHECK_LT(x, y) BATT_CHECK_RELATION(x, <, y)
 #define BATT_CHECK_FAIL() BATT_CHECK(false)
 
-#define BATT_ASSERT_DISABLED                                                                                 \
-    if (false)                                                                                               \
+#define BATT_ASSERT_DISABLED(ignored_inputs)                                                                 \
+    if (false && ignored_inputs)                                                                             \
     std::cerr << ""
 
-#ifndef NDEBUG
+#ifndef NDEBUG  //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+
 #define BATT_ASSERT(x) BATT_CHECK(x)
 #define BATT_ASSERT_EQ(x, y) BATT_CHECK_EQ(x, y)
 #define BATT_ASSERT_NE(x, y) BATT_CHECK_NE(x, y)
@@ -57,15 +92,20 @@ inline void fail_check_exit()
 #define BATT_ASSERT_GT(x, y) BATT_CHECK_GT(x, y)
 #define BATT_ASSERT_LE(x, y) BATT_CHECK_LE(x, y)
 #define BATT_ASSERT_LT(x, y) BATT_CHECK_LT(x, y)
-#else
-#define BATT_ASSERT(x) BATT_ASSERT_DISABLED
-#define BATT_ASSERT_EQ(x, y) BATT_ASSERT_DISABLED
-#define BATT_ASSERT_NE(x, y) BATT_ASSERT_DISABLED
-#define BATT_ASSERT_GE(x, y) BATT_ASSERT_DISABLED
-#define BATT_ASSERT_GT(x, y) BATT_ASSERT_DISABLED
-#define BATT_ASSERT_LE(x, y) BATT_ASSERT_DISABLED
-#define BATT_ASSERT_LT(x, y) BATT_ASSERT_DISABLED
-#endif
+#define BATT_ASSERT_IMPLIES(p, q) BATT_CHECK_IMPLIES(p, q)
+
+#else  // NDEBUG  ==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+
+#define BATT_ASSERT(x) BATT_ASSERT_DISABLED(::batt::ignore(x))
+#define BATT_ASSERT_EQ(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
+#define BATT_ASSERT_NE(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
+#define BATT_ASSERT_GE(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
+#define BATT_ASSERT_GT(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
+#define BATT_ASSERT_LE(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
+#define BATT_ASSERT_LT(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
+#define BATT_ASSERT_IMPLIES(p, q) BATT_ASSERT_DISABLED(::batt::ignore(p, q))
+
+#endif  // NDEBUG ==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
 #define BATT_ASSERT_NOT_NULLPTR(x) BATT_ASSERT(x != nullptr)
 #define BATT_CHECK_NOT_NULLPTR(x) BATT_CHECK(x != nullptr)
