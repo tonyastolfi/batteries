@@ -1,0 +1,81 @@
+#pragma once
+#ifndef BATTERIES_STATIC_DISPATCH_HPP
+#define BATTERIES_STATIC_DISPATCH_HPP
+
+#include <batteries/assert.hpp>
+#include <batteries/utility.hpp>
+//
+#include <cstddef>
+#include <type_traits>
+
+namespace batt {
+
+namespace detail {
+
+template <typename Arg, typename Result>
+using AbstractCaseHandler = Result (*)(Arg);
+
+template <typename IntT, IntT I, typename Fn, typename R>
+R CaseHandlerImpl(Fn&& fn)
+{
+    return BATT_FORWARD(fn)(std::integral_constant<IntT, I>{});
+}
+
+template <typename IntT, IntT I, typename Fn, typename R>
+void initialize_case_handlers(std::integral_constant<IntT, I>, std::integral_constant<IntT, I>,
+                              AbstractCaseHandler<Fn, R>* /*begin*/, AbstractCaseHandler<Fn, R>* /*end*/)
+{
+    // Nothing to do; empty range.
+}
+
+template <typename IntT, IntT kBegin, IntT kEnd, typename Fn, typename R>
+void initialize_case_handlers(std::integral_constant<IntT, kBegin>, std::integral_constant<IntT, kEnd>,
+                              AbstractCaseHandler<Fn, R>* begin, AbstractCaseHandler<Fn, R>* end)
+{
+    static_assert(kEnd >= kBegin, "");
+
+    BATT_CHECK_LE(begin, end);
+    BATT_CHECK_EQ(kEnd - kBegin, end - begin);
+
+    if (begin == end - 1) {
+        *begin = CaseHandlerImpl<IntT, kBegin, Fn, R>;
+    } else {
+        constexpr IntT kMiddle = (kBegin + kEnd) / 2;
+        AbstractCaseHandler<Fn, R>* middle = begin + (end - begin) / 2;
+
+        initialize_case_handlers(std::integral_constant<IntT, kBegin>{},
+                                 std::integral_constant<IntT, kMiddle>{}, begin, middle);
+
+        initialize_case_handlers(std::integral_constant<IntT, kMiddle>{},
+                                 std::integral_constant<IntT, kEnd>{}, middle, end);
+    }
+}
+
+}  // namespace detail
+
+template <typename IntT, IntT kBegin, IntT kEnd, typename Fn,
+          typename R = decltype(std::declval<Fn>()(std::integral_constant<IntT, kBegin>{}))>
+R static_dispatch(IntT i, Fn&& fn)
+{
+    static const std::array<detail::AbstractCaseHandler<Fn&&, R>, kEnd - kBegin> case_handlers = [&] {
+        std::array<detail::AbstractCaseHandler<Fn&&, R>, kEnd - kBegin> case_handlers;
+
+        detail::initialize_case_handlers(std::integral_constant<IntT, kBegin>{},
+                                         std::integral_constant<IntT, kEnd>{}, case_handlers.data(),
+                                         case_handlers.data() + case_handlers.size());
+
+        return case_handlers;
+    }();
+
+    return case_handlers[i - kBegin](BATT_FORWARD(fn));
+}
+
+#define BATT_CONST_T(i) std::integral_constant<decltype(i), (i)>
+
+// clang-format off
+#define BATT_CONST(i) BATT_CONST_T(I){}
+// clang-format on
+
+}  // namespace batt
+
+#endif  // BATTERIES_STATIC_DISPATCH_HPP
