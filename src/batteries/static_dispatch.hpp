@@ -3,9 +3,11 @@
 #define BATTERIES_STATIC_DISPATCH_HPP
 
 #include <batteries/assert.hpp>
+#include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
 //
 #include <cstddef>
+#include <tuple>
 #include <type_traits>
 
 namespace batt {
@@ -68,6 +70,16 @@ R static_dispatch(IntT i, Fn&& fn)
     }();
 
     return case_handlers[i - kBegin](BATT_FORWARD(fn));
+}
+
+template <typename Tuple, typename Fn>
+decltype(auto) static_dispatch(std::size_t i, Fn&& fn)
+{
+    return static_dispatch<std::size_t, 0, std::tuple_size<Tuple>::value>(
+        i, [&fn](auto static_int) mutable -> decltype(auto) {
+            using T = std::tuple_element_t<decltype(static_int)::value, Tuple>;
+            return BATT_FORWARD(fn)(StaticType<T>{});
+        });
 }
 
 #define BATT_CONST_T(i) std::integral_constant<decltype(i), (i)>

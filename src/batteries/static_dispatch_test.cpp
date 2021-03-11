@@ -22,6 +22,16 @@ TEST(StaticDispatchTest, BasicTest)
     EXPECT_EQ(14, (batt::static_dispatch<int, 0, 10>(7, double_it)));
     EXPECT_EQ(16, (batt::static_dispatch<int, 0, 10>(8, double_it)));
     EXPECT_EQ(18, (batt::static_dispatch<int, 0, 10>(9, double_it)));
+
+    const auto size_it_up = [](auto arg) {
+        return sizeof(typename decltype(arg)::type);
+    };
+
+    EXPECT_EQ(4u, (batt::static_dispatch<std::tuple<int, char, double, short, long long>>(0, size_it_up)));
+    EXPECT_EQ(1u, (batt::static_dispatch<std::tuple<int, char, double, short, long long>>(1, size_it_up)));
+    EXPECT_EQ(8u, (batt::static_dispatch<std::tuple<int, char, double, short, long long>>(2, size_it_up)));
+    EXPECT_EQ(2u, (batt::static_dispatch<std::tuple<int, char, double, short, long long>>(3, size_it_up)));
+    EXPECT_EQ(8u, (batt::static_dispatch<std::tuple<int, char, double, short, long long>>(4, size_it_up)));
 }
 
 }  // namespace
