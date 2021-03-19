@@ -1,13 +1,18 @@
 #pragma once
 
 #include <batteries/hint.hpp>
+#include <batteries/int_types.hpp>
 #include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
 //
 #include <boost/stacktrace.hpp>
 //
+#include <iomanip>
 #include <iostream>
 #include <mutex>
+#include <sstream>
+//
+#include <cxxabi.h>
 
 namespace batt {
 
@@ -18,9 +23,17 @@ decltype(auto) make_printable(T&& obj)
 }
 
 template <typename T, typename = std::enable_if_t<!IsPrintable<T>{}>, typename = void>
-const char* make_printable(T&&)
+std::string make_printable(T&& obj)
 {
-    return "(obj)";
+    int status = -1;
+    std::ostringstream oss;
+    oss << "(" << abi::__cxa_demangle(typeid(T).name(), NULL, NULL, &status) << ") " << std::hex
+        << std::setw(2) << std::setfill('0');
+
+    for (const u8* bytes = (const u8*)&obj; bytes != (const u8*)((&obj) + 1); ++bytes) {
+        oss << (int)*bytes;
+    }
+    return oss.str();
 }
 
 // =============================================================================
@@ -43,10 +56,19 @@ inline std::ostream& fail_check_message(const char* left_str, LeftT&& left_val, 
                      << std::endl;
 }
 
-inline void fail_check_exit()
+#ifdef __GNUC__
+#define BATT_NORETURN __attribute__((noreturn))
+#define BATT_UNREACHABLE __builtin_unreachable
+#else
+#define BATT_NORETURN
+#define BATT_UNREACHABLE() (void)
+#endif
+
+BATT_NORETURN inline void fail_check_exit()
 {
     std::cerr << std::endl << std::endl << boost::stacktrace::stacktrace{} << std::endl;
     std::abort();
+    BATT_UNREACHABLE();
 }
 
 template <typename... Ts>
@@ -111,7 +133,7 @@ inline bool lock_fail_check_mutex()
 #define BATT_CHECK_NOT_NULLPTR(x) BATT_CHECK(x != nullptr)
 
 #define BATT_PANIC()                                                                                         \
-    for (bool one_time = true; one_time; one_time = false, ::batt::fail_check_exit())                        \
+    for (bool one_time = true; one_time; one_time = false, ::batt::fail_check_exit(), BATT_UNREACHABLE())    \
     std::cerr << "*** PANIC ***" << std::endl
 
 }  // namespace batt

@@ -122,6 +122,12 @@ class CaseOfVisitor
     CaseTuple cases_;
 };
 
+template <typename... Cases>
+CaseOfVisitor<Cases&&...> make_case_of_visitor(Cases&&... cases)
+{
+    return CaseOfVisitor<Cases&&...>{BATT_FORWARD(cases)...};
+}
+
 template <typename VarType, typename... Cases>
 decltype(auto) case_of(VarType&& v, Cases&&... cases)
 {

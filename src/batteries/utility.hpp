@@ -46,9 +46,17 @@ T make_copy(const T& value)
 // Warn/error if a function's return value is ignored:
 //
 // ```
-// int fn_returning_status_code() BATT_
+// int fn_returning_status_code() BATT_WARN_UNUSED_RESULT;
 // ```
 //
 #define BATT_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+
+// Roughly approximates the ability to treat a named overload set as though it were an actual callable
+// function.
+//
+#define BATT_OVERLOADS_OF(name)                                                                              \
+    [](auto&&... args) noexcept(noexcept(name(BATT_FORWARD(args)...))) -> decltype(auto) {                   \
+        return name(BATT_FORWARD(args)...);                                                                  \
+    }
 
 }  // namespace batt

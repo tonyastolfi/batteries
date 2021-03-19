@@ -14,8 +14,8 @@ class BatteriesConan(ConanFile):
     generators = "cmake"
     build_policy = "missing"
     requires = [
-        "gtest/1.8.0@conan/stable",
-        "boost/1.71.0@conan/stable",
+        "gtest/cci.20210126",
+        "boost/1.74.0",
     ]
     exports_sources = [
         "src/CMakeLists.txt",
