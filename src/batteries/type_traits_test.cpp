@@ -66,3 +66,12 @@ static_assert(!batt::IsTuple<std::variant<int, double>>{}, "IsTupleFalse1");
 // StaticValue tests.
 //
 static_assert(BATT_STATIC_VALUE(&IsARange::begin){} == &IsARange::begin, "");
+
+// =============================================================================
+// DecayRValueRef tests.
+static_assert(std::is_same_v<batt::DecayRValueRef<int>, int>, "");
+static_assert(std::is_same_v<batt::DecayRValueRef<const int>, const int>, "");
+static_assert(std::is_same_v<batt::DecayRValueRef<int&>, int&>, "");
+static_assert(std::is_same_v<batt::DecayRValueRef<const int&>, const int&>, "");
+static_assert(std::is_same_v<batt::DecayRValueRef<int&&>, int>, "");
+static_assert(std::is_same_v<batt::DecayRValueRef<const int&&>, int>, "");

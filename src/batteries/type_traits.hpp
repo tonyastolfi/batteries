@@ -150,4 +150,18 @@ using EnableIfNoShadow =
                      && !std::is_same<std::tuple<>, std::tuple<std::decay_t<Args>*...>>{}  // Default ctor
                      >;
 
+// =============================================================================
+// Decays T iff it is an rvalue reference type.
+//
+template <typename T>
+struct DecayRValueRefImpl
+    : std::conditional_t<  //
+          /*if */ std::is_rvalue_reference_v<T>,
+          /* then */ std::decay<T>,
+          /* else */ batt::StaticType<T>> {
+};
+
+template <typename T>
+using DecayRValueRef = typename DecayRValueRefImpl<T>::type;
+
 }  // namespace batt
