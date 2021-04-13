@@ -1,10 +1,9 @@
 #include <batteries/stream_util.hpp>
 //
-#include <batteries/stream_util.hpp>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <batteries/stream_util.hpp>
 #include <sstream>
 
 namespace {
@@ -29,7 +28,7 @@ TEST(StreamUtil, PrintOptSome)
 
 TEST(StreamUtil, PrintLambda)
 {
-    EXPECT_THAT(batt::to_string([](std::ostream &out) {
+    EXPECT_THAT(batt::to_string([](std::ostream& out) {
                     out << "hello, ";
                     out << "world!";
                 }),
@@ -38,14 +37,14 @@ TEST(StreamUtil, PrintLambda)
 
 class DumpRangeTest : public ::testing::Test
 {
-  protected:
-    std::vector<u8> bytes_{ { 11, 14, 14, 15 } };
+   protected:
+    std::vector<u8> bytes_{{11, 14, 14, 15}};
     std::vector<int> empty_;
-    std::vector<int> single_{ 1 };
-    std::vector<int> many_{ { 2, 4, 6, 8 } };
-    std::vector<std::vector<int>> nested_empty_{ { empty_ } };
-    std::vector<std::vector<int>> nested_single_{ { single_ } };
-    std::vector<std::vector<int>> nested_many_{ { many_, many_, many_ } };
+    std::vector<int> single_{1};
+    std::vector<int> many_{{2, 4, 6, 8}};
+    std::vector<std::vector<int>> nested_empty_{{empty_}};
+    std::vector<std::vector<int>> nested_single_{{single_}};
+    std::vector<std::vector<int>> nested_many_{{many_, many_, many_}};
 };
 
 TEST_F(DumpRangeTest, Bytes)
@@ -75,8 +74,7 @@ TEST_F(DumpRangeTest, Nested_Empty_NoPretty)
 
 TEST_F(DumpRangeTest, Nested_Single_NoPretty)
 {
-    EXPECT_EQ(batt::to_string(batt::dump_range(nested_single_, batt::Pretty::False)),
-              "{ { 1, }, }");
+    EXPECT_EQ(batt::to_string(batt::dump_range(nested_single_, batt::Pretty::False)), "{ { 1, }, }");
 }
 
 TEST_F(DumpRangeTest, Nested_Many_NoPretty)
@@ -155,4 +153,21 @@ TEST_F(DumpRangeTest, Nested_Many_Pretty)
               "}");
 }
 
-} // namespace
+TEST(ToString, IntFormat)
+{
+    EXPECT_EQ(0x5d, 93);
+    EXPECT_THAT(batt::to_string(std::hex, 0x5d), StrEq("5d"));
+    EXPECT_THAT(batt::to_string(std::dec, 93), StrEq("93"));
+    EXPECT_THAT(batt::to_string("0x", std::hex, std::setw(10), std::setfill('0'), 93), StrEq("0x000000005d"));
+}
+
+TEST(FromString, IntFormat)
+{
+    EXPECT_EQ(0x5d, 93);
+    EXPECT_EQ(0x93, 147);
+    EXPECT_EQ(batt::from_string<int>("93"), std::make_optional(93));
+    EXPECT_EQ(batt::from_string<int>("147"), std::make_optional(147));
+    EXPECT_EQ(batt::from_string<int>("93", std::hex), std::make_optional(147));
+}
+
+}  // namespace
