@@ -90,6 +90,113 @@ std::optional<T> from_string(const std::string& str, FormatArgs&&... format_args
 }
 
 // =============================================================================
+// c_str_literal(str) - escape a C string.
+//
+struct EscapedStringLiteral {
+    std::string_view str;
+};
+
+inline EscapedStringLiteral c_str_literal(const std::string_view& str)
+{
+    return EscapedStringLiteral{str};
+}
+
+inline std::ostream& operator<<(std::ostream& out, const EscapedStringLiteral& t)
+{
+    static const char xdigit[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
+                                    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+    const auto emit_hex_ascii = [&](char ch) {
+        out << "\\x" << xdigit[(ch & 0xf) >> 4] << xdigit[ch & 0xf];
+    };
+
+    out << '"';
+    for (char ch : t.str) {
+        if (ch & 0b10000000) {
+            emit_hex_ascii(ch);
+            continue;
+        }
+        switch (ch & 0b1110000) {
+        case 0b0000000:
+            switch (ch & 0b1111) {
+            case 0b0000:
+                out << "\\0";
+                break;
+            case 0b0111:
+                out << "\\a";
+                break;
+            case 0b1000:
+                out << "\\b";
+                break;
+            case 0b1001:
+                out << "\\t";
+                break;
+            case 0b1010:
+                out << "\\n";
+                break;
+            case 0b1011:
+                out << "\\v";
+                break;
+            case 0b1100:
+                out << "\\f";
+                break;
+            case 0b1101:
+                out << "\\r";
+                break;
+            default:
+                emit_hex_ascii(ch);
+                break;
+            }
+            break;
+        case 0b0010000:
+            switch (ch & 0b1111) {
+            case 0b1011:
+                out << "\\e";
+                break;
+            default:
+                emit_hex_ascii(ch);
+                break;
+            }
+            break;
+        case 0b0100000:
+            switch (ch & 0b1111) {
+            case 0b0010:
+                out << "\\\"";
+                break;
+            default:
+                out << ch;
+                break;
+            }
+            break;
+        case 0b1010000:
+            switch (ch & 0b1111) {
+            case 0b1100:
+                out << "\\\\";
+                break;
+            default:
+                out << ch;
+                break;
+            }
+            break;
+        case 0b1110000:
+            switch (ch & 0b1111) {
+            case 0b1111:
+                out << "\\x7f";
+                break;
+            default:
+                out << ch;
+                break;
+            }
+            break;
+        default:
+            out << ch;
+            break;
+        }
+    }
+    return out << '"';
+}
+
+// =============================================================================
 // dump_range(x) - make range `x` printable to std::ostream.  Will also print any nested ranges
 // (e.g., `std::vector<std::vector<int>>`).
 //
@@ -135,6 +242,16 @@ template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>,
 inline std::ostream& dump_item(std::ostream& out, T&& item)
 {
     return out << BATT_FORWARD(item);
+}
+
+inline std::ostream& dump_item(std::ostream& out, const std::string& s)
+{
+    return out << c_str_literal(s);
+}
+
+inline std::ostream& dump_item(std::ostream& out, const std::string_view& s)
+{
+    return out << c_str_literal(s);
 }
 
 template <typename T, typename = std::enable_if_t<IsRange<T>{}>>
