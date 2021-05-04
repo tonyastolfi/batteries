@@ -10,27 +10,6 @@
 namespace batt {
 
 // =============================================================================
-// case_of - match a variant against a list of callables and apply the first one
-// that will accept the current value.
-//
-// Example:
-// ```
-// std::variant<Foo, Bar> var = Bar{};
-//
-// int result = batt::case_of(
-//   var,
-//   [](const Foo &) {
-//       return 1;
-//   },
-//   [](const Bar &) {
-//       return 2;
-//   });
-//
-// BATT_CHECK_EQ(result, 2);
-// ```
-//
-
-// =============================================================================
 namespace detail {
 template <typename CaseTuple, typename ArgsTuple>
 struct FirstMatchImpl;
@@ -122,12 +101,35 @@ class CaseOfVisitor
     CaseTuple cases_;
 };
 
+/// Constructs and returns a single overloaded callable function object that forwards its arguments on to the
+/// first object in `cases` that is callable with those arguments.
+///
 template <typename... Cases>
 CaseOfVisitor<Cases&&...> make_case_of_visitor(Cases&&... cases)
 {
     return CaseOfVisitor<Cases&&...>{BATT_FORWARD(cases)...};
 }
 
+// =============================================================================
+/// Matches a variant against a list of callables and apply the first one
+/// that will accept the current value.
+///
+/// Example:
+/// \code{.cpp}
+/// std::variant<Foo, Bar> var = Bar{};
+///
+/// int result = batt::case_of(
+///   var,
+///   [](const Foo &) {
+///       return 1;
+///   },
+///   [](const Bar &) {
+///       return 2;
+///   });
+///
+/// BATT_CHECK_EQ(result, 2);
+/// \endcode
+///
 template <typename VarType, typename... Cases>
 decltype(auto) case_of(VarType&& v, Cases&&... cases)
 {

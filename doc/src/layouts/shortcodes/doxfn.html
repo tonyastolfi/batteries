@@ -1,0 +1,11 @@
+{{ $parts := split (.Get 0) "::" }}
+{{ $fn := index $parts (sub (len $parts) 1) | lower }}
+{{ $ns := "" }}
+{{ range $i, $p := (first (sub (len $parts) 1) $parts) }}
+  {{ if (ne $ns "") }}
+    {{ $ns = printf "%s::" $ns }} 
+  {{ end }}
+  {{ $ns = printf "%s%s" $ns $p }} 
+{{ end }}
+{{ $path := printf "/reference/namespaces/namespace%s/#function-%s" ((replace (replace $ns "." "_8") ":" "_1") | urlize) $fn }}
+<a href="{{ $path }}">{{ .Get 0 }}</a>

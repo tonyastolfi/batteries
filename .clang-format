@@ -17,6 +17,7 @@ IndentCaseLabels: false
 IndentPPDirectives: None
 IndentWidth: 4
 PointerAlignment: Left
+IncludeBlocks: Preserve
 SortIncludes: true
 SortUsingDeclarations: true
 SpaceBeforeParens: ControlStatements

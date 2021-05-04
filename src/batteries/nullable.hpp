@@ -17,6 +17,11 @@ struct NullableImpl {
 };
 
 template <typename T>
+struct NullableImpl<std::optional<T>> {
+    using type = std::optional<T>;
+};
+
+template <typename T>
 struct NullableImpl<std::unique_ptr<T>> {
     using type = std::unique_ptr<T>;
 };

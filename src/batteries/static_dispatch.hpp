@@ -84,6 +84,8 @@ decltype(auto) static_dispatch(std::size_t i, Fn&& fn)
 
 #define BATT_CONST_T(i) std::integral_constant<decltype(i), (i)>
 
+/// Shortcut for: `std::integral_constant<decltype(i), i>{}`.
+///
 // clang-format off
 #define BATT_CONST(i) BATT_CONST_T(I){}
 // clang-format on

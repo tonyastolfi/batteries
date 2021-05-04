@@ -2,37 +2,35 @@
 #ifndef BATTERIES_SMALL_FUNCTION_HPP
 #define BATTERIES_SMALL_FUNCTION_HPP
 
-#include <type_traits>
+#include <batteries/assert.hpp>
+#include <batteries/cpu_align.hpp>
+#include <batteries/hint.hpp>
+#include <batteries/int_types.hpp>
+#include <batteries/static_assert.hpp>
+#include <batteries/type_traits.hpp>
+#include <batteries/utility.hpp>
 
-#include "batteries/assert.hpp"
-#include "batteries/cpu_align.hpp"
-#include "batteries/hint.hpp"
-#include "batteries/int_types.hpp"
-#include "batteries/type_traits.hpp"
-#include "batteries/utility.hpp"
+#include <type_traits>
 
 namespace batt {
 
-// A type-erased container for a callable function-like object with a statically
-// bounded maximum size.
-//
-// By default, the static buffer allocated internal to `SmallFn` is sized such
-// that `sizeof(SmallFn)` is equal to a single CPU cache line.  This class can
-// be used to type-erase both regular copyable types and move-only callable
-// types; for convenience, the template `UniqueSmallFn` is defined for the
-// latter of these.
-//
-template <typename Signature,
-          usize kMaxSize = kCpuCacheLineSize - sizeof(void*),
-          bool kMoveOnly = false>
+/// A type-erased container for a callable function-like object with a statically
+/// bounded maximum size.
+///
+/// By default, the static buffer allocated internal to SmallFn is sized such
+/// that `sizeof(SmallFn)` is equal to a single CPU cache line.  This class can
+/// be used to type-erase both regular copyable types and move-only callable
+/// types.  [UniqueSmallFn](/reference/namespaces/namespacebatt/#using-uniquesmallfn) can be used to
+/// type-erase move-only callable types.
+///
+template <typename Signature, usize kMaxSize = kCpuCacheLineSize - sizeof(void*), bool kMoveOnly = false>
 class SmallFn;
 
-// A type-erased container for a _move-only_ callable function-like object. This
-// type can be used to hold copyable functions, but is itself move-only,
-// therefore does not require copy semantics from erased types.
-//
-template <typename Signature,
-          usize kMaxSize = kCpuCacheLineSize - sizeof(void*)>
+/// A type-erased container for a _move-only_ callable function-like object. This
+/// type can be used to hold copyable functions, but is itself move-only,
+/// therefore does not require copy semantics from erased types.
+///
+template <typename Signature, usize kMaxSize = kCpuCacheLineSize - sizeof(void*)>
 using UniqueSmallFn = SmallFn<Signature, kMaxSize, /*kMoveOnly=*/true>;
 
 namespace detail {
@@ -50,8 +48,7 @@ class AbstractCopyFn;
 //
 template <bool kMoveOnly, typename Result, typename... Args>
 using AbstractFn =
-    std::conditional_t<kMoveOnly, AbstractMoveFn<true, Result, Args...>,
-                       AbstractCopyFn<Result, Args...>>;
+    std::conditional_t<kMoveOnly, AbstractMoveFn<true, Result, Args...>, AbstractCopyFn<Result, Args...>>;
 
 // Forward declare the implementation class templates for function type erasure.
 //
@@ -62,9 +59,8 @@ template <typename Fn, typename Result, typename... Args>
 class CopyFnImpl;
 
 template <typename Fn, bool kMoveOnly, typename Result, typename... Args>
-using FnImpl =
-    std::conditional_t<kMoveOnly, MoveFnImpl<Fn, kMoveOnly, Result, Args...>,
-                       CopyFnImpl<Fn, Result, Args...>>;
+using FnImpl = std::conditional_t<kMoveOnly, MoveFnImpl<Fn, kMoveOnly, Result, Args...>,
+                                  CopyFnImpl<Fn, Result, Args...>>;
 
 // Base class for abstract function types.  Defines the common
 // interface/concept for move-only and copyable functions:
@@ -111,8 +107,7 @@ class AbstractCopyFn : public AbstractMoveFn<false, Result, Args...>
     // Same as `copy`, but the returned type-erased object drops the ability to
     // copy in favor of a move-only interface.
     //
-    virtual auto copy_to_move_only(void* memory,
-                                   std::size_t size) const noexcept
+    virtual auto copy_to_move_only(void* memory, std::size_t size) const noexcept
         -> AbstractFn<true, Result, Args...>* = 0;
 };
 
@@ -135,13 +130,11 @@ class MoveFnImpl : public AbstractFn<kMoveOnly, Result, Args...>
         return fn_(BATT_FORWARD(args)...);
     }
 
-    AbstractFn<kMoveOnly, Result, Args...>* move(
-        void* memory, std::size_t size) noexcept override
+    AbstractFn<kMoveOnly, Result, Args...>* move(void* memory, std::size_t size) noexcept override
     {
         BATT_CHECK_LE(sizeof(self_type), size);
 
-        return new (memory)
-            FnImpl<Fn, kMoveOnly, Result, Args...>(std::move(fn_));
+        return new (memory) FnImpl<Fn, kMoveOnly, Result, Args...>(std::move(fn_));
     }
 
    protected:
@@ -159,29 +152,25 @@ class CopyFnImpl : public MoveFnImpl<Fn, /*kMoveOnly=*/false, Result, Args...>
 
     using MoveFnImpl<Fn, /*kMoveOnly=*/false, Result, Args...>::MoveFnImpl;
 
-    AbstractFn<false, Result, Args...>* copy(
-        void* memory, std::size_t size) const noexcept override
+    AbstractFn<false, Result, Args...>* copy(void* memory, std::size_t size) const noexcept override
     {
         BATT_CHECK_LE(sizeof(self_type), size);
 
-        return new (memory)
-            FnImpl<Fn, /*kMoveOnly=*/false, Result, Args...>(this->fn_);
+        return new (memory) FnImpl<Fn, /*kMoveOnly=*/false, Result, Args...>(this->fn_);
     }
 
-    AbstractFn<true, Result, Args...>* copy_to_move_only(
-        void* memory, std::size_t size) const noexcept override
+    AbstractFn<true, Result, Args...>* copy_to_move_only(void* memory,
+                                                         std::size_t size) const noexcept override
     {
         BATT_CHECK_LE(sizeof(self_type), size);
 
-        return new (memory)
-            FnImpl<Fn, /*kMoveOnly=*/true, Result, Args...>(this->fn_);
+        return new (memory) FnImpl<Fn, /*kMoveOnly=*/true, Result, Args...>(this->fn_);
     }
 };
 
 }  // namespace detail
 
-template <typename... Args, typename Result, std::size_t kMaxSize,
-          bool kMoveOnly>
+template <typename... Args, typename Result, std::size_t kMaxSize, bool kMoveOnly>
 class SmallFn<auto(Args...)->Result, kMaxSize, kMoveOnly>
 {
     template <typename, usize, bool>
@@ -196,14 +185,13 @@ class SmallFn<auto(Args...)->Result, kMaxSize, kMoveOnly>
     template <typename Fn>
     using FnImpl = detail::FnImpl<Fn, kMoveOnly, Result, Args...>;
 
-#define BATT_REQUIRE_COPYABLE                                                  \
-    static_assert(!kMoveOnly, "This kind of SmallFn is move-only!")
+#define BATT_REQUIRE_COPYABLE static_assert(!kMoveOnly, "This kind of SmallFn is move-only!")
 
     template <typename Fn>
     static auto check_fn_size(Fn&& fn) -> Fn&&
     {
-        static_assert(sizeof(FnImpl<std::decay_t<Fn>>) <= kMaxSize,
-                      "Passed function is not small!");
+        BATT_STATIC_ASSERT_LE(sizeof(FnImpl<std::decay_t<Fn>>),
+                              kMaxSize);  // "Passed function is not small!"
 
         return BATT_FORWARD(fn);
     }
@@ -217,39 +205,33 @@ class SmallFn<auto(Args...)->Result, kMaxSize, kMoveOnly>
 
     template <typename Fn, typename = EnableIfNoShadow<SmallFn, Fn>>
     SmallFn(Fn&& fn) noexcept
-        : impl_{new (&storage_)
-                    FnImpl<std::decay_t<Fn>>(check_fn_size(BATT_FORWARD(fn)))}
+        : impl_{new (&storage_) FnImpl<std::decay_t<Fn>>(check_fn_size(BATT_FORWARD(fn)))}
     {
     }
 
     SmallFn(self_type&& that) noexcept
         : impl_{[&] {
-              auto impl = BATT_HINT_TRUE(that.impl_ != nullptr)
-                              ? that.impl_->move(&storage_, kMaxSize)
-                              : nullptr;
-              that.clear();
-              return impl;
-          }()}
+            auto impl =
+                BATT_HINT_TRUE(that.impl_ != nullptr) ? that.impl_->move(&storage_, kMaxSize) : nullptr;
+            that.clear();
+            return impl;
+        }()}
     {
     }
 
     SmallFn(const self_type& that) noexcept
         : impl_{[&] {
-              BATT_REQUIRE_COPYABLE;
-              return BATT_HINT_TRUE(that.impl_ != nullptr)
-                         ? that.impl_->copy(&storage_, kMaxSize)
-                         : nullptr;
-          }()}
+            BATT_REQUIRE_COPYABLE;
+            return BATT_HINT_TRUE(that.impl_ != nullptr) ? that.impl_->copy(&storage_, kMaxSize) : nullptr;
+        }()}
     {
     }
 
-#define BATT_SMALL_FN_CONSTRUCT_MOVE_ONLY_FROM_COPY(cv_qual)                   \
-    template <usize kThatSize,                                                 \
-              typename = std::enable_if_t<kThatSize <= kMaxSize && kMoveOnly>> \
-    SmallFn(cv_qual SmallFn<Result(Args...), kThatSize, /*kMoveOnly=*/false>&  \
-                that) noexcept                                                 \
-        : impl_{that.impl_->copy_to_move_only(&storage_, kMaxSize)}            \
-    {                                                                          \
+#define BATT_SMALL_FN_CONSTRUCT_MOVE_ONLY_FROM_COPY(cv_qual)                                                 \
+    template <usize kThatSize, typename = std::enable_if_t<kThatSize <= kMaxSize && kMoveOnly>>              \
+    SmallFn(cv_qual SmallFn<Result(Args...), kThatSize, /*kMoveOnly=*/false>& that) noexcept                 \
+        : impl_{that.impl_->copy_to_move_only(&storage_, kMaxSize)}                                          \
+    {                                                                                                        \
     }
 
     BATT_SMALL_FN_CONSTRUCT_MOVE_ONLY_FROM_COPY()
@@ -270,6 +252,12 @@ class SmallFn<auto(Args...)->Result, kMaxSize, kMoveOnly>
         }
     }
 
+    auto operator=(std::nullptr_t) noexcept -> self_type&
+    {
+        this->clear();
+        return *this;
+    }
+
     template <typename Fn, typename = EnableIfNoShadow<SmallFn, Fn>>
     auto operator=(Fn&& fn) noexcept -> self_type&
     {
@@ -282,9 +270,7 @@ class SmallFn<auto(Args...)->Result, kMaxSize, kMoveOnly>
     {
         if (BATT_HINT_TRUE(this != &that)) {
             clear();
-            impl_ = BATT_HINT_TRUE(that.impl_ != nullptr)
-                        ? that.impl_->move(&storage_, kMaxSize)
-                        : nullptr;
+            impl_ = BATT_HINT_TRUE(that.impl_ != nullptr) ? that.impl_->move(&storage_, kMaxSize) : nullptr;
             that.clear();
         }
         return *this;
@@ -296,24 +282,19 @@ class SmallFn<auto(Args...)->Result, kMaxSize, kMoveOnly>
 
         if (BATT_HINT_TRUE(this != &that)) {
             clear();
-            impl_ = BATT_HINT_TRUE(that.impl_ != nullptr)
-                        ? that.impl_->copy(&storage_, kMaxSize)
-                        : nullptr;
+            impl_ = BATT_HINT_TRUE(that.impl_ != nullptr) ? that.impl_->copy(&storage_, kMaxSize) : nullptr;
         }
         return *this;
     }
 
-#define BATT_SMALL_FN_ASSIGN_MOVE_ONLY_FROM_COPY(cv_qual)                      \
-    template <usize kThatSize,                                                 \
-              typename = std::enable_if_t<kThatSize <= kMaxSize && kMoveOnly>> \
-    auto operator=(                                                            \
-        cv_qual SmallFn<Result(Args...), kThatSize, false>& that) noexcept     \
-        ->self_type&                                                           \
-    {                                                                          \
-        clear();                                                               \
-        impl_ = that.impl_->copy_to_move_only(&storage_, kMaxSize);            \
-                                                                               \
-        return *this;                                                          \
+#define BATT_SMALL_FN_ASSIGN_MOVE_ONLY_FROM_COPY(cv_qual)                                                    \
+    template <usize kThatSize, typename = std::enable_if_t<kThatSize <= kMaxSize && kMoveOnly>>              \
+    auto operator=(cv_qual SmallFn<Result(Args...), kThatSize, false>& that) noexcept->self_type&            \
+    {                                                                                                        \
+        clear();                                                                                             \
+        impl_ = that.impl_->copy_to_move_only(&storage_, kMaxSize);                                          \
+                                                                                                             \
+        return *this;                                                                                        \
     }
 
     BATT_SMALL_FN_ASSIGN_MOVE_ONLY_FROM_COPY()

@@ -7,6 +7,13 @@
 
 namespace batt {
 
+struct Eq;
+struct Ne;
+struct Lt;
+struct Le;
+struct Ge;
+struct Gt;
+
 template <typename T, typename U, T left, typename Op, U right, bool kCondition>
 struct StaticBinaryAssertion : std::integral_constant<bool, kCondition> {
     static_assert(kCondition == true, "");
@@ -20,33 +27,33 @@ struct StaticBinaryAssertion : std::integral_constant<bool, kCondition> {
 #endif
 
 #define BATT_STATIC_ASSERT_EQ(x, y)                                                                          \
-    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct Eq, (y),    \
-                                                           ((x) == (y))>                                     \
+    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Eq, \
+                                                           (y), ((x) == (y))>                                \
         BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 #define BATT_STATIC_ASSERT_NE(x, y)                                                                          \
-    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct Ne, (y),    \
-                                                           ((x) != (y))>                                     \
+    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Ne, \
+                                                           (y), ((x) != (y))>                                \
         BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 #define BATT_STATIC_ASSERT_LT(x, y)                                                                          \
-    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct Lt, (y),    \
-                                                           ((x) < (y))>                                      \
+    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Lt, \
+                                                           (y), ((x) < (y))>                                 \
         BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 #define BATT_STATIC_ASSERT_LE(x, y)                                                                          \
-    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct Le, (y),    \
-                                                           ((x) <= (y))>                                     \
+    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Le, \
+                                                           (y), ((x) <= (y))>                                \
         BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 #define BATT_STATIC_ASSERT_GT(x, y)                                                                          \
-    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct Gt, (y),    \
-                                                           ((x) > (y))>                                      \
+    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Gt, \
+                                                           (y), ((x) > (y))>                                 \
         BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 #define BATT_STATIC_ASSERT_GE(x, y)                                                                          \
-    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct Ge, (y),    \
-                                                           ((x) >= (y))>                                     \
+    static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Ge, \
+                                                           (y), ((x) >= (y))>                                \
         BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 }  // namespace batt

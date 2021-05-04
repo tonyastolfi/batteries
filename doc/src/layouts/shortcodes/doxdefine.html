@@ -1,0 +1,2 @@
+{{ $path := printf "/reference/files/%s#define-%s" ((replace (replace (.Get "file") "_" "__") "." "_8") | urlize) (.Get "name" | lower) }}
+<a href="{{ $path }}">{{ .Get "name" }}</a>

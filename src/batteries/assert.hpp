@@ -4,14 +4,14 @@
 #include <batteries/int_types.hpp>
 #include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
-//
+
 #include <boost/stacktrace.hpp>
-//
+
 #include <iomanip>
 #include <iostream>
 #include <mutex>
 #include <sstream>
-//
+
 #include <cxxabi.h>
 
 namespace batt {

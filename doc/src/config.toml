@@ -1,0 +1,39 @@
+baseURL = "https://batteriesincluded.cc/"
+author = "Tony Astolfi"
+paginate = 20
+languageCode = "en"
+DefaultContentLanguage = "en"
+enableInlineShortcodes = true
+footnoteReturnLinkContents = "^"
+# Above are configs from hugoBasicExample
+
+title = "Batteries for C++"
+theme = "hugo-primer"
+hasCJKLanguage = true
+summaryLength = 70
+pygmentsCodeFences = true
+pygmentsUseClasses = true
+googleAnalytics = ""
+disqusShortname=""
+copyright = "&copy;2019-2021 Tony Astolfi"
+
+[params]
+description = "Home of the Batteries C++ library"
+twitter = ""
+useIcon = false
+useTwitterCard = true
+# exampleSite must not have js share widget: #36
+# shareTo = ["Twitter", "Hatena", "Facebook", "Pocket"]
+shareTo = []
+showFooterCredits = true
+math = true
+
+[Params]
+showDate = false
+
+[markup]
+  [markup.tableOfContents]
+    startLevel = 1
+    endLevel = 8
+    ordered = false
+

@@ -1,0 +1,9 @@
+{{ $s := "" }}
+{{ $found := false }}
+{{ range $i, $line := (split (readFile (.Get "file")) "\n") }}
+  {{ $found = (or $found  (eq $line "## Namespaces") )}}
+  {{ if $found }}
+    {{ $s = printf "%s\n%s" $s $line }}
+  {{ end }}
+{{ end }}
+{{ $s | markdownify}}
