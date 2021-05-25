@@ -36,6 +36,19 @@ inline void print_stack_trace()
     std::cerr << std::endl << boost::stacktrace::stacktrace{} << std::endl;
 }
 
+inline bool& print_stack_trace_atexit_enabled()
+{
+    static bool b_ = true;
+    return b_;
+}
+
+inline void print_stack_trace_atexit()
+{
+    if (print_stack_trace_atexit_enabled()) {
+        print_stack_trace();
+    }
+}
+
 // =============================================================================
 // SEGV backtrace handler
 //
@@ -44,8 +57,14 @@ namespace detail {
 inline void handle_segv(int sig)
 {
     fprintf(stderr, "FATAL: signal %d (%s):\n[[raw stack]]\n", sig, strsignal(sig));
-    // print_stack_trace();
+    print_stack_trace_atexit_enabled() = true;
     exit(sig);
+}
+
+inline void exit_impl(int code)
+{
+    print_stack_trace_atexit_enabled() = (code != 0);
+    ::exit(code);
 }
 
 }  // namespace detail
@@ -53,8 +72,10 @@ inline void handle_segv(int sig)
 inline const bool kSigSegvHandlerInstalled = [] {
     signal(SIGSEGV, &detail::handle_segv);
     signal(SIGABRT, &detail::handle_segv);
-    std::atexit(&print_stack_trace);
+    std::atexit(&print_stack_trace_atexit);
     return true;
 }();
+
+#define BATT_EXIT(code) ::batt::detail::exit_impl(code)
 
 }  // namespace batt

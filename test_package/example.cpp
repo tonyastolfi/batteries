@@ -6,8 +6,7 @@
 #include <variant>
 #include <vector>
 
-int
-main()
+int main()
 {
     // Smoke test for <batteries/assert.hpp>
     //
@@ -16,21 +15,21 @@ main()
     // Smoke test for <batteries/case_of.hpp>
     //
     {
-        struct Foo
-        {};
-        struct Bar
-        {};
+        struct Foo {
+        };
+        struct Bar {
+        };
 
         std::variant<Foo, Bar> var = Bar{};
 
         int result = batt::case_of(
-          var,
-          [](const Foo &) {
-              return 1;
-          },
-          [](const Bar &) {
-              return 2;
-          });
+            var,
+            [](const Foo&) {
+                return 1;
+            },
+            [](const Bar&) {
+                return 2;
+            });
 
         BATT_CHECK_EQ(result, 2);
     }
@@ -79,5 +78,5 @@ main()
     //
     std::vector<int> v_copy = batt::make_copy(v);
 
-    return 0;
+    BATT_EXIT(0);
 }
