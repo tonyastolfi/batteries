@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef BOOST_STACKTRACE_USE_NOOP
+#undef BOOST_STACKTRACE_USE_NOOP
+#endif  // BOOST_STACKTRACE_USE_NOOP
+
 #include <batteries/int_types.hpp>
 #include <batteries/suppress.hpp>
 

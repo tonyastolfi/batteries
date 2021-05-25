@@ -11,6 +11,8 @@ endif()
 
 include_directories(.)
 
+remove_definitions(-DBOOST_STACKTRACE_USE_NOOP)
+
 file(GLOB TestSources batteries/*_test.cpp)
 
 add_executable(BattTest ${TestSources})
