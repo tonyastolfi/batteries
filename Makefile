@@ -10,3 +10,5 @@ build:
 	(cd build/$(BUILD_TYPE) && conan build ../..)
 	doxybook2 --input build/$(BUILD_TYPE)/doc_doxygen/xml --config-data '{"baseUrl":"/reference/","linkLowercase":true,"linkSuffix":"/"}' --output build/$(BUILD_TYPE)/doc_doxybook2
 
+create:
+	(cd build/$(BUILD_TYPE) && conan create ../..)

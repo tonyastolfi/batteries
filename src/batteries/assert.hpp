@@ -66,7 +66,7 @@ inline std::ostream& fail_check_message(const char* left_str, LeftT&& left_val, 
 
 BATT_NORETURN inline void fail_check_exit()
 {
-    std::cerr << std::endl << std::endl << boost::stacktrace::stacktrace{} << std::endl;
+    std::cerr << std::endl << std::endl;  // << boost::stacktrace::stacktrace{} << std::endl;
     std::abort();
     BATT_UNREACHABLE();
 }

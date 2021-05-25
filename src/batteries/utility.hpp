@@ -28,7 +28,7 @@ namespace batt {
 /// MyStruct ex1{std::make_shared<bool>(true)};
 ///
 /// auto flag_arg = std::make_shared<bool>(false);
-/// MyStruct ex2{make_copy(flag_arg)};
+/// MyStruct ex2{batt::make_copy(flag_arg)};
 /// MyStruct ex3{std::move(flag_arg)};
 ///
 /// // This is not allowed (the caller must declare intent loudly):

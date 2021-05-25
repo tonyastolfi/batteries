@@ -1,9 +1,12 @@
 #pragma once
 
 #include <batteries/int_types.hpp>
+#include <batteries/suppress.hpp>
 #include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
+
 #include <boost/io/ios_state.hpp>
+
 #include <iomanip>
 #include <optional>
 #include <ostream>
@@ -67,12 +70,14 @@ std::istream& extract_all(std::istream& in, First&& first, Rest&&... rest)
 // to_string - use ostream insertion to convert any object to a string.
 //
 template <typename... Args>
-std::string to_string(const Args&... args)
+std::string to_string(Args&&... args)
 {
     std::ostringstream oss;
     print_all(oss, BATT_FORWARD(args)...);
     return std::move(oss).str();
 }
+
+BATT_SUPPRESS("-Wmaybe-uninitialized")
 
 // =============================================================================
 // from_string - use istream extraction to parse any object from a string.
@@ -88,6 +93,8 @@ std::optional<T> from_string(const std::string& str, FormatArgs&&... format_args
     }
     return std::nullopt;
 }
+
+BATT_UNSUPPRESS()
 
 // =============================================================================
 // c_str_literal(str) - escape a C string.
@@ -321,5 +328,10 @@ RangeDumper<const T&> dump_range(const T& value, Pretty pretty)
 {
     return RangeDumper<const T&>{value, pretty};
 }
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// BATT_INSPECT(expr) : expand to debug-friendly stream insertion expression.
+//
+#define BATT_INSPECT(expr) #expr << " == " << (expr)
 
 }  // namespace batt

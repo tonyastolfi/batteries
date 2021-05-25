@@ -27,9 +27,10 @@ endif()
 # Thank you to Victoria Rudakova for this Doxygen/CMake integration code!
 #  (https://vicrucann.github.io/tutorials/quick-cmake-doxygen/)
 #
-option(BUILD_DOC "Build documentation" ON)
-find_package(Doxygen)
-if (DOXYGEN_FOUND)
+option(BUILD_DOC "Build documentation" OFF)
+if (BUILD_DOC)
+  find_package(Doxygen)
+  if (DOXYGEN_FOUND)
     # set input and output files
     set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/../doc/Doxyfile.in)
     set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/doc_doxygen/Doxyfile)
@@ -46,9 +47,10 @@ if (DOXYGEN_FOUND)
         VERBATIM )
     message("Doxygen target added")
       
-else (DOXYGEN_FOUND)
-  message("Doxygen need to be installed to generate the doxygen documentation")
-endif (DOXYGEN_FOUND)
+  else (DOXYGEN_FOUND)
+    message("Doxygen need to be installed to generate the doxygen documentation")
+  endif (DOXYGEN_FOUND)
+endif (BUILD_DOC)
 #
 #=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 

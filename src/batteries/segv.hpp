@@ -35,7 +35,7 @@ namespace detail {
 inline void handle_segv(int sig)
 {
     fprintf(stderr, "FATAL: signal %d (%s):\n[[raw stack]]\n", sig, strsignal(sig));
-    print_stack_trace();
+    // print_stack_trace();
     exit(sig);
 }
 
@@ -43,6 +43,8 @@ inline void handle_segv(int sig)
 
 inline const bool kSigSegvHandlerInstalled = [] {
     signal(SIGSEGV, &detail::handle_segv);
+    signal(SIGABRT, &detail::handle_segv);
+    std::atexit(&print_stack_trace);
     return true;
 }();
 
