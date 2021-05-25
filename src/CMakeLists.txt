@@ -4,7 +4,7 @@ project(Batteries CXX)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
-add_definitions("-std=c++17 -Wall -Wextra -Werror -DBOOST_ERROR_CODE_HEADER_ONLY -D_GNU_SOURCE -fno-omit-frame-pointer")
+add_definitions("-std=c++17 -Wall -Wextra -Werror -DBOOST_ERROR_CODE_HEADER_ONLY -D_GNU_SOURCE -fno-omit-frame-pointer -g3")
 if(NOT APPLE)
 add_definitions("-DBOOST_STACKTRACE_USE_BACKTRACE")
 endif()
