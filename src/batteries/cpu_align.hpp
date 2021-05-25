@@ -67,7 +67,8 @@ class CpuCacheLineIsolated
     // Pass-through assignment from any type assignable to T.
     //
     template <typename V, typename = std::enable_if_t<!std::is_same_v<std::decay_t<V>, CpuCacheLineIsolated>>>
-    CpuCacheLineIsolated& operator=(V&& val) noexcept(noexcept(this->value() = std::forward<V>(val)))
+    CpuCacheLineIsolated& operator=(V&& val) noexcept(
+        noexcept(std::declval<CpuCacheLineIsolated*>()->value() = std::forward<V>(val)))
     {
         this->value() = std::forward<V>(val);
         return *this;
