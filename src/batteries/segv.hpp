@@ -1,15 +1,20 @@
 #pragma once
 
+#include <batteries/int_types.hpp>
+#include <batteries/suppress.hpp>
+
+BATT_SUPPRESS("-Wmaybe-uninitialized")
+#include <boost/stacktrace.hpp>
+BATT_UNSUPPRESS()
+
+#include <iostream>
+
 #include <execinfo.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <batteries/int_types.hpp>
-#include <boost/stacktrace.hpp>
-#include <iostream>
 
 namespace batt {
 
