@@ -36,9 +36,13 @@ inline void print_stack_trace()
     std::cerr << std::endl << boost::stacktrace::stacktrace{} << std::endl;
 }
 
+#ifndef BATT_STACK_TRACE_AT_EXIT
+#define BATT_STACK_TRACE_AT_EXIT false
+#endif
+
 inline bool& print_stack_trace_atexit_enabled()
 {
-    static bool b_ = true;
+    static bool b_ = BATT_STACK_TRACE_AT_EXIT;
     return b_;
 }
 
