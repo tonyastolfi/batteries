@@ -69,6 +69,9 @@ R static_dispatch(IntT i, Fn&& fn)
         return case_handlers;
     }();
 
+    BATT_CHECK_GE(i, kBegin);
+    BATT_CHECK_LT(i, kEnd);
+
     return case_handlers[i - kBegin](BATT_FORWARD(fn));
 }
 

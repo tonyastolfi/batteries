@@ -332,6 +332,6 @@ RangeDumper<const T&> dump_range(const T& value, Pretty pretty)
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 // BATT_INSPECT(expr) : expand to debug-friendly stream insertion expression.
 //
-#define BATT_INSPECT(expr) #expr << " == " << (expr)
+#define BATT_INSPECT(expr) " " << #expr << " == " << (expr)
 
 }  // namespace batt
