@@ -5,6 +5,7 @@
 #include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/io/ios_state.hpp>
 
 #include <iomanip>
@@ -82,8 +83,13 @@ BATT_SUPPRESS("-Wmaybe-uninitialized")
 // =============================================================================
 // from_string - use istream extraction to parse any object from a string.
 //
+
+namespace detail {
+
+// General case.
+//
 template <typename T, typename... FormatArgs>
-std::optional<T> from_string(const std::string& str, FormatArgs&&... format_args)
+std::optional<T> from_string_impl(StaticType<T>, const std::string& str, FormatArgs&&... format_args)
 {
     T val;
     std::istringstream iss{str};
@@ -92,6 +98,22 @@ std::optional<T> from_string(const std::string& str, FormatArgs&&... format_args
         return val;
     }
     return std::nullopt;
+}
+
+// Special case for bool.
+//
+template <typename... FormatArgs>
+std::optional<bool> from_string_impl(StaticType<bool>, const std::string& str, FormatArgs&&... format_args)
+{
+    return boost::algorithm::to_lower_copy(str) == "true" || from_string_impl(StaticType<int>{}, str) != 0;
+}
+
+}  // namespace detail
+
+template <typename T, typename... FormatArgs>
+std::optional<T> from_string(const std::string& str, FormatArgs&&... format_args)
+{
+    return detail::from_string_impl(StaticType<T>{}, str, BATT_FORWARD(format_args)...);
 }
 
 BATT_UNSUPPRESS()

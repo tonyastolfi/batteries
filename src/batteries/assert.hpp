@@ -18,6 +18,10 @@
 
 #include <cxxabi.h>
 
+#ifndef BATT_FAIL_CHECK_OUT
+#define BATT_FAIL_CHECK_OUT std::cerr
+#endif  // BATT_FAIL_CHECK_OUT
+
 namespace batt {
 
 template <typename T, typename = std::enable_if_t<IsPrintable<T>{}>>
@@ -47,18 +51,13 @@ std::string make_printable(T&& obj)
 // BATT_ASSERT* statements are only enabled when NDEBUG is not defined.
 // BATT_CHECK* statements are always enabled.
 //
-template <typename LeftT, typename RightT>
-inline std::ostream& fail_check_message(const char* left_str, LeftT&& left_val, const char* op_str,
-                                        const char* right_str, RightT&& right_val, const char* file, int line,
-                                        const char* fn_name)
-{
-    return std::cerr << "FATAL: " << file << ":" << line << ": Assertion failed: " << left_str << " "
-                     << op_str << " " << right_str << "\n (in `" << fn_name << "`)\n\n"
-                     << "  " << left_str << " == " << make_printable(left_val) << std::endl
-                     << std::endl
-                     << "  " << right_str << " == " << make_printable(right_val) << std::endl
-                     << std::endl;
-}
+#define BATT_FAIL_CHECK_MESSAGE(left_str, left_val, op_str, right_str, right_val, file, line, fn_name)       \
+    BATT_FAIL_CHECK_OUT << "FATAL: " << file << ":" << line << ": Assertion failed: " << left_str << " "     \
+                        << op_str << " " << right_str << "\n (in `" << fn_name << "`)\n\n"                   \
+                        << "  " << left_str << " == " << ::batt::make_printable(left_val) << ::std::endl     \
+                        << ::std::endl                                                                       \
+                        << "  " << right_str << " == " << ::batt::make_printable(right_val) << ::std::endl   \
+                        << ::std::endl
 
 #ifdef __GNUC__
 #define BATT_NORETURN __attribute__((noreturn))
@@ -70,7 +69,7 @@ inline std::ostream& fail_check_message(const char* left_str, LeftT&& left_val, 
 
 BATT_NORETURN inline void fail_check_exit()
 {
-    std::cerr << std::endl << std::endl;  // << boost::stacktrace::stacktrace{} << std::endl;
+    BATT_FAIL_CHECK_OUT << std::endl << std::endl;  // << boost::stacktrace::stacktrace{} << std::endl;
     std::abort();
     BATT_UNREACHABLE();
 }
@@ -90,11 +89,11 @@ inline bool lock_fail_check_mutex()
 
 #define BATT_CHECK_RELATION(left, op, right)                                                                 \
     for (; !BATT_HINT_TRUE(((left)op(right)) || ::batt::lock_fail_check_mutex()); ::batt::fail_check_exit()) \
-    ::batt::fail_check_message(#left, (left), #op, #right, (right), __FILE__, __LINE__, __PRETTY_FUNCTION__)
+    BATT_FAIL_CHECK_MESSAGE(#left, (left), #op, #right, (right), __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
 #define BATT_CHECK_IMPLIES(p, q)                                                                             \
     for (; !BATT_HINT_TRUE(!(p) || (q)); ::batt::fail_check_exit())                                          \
-    ::batt::fail_check_message(#p, (p), "implies", #q, (q), __FILE__, __LINE__, __PRETTY_FUNCTION__)
+    BATT_FAIL_CHECK_MESSAGE(#p, (p), "implies", #q, (q), __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
 #define BATT_CHECK(x) BATT_CHECK_RELATION(bool{x}, ==, true)
 #define BATT_CHECK_EQ(x, y) BATT_CHECK_RELATION(x, ==, y)
@@ -107,7 +106,7 @@ inline bool lock_fail_check_mutex()
 
 #define BATT_ASSERT_DISABLED(ignored_inputs)                                                                 \
     if (false && ignored_inputs)                                                                             \
-    std::cerr << ""
+    BATT_FAIL_CHECK_OUT << ""
 
 #ifndef NDEBUG  //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
@@ -138,6 +137,6 @@ inline bool lock_fail_check_mutex()
 
 #define BATT_PANIC()                                                                                         \
     for (bool one_time = true; one_time; one_time = false, ::batt::fail_check_exit(), BATT_UNREACHABLE())    \
-    std::cerr << "*** PANIC ***" << std::endl
+    BATT_FAIL_CHECK_OUT << "*** PANIC ***" << std::endl
 
 }  // namespace batt

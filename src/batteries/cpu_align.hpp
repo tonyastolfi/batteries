@@ -25,6 +25,18 @@ class CpuCacheLineIsolated
     static constexpr usize kIsolatedSize =
         (sizeof(T) + kCpuCacheLineSize - 1) - ((sizeof(T) + kCpuCacheLineSize - 1) % kCpuCacheLineSize);
 
+    // If the passed pointer is constructed within a CpuCacheLineIsolated<T>, return a pointer to the outer
+    // object. Else, behavior is undefined.
+    //
+    static CpuCacheLineIsolated* pointer_from(T* inner_obj)
+    {
+        return reinterpret_cast<CpuCacheLineIsolated*>(inner_obj);
+    }
+    static const CpuCacheLineIsolated* pointer_from(const T* inner_obj)
+    {
+        return reinterpret_cast<const CpuCacheLineIsolated*>(inner_obj);
+    }
+
     // Default-construct the object.
     //
     CpuCacheLineIsolated() noexcept(noexcept(T{}))
