@@ -7,9 +7,15 @@
 #include <batteries/int_types.hpp>
 #include <batteries/suppress.hpp>
 
+#if defined(__GNUC__) && !defined(__clang__)
 BATT_SUPPRESS("-Wmaybe-uninitialized")
+#endif
+
 #include <boost/stacktrace.hpp>
+
+#if defined(__GNUC__) && !defined(__clang__)
 BATT_UNSUPPRESS()
+#endif
 
 #include <iostream>
 

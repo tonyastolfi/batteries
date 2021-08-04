@@ -59,4 +59,12 @@ T make_copy(const T& value)
         return name(BATT_FORWARD(args)...);                                                                  \
     }
 
+#ifdef __clang__
+#define BATT_MAYBE_UNUSED __attribute__((unused))
+//#define BATT_MAYBE_UNUSED [[maybe_unused]]
+#elif defined(__GNUC__)
+#define BATT_MAYBE_UNUSED __attribute__((unused))
+#pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 }  // namespace batt

@@ -2,6 +2,8 @@
 #ifndef BATTERIES_STATIC_ASSERT_HPP
 #define BATTERIES_STATIC_ASSERT_HPP
 
+#include <batteries/utility.hpp>
+
 #include <boost/preprocessor/cat.hpp>
 #include <type_traits>
 
@@ -18,13 +20,6 @@ template <typename T, typename U, T left, typename Op, U right, bool kCondition>
 struct StaticBinaryAssertion : std::integral_constant<bool, kCondition> {
     static_assert(kCondition == true, "");
 };
-
-#ifdef __clang__
-#define BATT_MAYBE_UNUSED [[maybe_unused]]
-#elif defined(__GNUC__)
-#define BATT_MAYBE_UNUSED __attribute__((unused))
-#pragma GCC diagnostic ignored "-Wattributes"
-#endif
 
 #define BATT_STATIC_ASSERT_EQ(x, y)                                                                          \
     static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Eq, \
