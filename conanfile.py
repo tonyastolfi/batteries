@@ -32,6 +32,7 @@ class BatteriesConan(ConanFile):
     def build(self):
         cmake = CMake(self)
         cmake.verbose = os.getenv('VERBOSE') and True or False
+        cmake.definitions["BUILD_DOC"] = "ON"
         cmake.configure(source_folder="src")
         cmake.build()
         cmake.test(output_on_failure=True)

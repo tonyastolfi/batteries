@@ -94,13 +94,6 @@ class StateMachineModel
         return s;
     }
 
-    // (Optional) Generate the symmetries of given state.
-    //
-    virtual void symmetries(const state_type& s, const std::function<void(const state_type&)>& fn)
-    {
-        fn(s);
-    }
-
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
     usize pick_int(usize min_value, usize max_value)
