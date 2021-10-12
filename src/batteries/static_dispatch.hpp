@@ -75,6 +75,16 @@ R static_dispatch(IntT i, Fn&& fn)
     return case_handlers[i - kBegin](BATT_FORWARD(fn));
 }
 
+template <typename Fn>
+decltype(auto) static_dispatch(bool b, Fn&& fn)
+{
+    if (b) {
+        return BATT_FORWARD(fn)(std::true_type{});
+    } else {
+        return BATT_FORWARD(fn)(std::false_type{});
+    }
+}
+
 template <typename Tuple, typename Fn>
 decltype(auto) static_dispatch(std::size_t i, Fn&& fn)
 {

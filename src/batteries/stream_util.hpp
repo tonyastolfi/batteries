@@ -299,6 +299,16 @@ inline std::ostream& dump_item(std::ostream& out, u8 byte_val)
     return out << "0x" << std::hex << std::setfill('0') << std::setw(2) << unsigned(byte_val);
 }
 
+template <typename FirstT, typename SecondT>
+inline std::ostream& dump_item(std::ostream& out, const std::pair<FirstT, SecondT>& p)
+{
+    out << "{";
+    dump_item(out, p.first);
+    out << ", ";
+    dump_item(out, p.second);
+    return out << "}";
+}
+
 }  // namespace detail
 
 template <typename T>
