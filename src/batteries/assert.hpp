@@ -137,6 +137,6 @@ inline bool lock_fail_check_mutex()
 
 #define BATT_PANIC()                                                                                         \
     for (bool one_time = true; one_time; one_time = false, ::batt::fail_check_exit(), BATT_UNREACHABLE())    \
-    BATT_FAIL_CHECK_OUT << "*** PANIC ***" << std::endl
+    BATT_FAIL_CHECK_OUT << "*** PANIC *** At:" << __FILE__ << ":" << __LINE__ << ":" << std::endl
 
 }  // namespace batt
