@@ -113,7 +113,7 @@ struct Collect {
 };
 
 template <typename T>
-inline Collect<T> collect(batt::StaticType<T> = {})
+inline Collect<T> collect(StaticType<T> = {})
 {
     return {};
 }

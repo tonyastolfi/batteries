@@ -1,3 +1,5 @@
+// Copyright 2021 Tony Astolfi
+//
 #include <batteries/async/continuation.hpp>
 //
 #include <batteries/async/continuation.hpp>

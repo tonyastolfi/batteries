@@ -1,3 +1,5 @@
+// Copyright 2021 Tony Astolfi
+//
 #pragma once
 #ifndef BATTERIES_ASYNC_CONTINUATION_HPP
 #define BATTERIES_ASYNC_CONTINUATION_HPP

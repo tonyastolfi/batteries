@@ -1,3 +1,5 @@
+// Copyright 2021 Tony Astolfi
+//
 #if 0  // TODO [tastolfi 2021-10-13]
 #pragma once
 

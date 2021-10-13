@@ -20,6 +20,8 @@ decltype(auto) None = boost::none;
 decltype(auto) InPlaceInit = boost::in_place_init;
 }  // namespace
 
+using NoneType = std::decay_t<decltype(boost::none)>;
+
 template <typename... Args>
 auto make_optional(Args&&... args)
 {

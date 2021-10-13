@@ -60,7 +60,7 @@ endif (BUILD_DOC)
 #
 #=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
-target_link_libraries(BattTest ${CONAN_LIBS_GTEST} dl ${BACKTRACE_DEPENDENCY})
+target_link_libraries(BattTest ${CONAN_LIBS_GTEST} boost_context dl ${BACKTRACE_DEPENDENCY})
 
 enable_testing()
 
