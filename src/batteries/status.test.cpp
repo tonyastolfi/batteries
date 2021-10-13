@@ -58,7 +58,7 @@ TEST_F(StatusTest, DefaultConstruct)
 TEST_F(StatusTest, RegisteredEnums)
 {
     batt::Status s2 = MyCodes::BAD;
-    EXPECT_EQ(s2.code(), batt::Status::kGroupSize + 1);
+    EXPECT_EQ(s2.code(), batt::Status::kGroupSize * 2 + 1);
 
     EXPECT_EQ(s2, MyCodes::BAD);
     EXPECT_EQ(MyCodes::BAD, s2);
@@ -94,9 +94,9 @@ TEST_F(StatusTest, CodeGroupForType)
     const batt::Status::CodeGroup& type_group = batt::Status::code_group_for_type<MyCodes>();
     const batt::Status::CodeGroup& group = batt::Status{MyCodes::NOT_REGISTERED}.group();
 
-    EXPECT_EQ(type_group.index, 1u);
+    EXPECT_EQ(type_group.index, 2u);
     EXPECT_EQ(type_group.enum_type_index, std::type_index{typeid(MyCodes)});
-    EXPECT_EQ(group.index, 1u);
+    EXPECT_EQ(group.index, 2u);
     EXPECT_EQ(group.enum_type_index, std::type_index{typeid(MyCodes)});
 
     EXPECT_EQ(batt::Status::code_group_for_type<HttpCode>().min_enum_value, 100);
@@ -114,6 +114,14 @@ TEST_F(StatusTest, UnknownEnumValueMessage)
 TEST_F(StatusTest, IgnoreErrorCompilesOk)
 {
     foo().IgnoreError();
+}
+
+TEST_F(StatusTest, ConvertErrnoToStatus)
+{
+    for (int e : {0, EPERM, ENOENT, ESRCH, EINTR, EIO, EAGAIN}) {
+        EXPECT_EQ(batt::status_from_errno(e).ok(), (e == 0));
+        EXPECT_THAT(batt::status_from_errno(e).message(), ::testing::StrEq(std::strerror(e)));
+    }
 }
 
 #ifdef BATT_STATUS_CUSTOM_MESSSAGES
@@ -162,6 +170,12 @@ TEST(StatusOrTest, CopyConstruct)
 
     EXPECT_TRUE(s2.ok());
     EXPECT_EQ(*s2, std::string("some foo"));
+
+    const std::string c = "some bar";
+    batt::StatusOr<std::string> s3{c};
+
+    EXPECT_TRUE(s3.ok());
+    EXPECT_EQ(*s3, c);
 }
 
 TEST(StatusOrTest, MoveConstruct)
@@ -186,6 +200,9 @@ TEST(StatusOrTest, ConstructFromStatus)
     EXPECT_EQ(s, t.status());
     EXPECT_EQ(t.status(), batt::StatusCode::kNotFound);
     EXPECT_NE(t.status(), batt::StatusCode::kCancelled);
+
+    batt::Status s2 = std::move(t).status();
+    EXPECT_EQ(s, s2);
 }
 
 TEST(StatusOrTest, CopyAssign)
@@ -200,6 +217,42 @@ TEST(StatusOrTest, CopyAssign)
 
     EXPECT_TRUE(s2.ok());
     EXPECT_EQ(*s2, std::string("some foo"));
+}
+
+TEST(StatusOrTest, CopyAssignFromValue)
+{
+    const char* s = "some foo";
+    batt::StatusOr<std::string> s2;
+    auto* retval = &(s2 = s);
+
+    EXPECT_EQ(retval, &s2);
+    EXPECT_THAT(s, ::testing::StrEq("some foo"));
+
+    EXPECT_TRUE(s2.ok());
+    EXPECT_EQ(*s2, std::string("some foo"));
+
+    const batt::StatusOr<std::string> s3 = s2;
+
+    EXPECT_EQ(*s3, *s2);
+    EXPECT_THAT(s3->c_str(), ::testing::StrEq(*s2));
+}
+
+TEST(StatusOrTest, CopyAssignFromValue2)
+{
+    const std::string s = "some foo";
+    batt::StatusOr<std::string> s2;
+    auto* retval = &(s2 = s);
+
+    EXPECT_EQ(retval, &s2);
+    EXPECT_THAT(s, ::testing::StrEq("some foo"));
+
+    EXPECT_TRUE(s2.ok());
+    EXPECT_EQ(*s2, std::string("some foo"));
+
+    const batt::StatusOr<std::string> s3 = s2;
+
+    EXPECT_EQ(*s3, *s2);
+    EXPECT_THAT(s3->c_str(), ::testing::StrEq(*s2));
 }
 
 TEST(StatusOrTest, MoveAssign)
@@ -226,6 +279,28 @@ TEST(StatusOrTest, MoveAssign)
     EXPECT_EQ(i2->get(), ptr);
 }
 
+TEST(StatusOrTest, MoveAssignFromValue)
+{
+    std::unique_ptr<int> i = std::make_unique<int>(42);
+
+    EXPECT_TRUE(i != nullptr);
+    EXPECT_EQ(*i, 42);
+
+    int* ptr = i.get();
+
+    batt::StatusOr<std::unique_ptr<int>> i2;
+
+    auto* retval = &(i2 = std::move(i));
+
+    EXPECT_EQ(retval, &i2);
+    EXPECT_TRUE(i == nullptr);
+
+    EXPECT_TRUE(i2.ok());
+    EXPECT_TRUE(*i2 != nullptr);
+    EXPECT_EQ(**i2, 42);
+    EXPECT_EQ(i2->get(), ptr);
+}
+
 TEST(StatusOrTest, AssignFromStatus)
 {
     batt::Status s = batt::StatusCode::kNotFound;
@@ -238,6 +313,33 @@ TEST(StatusOrTest, AssignFromStatus)
     EXPECT_EQ(s, t.status());
     EXPECT_EQ(t.status(), batt::StatusCode::kNotFound);
     EXPECT_NE(t.status(), batt::StatusCode::kCancelled);
+}
+
+batt::StatusOr<int> get_positive_int(int i)
+{
+    if (i <= 0) {
+        return batt::Status{batt::StatusCode::kInvalidArgument};
+    }
+    return i;
+}
+
+batt::Status do_maths()
+{
+    auto a = get_positive_int(42);
+    BATT_REQUIRE_OK(a);
+
+    auto b = get_positive_int(-4);
+    BATT_REQUIRE_OK(b);
+
+    return batt::OkStatus();
+}
+
+TEST(StatusOrTest, RequireOkMacro)
+{
+    batt::Status s = do_maths();
+
+    EXPECT_FALSE(s.ok());
+    EXPECT_EQ(s, batt::StatusCode::kInvalidArgument);
 }
 
 }  // namespace

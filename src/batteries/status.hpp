@@ -8,6 +8,7 @@
 #include <batteries/utility.hpp>
 
 #include <atomic>
+#include <cstring>
 #include <limits>
 #include <mutex>
 #include <string>
@@ -52,6 +53,8 @@ enum class StatusCode : int {
     kDataLoss = 15,
     kUnauthenticated = 16,
 };
+
+enum ErrnoValue {};
 
 class BATT_WARN_UNUSED_RESULT Status;
 
@@ -277,12 +280,15 @@ class StatusOr
    public:
     using value_type = T;
 
+    //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+    // Constructors
+
     explicit StatusOr() noexcept : status_{StatusCode::kUnknown}
     {
         BATT_ASSERT(!this->ok());
     }
 
-    explicit StatusOr(const Status& s) : status_{s}
+    /*implicit*/ StatusOr(const Status& s) : status_{s}
     {
         BATT_CHECK(!this->ok()) << "StatusOr must not be constructed with an Ok Status value.";
     }
@@ -305,22 +311,35 @@ class StatusOr
         }
     }
 
-    explicit StatusOr(const T& obj) noexcept(noexcept(T(std::declval<const T&>()))) : status_{OkStatus()}
+    /*implicit*/ StatusOr(const T& obj) noexcept(noexcept(T(std::declval<const T&>()))) : status_{OkStatus()}
     {
         new (&this->storage_) T(obj);
     }
 
-    explicit StatusOr(T&& obj) noexcept(noexcept(T(std::declval<T&&>()))) : status_{OkStatus()}
+    /*implicit*/ StatusOr(T&& obj) noexcept(noexcept(T(std::declval<T&&>()))) : status_{OkStatus()}
     {
         new (&this->storage_) T(std::move(obj));
     }
 
     template <typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<U>, T> &&
                                                       std::is_constructible_v<T, U&&>>>
-    explicit StatusOr(U&& obj) noexcept(noexcept(T(std::declval<U&&>()))) : status_{OkStatus()}
+    /*implicit*/ StatusOr(U&& obj) noexcept(noexcept(T(std::declval<U&&>()))) : status_{OkStatus()}
     {
         new (&this->storage_) T(BATT_FORWARD(obj));
     }
+
+    //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+    // Destructor
+
+    ~StatusOr()
+    {
+        if (this->ok()) {
+            this->value().~T();
+        }
+    }
+
+    //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+    // Assignment operator overloads
 
     StatusOr& operator=(T&& obj)
     {
@@ -329,6 +348,17 @@ class StatusOr
         }
         this->status_ = OkStatus();
         new (&this->storage_) T(std::move(obj));
+
+        return *this;
+    }
+
+    StatusOr& operator=(const T& obj)
+    {
+        if (this->ok()) {
+            this->value().~T();
+        }
+        this->status_ = OkStatus();
+        new (&this->storage_) T(obj);
 
         return *this;
     }
@@ -381,7 +411,7 @@ class StatusOr
                     new (&this->storage_) T(std::move(that.value()));
                 }
             }
-            this->status_ = that.status;
+            this->status_ = that.status_;
         }
         return *this;
     }
@@ -397,12 +427,7 @@ class StatusOr
         return *this;
     }
 
-    ~StatusOr()
-    {
-        if (this->ok()) {
-            this->value().~T();
-        }
-    }
+    //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
     bool ok() const
     {
@@ -602,12 +627,7 @@ inline decltype(auto) to_status(T&& s)
 
 inline Status status_from_errno(int code)
 {
-    switch (code) {
-    case EAGAIN:
-        return Status{StatusCode::kUnavailable};
-    default:
-        return Status{StatusCode::kInternal};
-    }
+    return static_cast<ErrnoValue>(code);
 }
 
 template <typename T>
@@ -660,6 +680,16 @@ inline StatusBase::StatusBase() noexcept
             {StatusCode::kDataLoss, "Data Loss"},
             {StatusCode::kUnauthenticated, "Unauthenticated"},
         });
+
+        std::vector<std::pair<ErrnoValue, std::string>> errno_codes;
+        for (int code = 0; code < Status::kGroupSize; ++code) {
+            const char* msg = std::strerror(code);
+            if (msg) {
+                errno_codes.emplace_back(static_cast<ErrnoValue>(code), std::string(msg));
+            }
+        }
+        Status::register_codes_internal<ErrnoValue>(errno_codes);
+
         return true;
     }();
     BATT_ASSERT(initialized);
