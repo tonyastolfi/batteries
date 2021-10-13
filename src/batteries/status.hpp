@@ -198,6 +198,13 @@ class Status final : private StatusBase
         // do nothing
     }
 
+    void Update(const Status& new_status)
+    {
+        if (this->ok()) {
+            *this = new_status;
+        }
+    }
+
    private:
     friend class StatusBase;
 
