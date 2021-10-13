@@ -13,7 +13,11 @@ include_directories(.)
 
 remove_definitions(-DBOOST_STACKTRACE_USE_NOOP)
 
-file(GLOB TestSources batteries/*_test.cpp)
+file(GLOB TestSources
+     batteries/*_test.cpp
+     batteries/*/*_test.cpp
+     batteries/*.test.cpp
+     batteries/*/*.test.cpp)
 
 add_executable(BattTest ${TestSources})
 

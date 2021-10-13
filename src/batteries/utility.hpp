@@ -49,7 +49,16 @@ T make_copy(const T& value)
 /// int fn_returning_status_code() BATT_WARN_UNUSED_RESULT;
 /// ```
 ///
+#if defined(__has_attribute) && __has_attribute(nodiscard)
+#define BATT_WARN_UNUSED_RESULT [[nodiscard]]
+
+#elif defined(__has_attribute) && __has_attribute(nodiscard)
 #define BATT_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+
+#else
+#define BATT_WARN_UNUSED_RESULT
+
+#endif
 
 /// Roughly approximates the ability to treat a named overload set as though it were an actual callable
 /// function.

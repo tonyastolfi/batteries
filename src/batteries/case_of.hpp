@@ -145,4 +145,20 @@ decltype(auto) case_of(VarType&& v, Cases&&... cases)
         BATT_FORWARD(v));
 }
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// Returns true iff the current case of the passed variant is equal to the template parameter `T`.
+//
+template <typename T, typename Var>
+bool is_case(Var&& v)
+{
+    return case_of(
+        std::forward<Var>(v),  //
+        [](const std::decay_t<T>&) {
+            return true;
+        },
+        [](const auto&) {
+            return false;
+        });
+}
+
 }  // namespace batt
