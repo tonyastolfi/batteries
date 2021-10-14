@@ -390,7 +390,7 @@ class StatusOr
     }
 
     StatusOr& operator=(const StatusOr& that) noexcept(
-        noexcept(T(std::declval<const T&>())) && noexcept(std::declval<T>() = std::declval<const T&>()))
+        noexcept(T(std::declval<const T&>())) && noexcept(std::declval<T&>() = std::declval<const T&>()))
     {
         if (BATT_HINT_TRUE(this != &that)) {
             if (this->ok()) {
@@ -410,7 +410,7 @@ class StatusOr
     }
 
     StatusOr& operator=(StatusOr&& that) noexcept(
-        noexcept(T(std::declval<T&&>())) && noexcept(std::declval<T>() = std::move(std::declval<T&>())))
+        noexcept(T(std::declval<T&&>())) && noexcept(std::declval<T&>() = std::move(std::declval<T&>())))
     {
         if (BATT_HINT_TRUE(this != &that)) {
             if (this->ok()) {

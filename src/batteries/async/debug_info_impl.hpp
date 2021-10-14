@@ -1,9 +1,9 @@
 // Copyright 2021 Tony Astolfi
 //
-#if 0  // TODO [tastolfi 2021-10-13]
-#pragma once
+#ifndef BATTERIES_ASYNC_DEBUG_INFO_IMPL_HPP
+#define BATTERIES_ASYNC_DEBUG_INFO_IMPL_HPP
 
-#include <batteries/async/debug_info.hpp>
+#include <batteries/async/debug_info_decl.hpp>
 #include <batteries/config.hpp>
 //
 
@@ -80,4 +80,5 @@ BATT_INLINE_IMPL void this_task_debug_info(std::ostream& out)
 }
 
 }  // namespace batt
-#endif
+
+#endif  // BATTERIES_ASYNC_DEBUG_INFO_IMPL_HPP

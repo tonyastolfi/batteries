@@ -11,6 +11,8 @@
 
 namespace {
 
+using namespace batt::int_types;
+
 class MockStringHandler
 {
    public:
@@ -42,6 +44,29 @@ TEST(AsyncWatchTest, NonAtomicDefaultConstruct)
 
         EXPECT_TRUE(result.ok());
         EXPECT_THAT(*result, ::testing::StrEq(""));
+    }
+}
+
+TEST(AsyncWatchTest, AtomicDefaultConstruct)
+{
+    batt::Watch<i32> num;
+
+    EXPECT_FALSE(num.is_closed());
+    EXPECT_THAT(num.get_value(), ::testing::Eq(0));
+
+    {
+        batt::StatusOr<i32> result = num.await_not_equal(42);
+
+        EXPECT_TRUE(result.ok());
+        EXPECT_THAT(*result, ::testing::Eq(0));
+    }
+    {
+        batt::StatusOr<i32> result = num.await_true([](i32 observed) {
+            return (observed % 2) == 0;
+        });
+
+        EXPECT_TRUE(result.ok());
+        EXPECT_THAT(*result, ::testing::Eq(0));
     }
 }
 
@@ -82,6 +107,46 @@ TEST(AsyncWatchTest, NonAtomicSetValue)
     EXPECT_TRUE(result.ok());
     EXPECT_THAT(*result, ::testing::StrEq("hello"));
     EXPECT_THAT(str.get_value(), ::testing::StrEq("too late"));
+    EXPECT_GT(predicate_count, 2);
+}
+
+TEST(AsyncWatchTest, AtomicSetValue)
+{
+    boost::asio::io_context io;
+
+    batt::Watch<i32> num;
+    batt::StatusOr<i32> result;
+
+    batt::Task setter_task{io.get_executor(), [&] {
+                               for (i32 value : {1, 2, 5, 42, 99}) {
+                                   num.set_value(value);
+                                   batt::ErrorCode ec =
+                                       batt::Task::sleep(boost::posix_time::milliseconds(10));
+                                   if (ec) {
+                                       return;
+                                   }
+                               }
+                           }};
+
+    int predicate_count = 0;
+
+    batt::Task getter_task{io.get_executor(), [&] {
+                               result = num.await_true([&](i32 observed) {
+                                   predicate_count += 1;
+                                   return observed == 42;
+                               });
+                           }};
+
+    EXPECT_FALSE(result.ok());
+
+    io.run();
+
+    setter_task.join();
+    getter_task.join();
+
+    EXPECT_TRUE(result.ok());
+    EXPECT_THAT(*result, ::testing::Eq(42));
+    EXPECT_THAT(num.get_value(), ::testing::Eq(99));
     EXPECT_GT(predicate_count, 2);
 }
 
@@ -145,6 +210,66 @@ TEST(AsyncWatchTest, NonAtomicClose)
     EXPECT_THAT(str.get_value(), ::testing::StrEq("bb"));
 }
 
+TEST(AsyncWatchTest, AtomicClose)
+{
+    boost::asio::io_context io;
+
+    batt::Watch<i32> num;
+    batt::StatusOr<i32> result;
+    int predicate_count = 0;
+
+    batt::Task closer_task{io.get_executor(), [&] {
+                               while (predicate_count < 1) {
+                                   batt::Task::yield();
+                               }
+
+                               num.set_value(42);
+
+                               while (predicate_count < 2) {
+                                   batt::Task::yield();
+                               }
+
+                               num.close();
+                           }};
+
+    batt::Task getter_task{io.get_executor(), [&] {
+                               result = num.await_true([&](i32 observed) {
+                                   predicate_count += 1;
+                                   return observed < 0;
+                               });
+                           }};
+
+    EXPECT_EQ(result.status(), batt::StatusCode::kUnknown);
+
+    io.run();
+
+    closer_task.join();
+    getter_task.join();
+
+    EXPECT_TRUE(num.is_closed());
+    EXPECT_THAT(num.get_value(), ::testing::Eq(42));
+    EXPECT_FALSE(result.ok());
+    EXPECT_EQ(result.status(), batt::StatusCode::kClosed);
+    EXPECT_GE(predicate_count, 2);
+
+    batt::StatusOr<i32> result2 = num.await_not_equal(42);
+
+    EXPECT_EQ(result2.status(), batt::StatusCode::kClosed);
+
+    // set_value, modify after close should still work.
+    //
+    num.set_value(17);
+
+    EXPECT_THAT(num.get_value(), ::testing::Eq(17));
+
+    i32 old_value = num.modify([](i32 observed) {
+        return observed + 2;
+    });
+
+    EXPECT_THAT(old_value, ::testing::Eq(17));
+    EXPECT_THAT(num.get_value(), ::testing::Eq(19));
+}
+
 TEST(AsyncWatchTest, NonAtomicCloseInDtor)
 {
     boost::asio::io_context io;
@@ -196,7 +321,7 @@ TEST(AsyncWatchTest, NonAtomicInitialValue)
     EXPECT_THAT(str.get_value(), ::testing::StrEq("hello"));
 }
 
-TEST(AsyncWatchTest, SetValueNoChangeNoNotify)
+TEST(AsyncWatchTest, NonAtomicSetValueNoChangeNoNotify)
 {
     ::testing::StrictMock<MockStringHandler> handler;
 
@@ -218,7 +343,7 @@ TEST(AsyncWatchTest, SetValueNoChangeNoNotify)
         .WillOnce(::testing::Return());
 }
 
-TEST(AsyncWatchTest, ModifyNoChangeNoNotify)
+TEST(AsyncWatchTest, NonAtomicModifyNoChangeNoNotify)
 {
     ::testing::StrictMock<MockStringHandler> handler;
 

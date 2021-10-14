@@ -6,7 +6,7 @@
 
 #include <batteries/assert.hpp>
 #include <batteries/async/continuation.hpp>
-#include <batteries/async/debug_info.hpp>
+#include <batteries/async/debug_info_decl.hpp>
 #include <batteries/async/future.hpp>
 #include <batteries/async/handler.hpp>
 #include <batteries/async/io_result.hpp>
@@ -523,8 +523,11 @@ class Task
 
 }  // namespace batt
 
+#endif  // BATTERIES_ASYNC_TASK_HPP
+
 #if BATT_HEADER_ONLY
 #include "task_impl.hpp"
 #endif
-
-#endif  // BATTERIES_ASYNC_TASK_HPP
+#if BATT_HEADER_ONLY
+#include "debug_info_impl.hpp"
+#endif
