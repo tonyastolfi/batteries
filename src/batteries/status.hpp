@@ -4,6 +4,7 @@
 
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/stream_util.hpp>
 #include <batteries/strong_typedef.hpp>
 #include <batteries/utility.hpp>
 
@@ -52,6 +53,10 @@ enum class StatusCode : int {
     kUnavailable = 14,
     kDataLoss = 15,
     kUnauthenticated = 16,
+    // ...
+    // This range reserved for future allocation of Abseil status codes.
+    // ...
+    kClosed = 100,
 };
 
 enum ErrnoValue {};
@@ -140,7 +145,8 @@ class Status final : private StatusBase
         BATT_ASSERT_GE(static_cast<int>(enum_value), group.min_enum_value);
 
         const int index_within_enum = static_cast<int>(enum_value) - group.min_enum_value;
-        BATT_ASSERT_LT(index_within_enum, static_cast<int>(group.entries.size()));
+        BATT_ASSERT_LT(index_within_enum, static_cast<int>(group.enum_value_to_code.size()))
+            << BATT_INSPECT(group.index) << BATT_INSPECT(group.enum_type_index.name());
 
         this->value_ = group.enum_value_to_code[index_within_enum];
 
@@ -686,6 +692,7 @@ inline StatusBase::StatusBase() noexcept
             {StatusCode::kUnavailable, "Unavailable"},
             {StatusCode::kDataLoss, "Data Loss"},
             {StatusCode::kUnauthenticated, "Unauthenticated"},
+            {StatusCode::kClosed, "Closed"},
         });
 
         std::vector<std::pair<ErrnoValue, std::string>> errno_codes;
