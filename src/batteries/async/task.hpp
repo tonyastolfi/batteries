@@ -35,6 +35,7 @@
 #include <boost/asio/defer.hpp>
 #include <boost/asio/dispatch.hpp>
 #include <boost/asio/executor.hpp>
+#include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/context/protected_fixedsize_stack.hpp>
 #include <boost/exception/diagnostic_information.hpp>
@@ -299,6 +300,8 @@ class Task
         this->self_ = callcc(  //
             std::allocator_arg, Task::stack_allocator<kStackSize>(),
             [body_fn = ::batt::make_optional(BATT_FORWARD(body_fn)), this](Continuation&& parent) mutable {
+                auto work_guard = boost::asio::make_work_guard(this->ex_);
+
                 this->pre_entry(std::move(parent));
 
                 try {

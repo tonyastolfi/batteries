@@ -587,6 +587,12 @@ class NotOkStatusWrapper
         return std::move(this->status_);
     }
 
+    template <typename T>
+    operator StatusOr<T>() noexcept
+    {
+        return StatusOr<T>{std::move(this->status_)};
+    }
+
     NotOkStatusWrapper& operator<<(LogLevel new_level)
     {
         this->level_ = new_level;

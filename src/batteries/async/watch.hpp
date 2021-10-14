@@ -153,7 +153,6 @@ class WatchAtomic
     template <typename Init, typename = EnableIfNoShadow<WatchAtomic, Init>>
     explicit WatchAtomic(Init&& init_value) noexcept : value_(BATT_FORWARD(init_value))
     {
-        BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
     }
 
     ~WatchAtomic() noexcept
@@ -183,8 +182,6 @@ class WatchAtomic
         const T old_value = this->value_.exchange(new_value);
         if (old_value != new_value) {
             this->notify(new_value);
-        } else {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         }
         return old_value;
     }
@@ -196,45 +193,44 @@ class WatchAtomic
 
     T fetch_add(T arg)
     {
-        BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         T old_value = this->value_.fetch_add(arg);
         T new_value = old_value + arg;
 
         if (old_value != new_value) {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
             this->notify(new_value);
-        } else {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         }
         return old_value;
     }
 
     T fetch_or(T arg)
     {
-        BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         T old_value = this->value_.fetch_or(arg);
         T new_value = old_value | arg;
 
         if (old_value != new_value) {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
             this->notify(new_value);
-        } else {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         }
         return old_value;
     }
 
     T fetch_sub(T arg)
     {
-        BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         T old_value = this->value_.fetch_sub(arg);
         T new_value = old_value - arg;
 
         if (old_value != new_value) {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
             this->notify(new_value);
-        } else {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
+        }
+        return old_value;
+    }
+
+    T fetch_and(T arg)
+    {
+        T old_value = this->value_.fetch_and(arg);
+        T new_value = old_value & arg;
+
+        if (old_value != new_value) {
+            this->notify(new_value);
         }
         return old_value;
     }
@@ -252,14 +248,11 @@ class WatchAtomic
                 if (this->value_.compare_exchange_weak(old_value, modified_value)) {
                     return modified_value;
                 }
-                BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
             }
         }();
 
         if (changed) {
             this->notify(new_value);
-        } else {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         }
 
         // TODO [tastolfi 2021-10-14] make the non-atomic version of modify consistent with this behavior!
@@ -275,7 +268,6 @@ class WatchAtomic
     template <typename Fn>
     StatusOr<T> await_modify(Fn&& fn)
     {
-        BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         T old_value = this->value_.load();
 
         for (;;) {
@@ -283,30 +275,23 @@ class WatchAtomic
                 for (;;) {
                     const Optional<T> modified_value = fn(old_value);
                     if (!modified_value || this->value_.compare_exchange_weak(old_value, *modified_value)) {
-                        BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
                         return modified_value;
                     }
-                    BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
                 }
             }();
 
             if (new_value) {
-                BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
                 if (*new_value != old_value) {
-                    BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
                     this->notify(*new_value);
-                } else {
-                    BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
                 }
                 break;
             }
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
 
             StatusOr<T> updated_value = this->await_not_equal(old_value);
             BATT_REQUIRE_OK(updated_value);
+
             old_value = *updated_value;
         }
-        BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
 
         return old_value;
     }
@@ -358,7 +343,7 @@ class WatchAtomic
 
             if (!(prior_state & kOpen)) {
                 this->unlock_observers(prior_state);
-                BATT_FORWARD(fn)(StatusCode::kClosed);
+                BATT_FORWARD(fn)(Status{StatusCode::kClosed});
                 return;
             }
             auto unlock_guard = finally([&] {
