@@ -90,9 +90,9 @@ BATT_INLINE_IMPL void Task::yield()
 //
 BATT_INLINE_IMPL Task::~Task() noexcept
 {
-    BATT_CHECK(!this->parent_);
+    BATT_CHECK(!this->scheduler_);
     BATT_CHECK(!this->self_);
-    BATT_CHECK(is_terminal_state(this->state_.load())) << "state=" << std::bitset<9>{this->state_.load()};
+    BATT_CHECK(is_terminal_state(this->state_.load())) << "state=" << StateBitset{this->state_.load()};
     {
         std::unique_lock<std::mutex> lock{global_mutex()};
         this->unlink();
@@ -101,16 +101,21 @@ BATT_INLINE_IMPL Task::~Task() noexcept
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL void Task::pre_entry(Continuation&& parent) noexcept
+BATT_INLINE_IMPL void Task::pre_entry(Continuation&& scheduler) noexcept
 {
 #ifdef BATT_GLOG_AVAILABLE
     VLOG(1) << "Task{.name=" << this->name_ << ",} created on thread " << this_thread_id();
 #endif
 
+    // Save the base address of the call stack.
+    //
     volatile u8 base = 0;
-
     this->stack_base_ = &base;
-    this->parent_ = parent.resume();
+
+    // Transfer control back to the Task ctor.  This Task will be scheduled to run (activated) at the end of
+    // the ctor.
+    //
+    this->scheduler_ = scheduler.resume();
 
 #ifdef BATT_GLOG_AVAILABLE
     VLOG(1) << "Task{.name=" << this->name_ << ",} started on thread " << this_thread_id();
@@ -126,7 +131,7 @@ BATT_INLINE_IMPL Continuation Task::post_exit() noexcept
         return std::move(this->completion_handlers_);
     }();
 
-    Continuation parent = std::move(this->parent_);
+    Continuation parent = std::move(this->scheduler_);
 
     this->handle_event(kTerminated);
 
@@ -139,10 +144,10 @@ BATT_INLINE_IMPL Continuation Task::post_exit() noexcept
 //
 BATT_INLINE_IMPL void Task::yield_impl()
 {
-    BATT_CHECK(this->parent_) << std::bitset<9>{this->state_.load()};
+    BATT_CHECK(this->scheduler_) << StateBitset{this->state_.load()};
 
     for (;;) {
-        this->parent_ = this->parent_.resume();
+        this->scheduler_ = this->scheduler_.resume();
 
         // If a stack trace has been requested, print it and suspend.
         //
@@ -154,7 +159,7 @@ BATT_INLINE_IMPL void Task::yield_impl()
     }
 
     BATT_CHECK_EQ(Task::current_ptr(), this);
-    BATT_CHECK(this->parent_) << std::bitset<9>{this->state_.load()};
+    BATT_CHECK(this->scheduler_) << StateBitset{this->state_.load()};
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -377,7 +382,7 @@ BATT_INLINE_IMPL bool Task::try_dump_stack_trace()
         }
     }
 
-    std::cerr << "(suspended) state=" << std::bitset<9>{this->state_}
+    std::cerr << "(suspended) state=" << StateBitset{this->state_}
               << " hdlr,timr,lock,dump,term,susp,have,need (0=running)" << std::endl;
 
     if (this->debug_info) {
