@@ -311,24 +311,18 @@ class WatchAtomic
                 const Optional<T> modified_value = fn(old_value);
                 changed = changed || (modified_value && *modified_value != old_value);
                 if (!modified_value || this->value_.compare_exchange_weak(old_value, *modified_value)) {
-                    BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
                     return modified_value;
                 }
-                BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
             }
         }();
 
         if (!new_value) {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
             return None;
         }
-        BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
 
         if (changed) {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
             this->notify(*new_value);
         }
-        BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         return old_value;
     }
 

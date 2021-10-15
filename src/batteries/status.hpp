@@ -442,6 +442,11 @@ class StatusOr
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
+    void IgnoreError() const
+    {
+        // do nothing
+    }
+
     bool ok() const
     {
         return this->status_.ok();

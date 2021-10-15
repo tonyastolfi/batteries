@@ -830,4 +830,67 @@ TEST(AsyncWatchTest, AwaitModifyFailClosed)
     EXPECT_GT(num_attempts, 5);
 }
 
+TEST(AsyncWatchTest, ModifyIfRaceSucceed)
+{
+    batt::Watch<i32> num{0};
+
+    boost::asio::io_context io1, io2;
+
+    i32 num_attempts = 0;
+
+    batt::Task await_modifier{io1.get_executor(), [&] {
+                                  num.await_modify([&](i32 n) -> batt::Optional<i32> {
+                                         num_attempts += 1;
+                                         if (n < 50) {
+                                             return batt::None;
+                                         }
+                                         return n;
+                                     })
+                                      .IgnoreError();
+
+                                  for (i32 j = 0; j < 200000; ++j) {
+                                      batt::Optional<i32> result2 =
+                                          num.modify_if([&](i32 n) -> batt::Optional<i32> {
+                                              if (j % 2) {
+                                                  return batt::None;
+                                              }
+                                              return n + 1;
+                                          });
+                                      if (j % 2) {
+                                          BATT_CHECK(!result2);
+                                      } else {
+                                          BATT_CHECK(result2);
+                                      }
+                                  }
+                              }};
+
+    batt::Task adder{io2.get_executor(), [&] {
+                         for (i32 i = 0; i < 200000; ++i) {
+                             (void)num.modify_if([&](i32 n) -> batt::Optional<i32> {
+                                 if (i % 2) {
+                                     return batt::None;
+                                 }
+                                 return n + 1;
+                             });
+                         }
+                     }};
+
+    std::thread t1{[&] {
+        io1.run();
+    }};
+
+    std::thread t2{[&] {
+        io2.run();
+    }};
+
+    t1.join();
+    t2.join();
+
+    await_modifier.join();
+    adder.join();
+
+    EXPECT_EQ(num.get_value(), 200000);
+    EXPECT_GT(num_attempts, 1);
+}
+
 }  // namespace
