@@ -18,7 +18,7 @@
 #include "batteries/static_dispatch.hpp"
 #include "batteries/stream_util.hpp"
 #include "batteries/strict.hpp"
-#include "batteries/strong_typedef.hpp"
+//#include "batteries/strong_typedef.hpp"
 #include "batteries/suppress.hpp"
 #include "batteries/tuples.hpp"
 #include "batteries/type_traits.hpp"

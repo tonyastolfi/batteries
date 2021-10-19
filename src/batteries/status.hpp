@@ -555,6 +555,9 @@ class NotOkStatusWrapper
         , line_{line}
         , status_(status)
     {
+#ifndef BATT_GLOG_AVAILABLE
+        *this << "(" << this->file_ << ":" << this->line_ << ") ";
+#endif  // BATT_GLOG_AVAILALBE
         *this << this->status_ << "; ";
     }
 

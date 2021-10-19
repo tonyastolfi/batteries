@@ -538,7 +538,8 @@ class Task
     HandlerList<> completion_handlers_;
     HandlerMemory<kHandlerMemoryBytes> activate_memory_;
     const volatile u8* stack_base_ = nullptr;
-    std::atomic<DebugTrace*> debug_trace_{nullptr};
+    // TODO [tastolfi 2021-10-18]
+    //    std::atomic<DebugTrace*> debug_trace_{nullptr};
 };
 
 }  // namespace batt

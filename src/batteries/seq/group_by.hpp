@@ -54,14 +54,14 @@ class GroupBy
 
     ~GroupBy() noexcept
     {
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
         detach(this->sub_group_, /*skip_advance=*/true);
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
     }
