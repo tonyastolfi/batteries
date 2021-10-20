@@ -51,6 +51,17 @@ struct StaticBinaryAssertion : std::integral_constant<bool, kCondition> {
                                                            (y), ((x) >= (y))>                                \
         BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+
+template <typename T, typename U>
+struct StaticSameTypeAssertion {
+    static_assert(std::is_same_v<T, U>, "");
+};
+
+#define BATT_STATIC_ASSERT_TYPE_EQ(x, y)                                                                     \
+    static BATT_MAYBE_UNUSED ::batt::StaticSameTypeAssertion<x, y> BOOST_PP_CAT(                             \
+        BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
+
 }  // namespace batt
 
 #endif  // BATTERIES_STATIC_ASSERT_HPP

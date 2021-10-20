@@ -1,5 +1,7 @@
 #pragma once
 
+#include <batteries/config.hpp>
+
 #define BATT_DO_PRAGMA(x) _Pragma(#x)
 
 // =============================================================================

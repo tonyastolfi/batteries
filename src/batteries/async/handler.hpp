@@ -48,6 +48,8 @@ class HandlerImpl : public AbstractHandler<Args...>
     static_assert(std::is_same_v<HandlerFn, std::decay_t<HandlerFn>>,
                   "HandlerFn may not be a reference type");
 
+    static_assert(batt::IsCallable<HandlerFn, Args...>{}, "HandlerFn must be callable with (Args...)");
+
     using allocator_type = typename std::allocator_traits<
         boost::asio::associated_allocator_t<HandlerFn>>::template rebind_alloc<HandlerImpl>;
 

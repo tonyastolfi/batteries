@@ -112,6 +112,13 @@ inline bool lock_fail_check_mutex()
 #define BATT_CHECK_LT(x, y) BATT_CHECK_RELATION(x, <, y)
 #define BATT_CHECK_FAIL() BATT_CHECK(false)
 
+#define BATT_CHECK_IN_RANGE(low, x, high)                                                                    \
+    [&](auto&& Actual_Value) {                                                                               \
+        BATT_CHECK_LE(low, Actual_Value)                                                                     \
+            << "Expression " << #x << " == " << Actual_Value << " is out-of-range";                          \
+        BATT_CHECK_LT(Actual_Value, high)                                                                    \
+            << "Expression " << #x << " == " << Actual_Value << " is out-of-range";                          \
+    }(x)
 #define BATT_ASSERT_DISABLED(ignored_inputs)                                                                 \
     if (false && ignored_inputs)                                                                             \
     BATT_FAIL_CHECK_OUT << ""
@@ -126,6 +133,7 @@ inline bool lock_fail_check_mutex()
 #define BATT_ASSERT_LE(x, y) BATT_CHECK_LE(x, y)
 #define BATT_ASSERT_LT(x, y) BATT_CHECK_LT(x, y)
 #define BATT_ASSERT_IMPLIES(p, q) BATT_CHECK_IMPLIES(p, q)
+#define BATT_ASSERT_IN_RANGE(low, x, high) BATT_CHECK_IN_RANGE(low, x, high)
 
 #else  // NDEBUG  ==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
@@ -137,6 +145,7 @@ inline bool lock_fail_check_mutex()
 #define BATT_ASSERT_LE(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
 #define BATT_ASSERT_LT(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
 #define BATT_ASSERT_IMPLIES(p, q) BATT_ASSERT_DISABLED(::batt::ignore(p, q))
+#define BATT_ASSERT_IN_RANGE(low, x, high) BATT_ASSERT_DISABLED(::batt::ignore(low, x, high))
 
 #endif  // NDEBUG ==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 

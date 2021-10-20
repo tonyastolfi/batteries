@@ -20,10 +20,18 @@ namespace batt {
 //
 //#define BATT_GLOG_AVAILABLE
 
-#ifdef BATT_GLOG_AVAILABLE
-#define BATT_FAIL_CHECK_OUT LOG(ERROR)
-#endif  // BATT_GLOG_AVAILABLE
-
 }  // namespace batt
+
+#if defined(__GNUC__) && !defined(__clang__)
+#define BATT_IF_GCC(expr) expr
+#else
+#define BATT_IF_GCC(expr)
+#endif
+
+#if defined(__clang__)
+#define BATT_IF_CLANG(expr) expr
+#else
+#define BATT_IF_CLANG(expr)
+#endif
 
 #endif  // BATTERIES_CONFIG_HPP

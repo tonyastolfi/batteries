@@ -166,17 +166,17 @@ class Status final : private StatusBase
     }
 #endif
 
-    bool ok() const BATT_WARN_UNUSED_RESULT
+    bool ok() const noexcept BATT_WARN_UNUSED_RESULT
     {
         return (this->value_ & kLocalMask) == 0;
     }
 
-    value_type code() const
+    value_type code() const noexcept
     {
         return this->value_;
     }
 
-    std::string_view message() const
+    std::string_view message() const noexcept
     {
 #ifdef BATT_STATUS_CUSTOM_MESSSAGES
         return this->message_;
@@ -200,7 +200,7 @@ class Status final : private StatusBase
         }
     }
 
-    void IgnoreError() const
+    void IgnoreError() const noexcept
     {
         // do nothing
     }
@@ -291,6 +291,9 @@ class BATT_WARN_UNUSED_RESULT StatusOr;
 template <typename T>
 class StatusOr
 {
+    template <typename U>
+    friend class StatusOr;
+
    public:
     using value_type = T;
 
@@ -307,14 +310,16 @@ class StatusOr
         BATT_CHECK(!this->ok()) << "StatusOr must not be constructed with an Ok Status value.";
     }
 
-    StatusOr(StatusOr&& that) : status_{std::move(that.status_)}
+    StatusOr(StatusOr&& that) : status_{StatusCode::kUnknown}
     {
-        if (this->ok()) {
+        if (that.ok()) {
             new (&this->storage_) T(std::move(that.value()));
+            this->status_ = OkStatus();
 
-            if (!that.ok()) {
-                that.value().~T();
-            }
+            that.status_ = StatusCode::kUnknown;
+            that.value().~T();
+        } else {
+            this->status_ = std::move(that.status_);
         }
     }
 
@@ -335,11 +340,42 @@ class StatusOr
         new (&this->storage_) T(std::move(obj));
     }
 
-    template <typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<U>, T> &&
-                                                      std::is_convertible_v<U&&, T>>>
+    template <
+        typename U, typename = EnableIfNoShadow<StatusOr, U&&>,
+        typename = std::enable_if_t<!std::is_same_v<std::decay_t<U>, T> && std::is_constructible_v<T, U&&>>,
+        typename = void>
     /*implicit*/ StatusOr(U&& obj) noexcept(noexcept(T(std::declval<U&&>()))) : status_{OkStatus()}
     {
         new (&this->storage_) T(BATT_FORWARD(obj));
+    }
+
+    template <typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<U>, T> &&
+                                                      std::is_constructible_v<T, U&&>>>
+    /*implicit*/ StatusOr(StatusOr<U>&& that) noexcept(noexcept(T(std::declval<U&&>())))
+        : status_{StatusCode::kUnknown}
+    {
+        if (that.status_.ok()) {
+            new (&this->storage_) T(std::move(that.value()));
+            this->status_ = OkStatus();
+
+            that.status_ = StatusCode::kUnknown;
+            that.value().~U();
+        } else {
+            this->status_ = std::move(that).status();
+        }
+    }
+
+    template <typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<U>, T> &&
+                                                      std::is_constructible_v<T, const U&>>>
+    /*implicit*/ StatusOr(const StatusOr<U>& that) noexcept(noexcept(T(std::declval<const U&>())))
+        : status_{StatusCode::kUnknown}
+    {
+        if (that.status_.ok()) {
+            new (&this->storage_) T(that.value());
+            this->status_ = OkStatus();
+        } else {
+            this->status_ = that.status_;
+        }
     }
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -443,12 +479,12 @@ class StatusOr
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
-    void IgnoreError() const
+    void IgnoreError() const noexcept
     {
         // do nothing
     }
 
-    bool ok() const
+    bool ok() const noexcept
     {
         return this->status_.ok();
     }
@@ -458,39 +494,44 @@ class StatusOr
         return this->status_;
     }
 
-    Status status() &&
+    Status status() && noexcept
     {
         return std::move(this->status_);
     }
 
-    T& value()
+    T& value() noexcept
     {
         BATT_ASSERT(this->status_.ok());
         return *reinterpret_cast<T*>(&this->storage_);
     }
 
-    const T& value() const
+    const T& value() const noexcept
     {
         BATT_ASSERT(this->status_.ok());
         return *reinterpret_cast<const T*>(&this->storage_);
     }
 
-    T& operator*()
+    T& operator*() & noexcept
     {
         return this->value();
     }
 
-    const T& operator*() const
+    const T& operator*() const& noexcept
     {
         return this->value();
     }
 
-    const T* operator->() const
+    T operator*() && noexcept
+    {
+        return std::move(this->value());
+    }
+
+    const T* operator->() const noexcept
     {
         return &(this->value());
     }
 
-    T* operator->()
+    T* operator->() noexcept
     {
         return &(this->value());
     }
@@ -682,6 +723,14 @@ std::ostream& operator<<(std::ostream& out, T&& status_or)
         return out << "Status{" << status_or.status() << "}";
     }
     return out << "Ok{" << *status_or << "}";
+}
+
+inline bool status_is_retryable(const Status& s)
+{
+    return s == StatusCode::kUnavailable            //
+           || s == static_cast<ErrnoValue>(EAGAIN)  //
+           || s == static_cast<ErrnoValue>(EINTR)   //
+        ;
 }
 
 //#=##=##=#==#=#==#===#+==#+==========+==+=+=+=+=+=++=+++=+++++=-++++=-+++++++++++

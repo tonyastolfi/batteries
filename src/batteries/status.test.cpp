@@ -183,7 +183,7 @@ TEST(StatusOrTest, MoveConstruct)
     batt::StatusOr<std::unique_ptr<int>> i{std::make_unique<int>(42)};
     batt::StatusOr<std::unique_ptr<int>> i2 = std::move(i);
 
-    EXPECT_TRUE(i.ok());
+    EXPECT_FALSE(i.ok());
     EXPECT_TRUE(*i == nullptr);
 
     EXPECT_TRUE(i2.ok());
@@ -340,6 +340,53 @@ TEST(StatusOrTest, RequireOkMacro)
 
     EXPECT_FALSE(s.ok());
     EXPECT_EQ(s, batt::StatusCode::kInvalidArgument);
+}
+
+struct TheBase {
+};
+struct TheDerived : TheBase {
+};
+
+TEST(StatusOrTest, ConstructFromDerivedClass)
+{
+    {
+        std::unique_ptr<TheDerived> p_dev = std::make_unique<TheDerived>();
+        void* ptr = p_dev.get();
+
+        std::unique_ptr<TheBase> p_base = std::move(p_dev);
+        EXPECT_EQ(ptr, p_base.get());
+
+        batt::StatusOr<std::unique_ptr<TheDerived>> s{std::make_unique<TheDerived>()};
+        ptr = s->get();
+
+        batt::StatusOr<std::unique_ptr<TheDerived>> s2{std::move(s)};
+        EXPECT_EQ(s2->get(), ptr);
+
+        batt::StatusOr<std::unique_ptr<TheBase>> s3{std::move(s2)};
+        EXPECT_EQ(s3->get(), ptr);
+    }
+    {
+        std::shared_ptr<TheDerived> p_dev = std::make_shared<TheDerived>();
+        void* ptr1 = p_dev.get();
+
+        std::shared_ptr<TheBase> p_base = p_dev;
+        EXPECT_EQ(ptr1, p_base.get());
+
+        std::shared_ptr<TheBase> p_base2 = std::move(p_dev);
+        EXPECT_EQ(ptr1, p_base2.get());
+
+        batt::StatusOr<std::shared_ptr<TheDerived>> s{std::make_shared<TheDerived>()};
+        void* ptr2 = s->get();
+
+        batt::StatusOr<std::shared_ptr<TheDerived>> s2{std::move(s)};
+        EXPECT_EQ(ptr2, s2->get());
+
+        batt::StatusOr<std::shared_ptr<TheBase>> s3{std::move(s2)};
+        EXPECT_EQ(ptr2, s3->get());
+
+        batt::StatusOr<std::shared_ptr<TheBase>> s4{p_base2};
+        EXPECT_EQ(ptr1, s4->get());
+    }
 }
 
 }  // namespace

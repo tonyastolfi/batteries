@@ -18,22 +18,16 @@ class QueueBase
    public:
     bool is_open() const
     {
-        BATT_CHECK(!this->pending_count_.is_closed()) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-        BATT_CHECK(this->pending_count_.is_closed()) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         return !this->pending_count_.is_closed();
     }
 
     i64 size() const
     {
-        BATT_CHECK_EQ(this->pending_count_.get_value(), 0u) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-        BATT_CHECK_NE(this->pending_count_.get_value(), 0u) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         return this->pending_count_.get_value();
     }
 
     bool empty() const
     {
-        BATT_CHECK_EQ(this->size(), 0u) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-        BATT_CHECK_NE(this->size(), 0u) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         return this->size() == 0;
     }
 
@@ -41,14 +35,14 @@ class QueueBase
     {
         return this->pending_count_.await_true([](i64 count) {
             BATT_CHECK_EQ(count, 0) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-            BATT_CHECK_NE(count, 0) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
+            BATT_CHECK_GE(count, 0) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
+            BATT_CHECK_LE(count, 0) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
             return count == 0;
         });
     }
 
     void close()
     {
-        BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         this->pending_count_.close();
     }
 
@@ -78,9 +72,8 @@ class QueueBase
 
     void notify(i64 count)
     {
-        BATT_CHECK_EQ(count, 0) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-        BATT_CHECK_EQ(count, 1) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-        BATT_CHECK_GT(count, 1) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
+        BATT_CHECK_GE(count, 1) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
+        BATT_CHECK_LE(count, 1) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         this->pending_count_.fetch_add(count);
     }
 
@@ -88,7 +81,6 @@ class QueueBase
     static Optional<i64> decrement_if_positive(i64 n) noexcept
     {
         if (n > 0) {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
             return n - 1;
         }
         BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
@@ -109,7 +101,6 @@ class Queue : public QueueBase
             BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
             return false;
         }
-        BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         this->pending_items_.lock()->emplace_back(BATT_FORWARD(args)...);
         this->notify(1);
         return true;
@@ -151,13 +142,11 @@ class Queue : public QueueBase
             BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
             return None;
         }
-        BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         return this->pop_next_or_panic();
     }
 
     T pop_next_or_panic()
     {
-        BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         auto locked = this->pending_items_.lock();
         BATT_CHECK(!locked->empty());
 
