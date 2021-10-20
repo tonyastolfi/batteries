@@ -4,6 +4,7 @@
 #undef BOOST_STACKTRACE_USE_NOOP
 #endif  // BOOST_STACKTRACE_USE_NOOP
 
+#include <batteries/config.hpp>
 #include <batteries/hint.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/type_traits.hpp>
@@ -18,9 +19,16 @@
 
 #include <cxxabi.h>
 
-#ifndef BATT_FAIL_CHECK_OUT
+#ifdef BATT_FAIL_CHECK_OUT
+#error This macro is deprecated; use BATT_GLOG_AVAILABLE
+#endif
+
+#ifdef BATT_GLOG_AVAILABLE
+#include <glog/logging.h>
+#define BATT_FAIL_CHECK_OUT LOG(ERROR)
+#else
 #define BATT_FAIL_CHECK_OUT std::cerr
-#endif  // BATT_FAIL_CHECK_OUT
+#endif
 
 namespace batt {
 
@@ -138,5 +146,11 @@ inline bool lock_fail_check_mutex()
 #define BATT_PANIC()                                                                                         \
     for (bool one_time = true; one_time; one_time = false, ::batt::fail_check_exit(), BATT_UNREACHABLE())    \
     BATT_FAIL_CHECK_OUT << "*** PANIC *** At:" << __FILE__ << ":" << __LINE__ << ":" << std::endl
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// BATT_INSPECT(expr) : expand to debug-friendly stream insertion expression.
+// TODO [tastolfi 2021-10-20] Update docs for assert.hpp to include BATT_INSPECT
+//
+#define BATT_INSPECT(expr) " " << #expr << " == " << (expr)
 
 }  // namespace batt

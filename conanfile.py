@@ -22,7 +22,9 @@ class BatteriesConan(ConanFile):
         "src/CMakeLists.txt",
         "src/batteries.hpp",
         "src/batteries/*.hpp",
+        "src/batteries/*/*.hpp",
         "src/batteries/*_test.cpp",
+        "src/batteries/*.test.cpp",
     ]
 
     def configure(self):

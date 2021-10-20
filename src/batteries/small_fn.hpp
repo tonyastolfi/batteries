@@ -203,7 +203,8 @@ class SmallFn<auto(Args...)->Result, kMaxSize, kMoveOnly>
 
     SmallFn() = default;
 
-    template <typename Fn, typename = EnableIfNoShadow<SmallFn, Fn>>
+    template <typename Fn, typename = EnableIfNoShadow<SmallFn, Fn>,
+              typename = std::enable_if_t<IsCallable<Fn, Args...>{}>>
     SmallFn(Fn&& fn) noexcept
         : impl_{new (&storage_) FnImpl<std::decay_t<Fn>>(check_fn_size(BATT_FORWARD(fn)))}
     {

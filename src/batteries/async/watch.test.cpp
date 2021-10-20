@@ -893,4 +893,39 @@ TEST(AsyncWatchTest, ModifyIfRaceSucceed)
     EXPECT_GT(num_attempts, 1);
 }
 
+TEST(AsyncWatchTest, AtomicAwaitEqual)
+{
+    batt::Watch<i32> num{0};
+
+    boost::asio::io_context io1, io2;
+
+    batt::Status result;
+
+    batt::Task reader{io1.get_executor(), [&] {
+                          result = num.await_equal(100 * 1000);
+                      }};
+
+    batt::Task writer{io2.get_executor(), [&] {
+                          for (i32 n = 0; n < 100 * 1000; ++n) {
+                              num.fetch_add(1);
+                          }
+                      }};
+
+    std::thread t1{[&] {
+        io1.run();
+    }};
+
+    std::thread t2{[&] {
+        io2.run();
+    }};
+
+    t1.join();
+    t2.join();
+
+    reader.join();
+    writer.join();
+
+    EXPECT_TRUE(result.ok());
+}
+
 }  // namespace

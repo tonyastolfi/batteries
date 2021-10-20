@@ -143,6 +143,7 @@ inline StackAllocator get_stack_allocator(StackSize stack_size, StackType stack_
         BATT_PANIC() << "This stack allocator type is not thread-safe; do not use yet!";
         return get_stack_allocator_with_type<boost::context::pooled_fixedsize_stack>(stack_size);
 
+    case StackType::kMaxValue:  // fall-through
     default:
         break;
     }

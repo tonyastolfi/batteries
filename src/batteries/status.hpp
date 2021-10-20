@@ -57,6 +57,7 @@ enum class StatusCode : int {
     // This range reserved for future allocation of Abseil status codes.
     // ...
     kClosed = 100,
+    kGrantUnavailable = 101,
 };
 
 enum ErrnoValue {};
@@ -335,7 +336,7 @@ class StatusOr
     }
 
     template <typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<U>, T> &&
-                                                      std::is_constructible_v<T, U&&>>>
+                                                      std::is_convertible_v<U&&, T>>>
     /*implicit*/ StatusOr(U&& obj) noexcept(noexcept(T(std::declval<U&&>()))) : status_{OkStatus()}
     {
         new (&this->storage_) T(BATT_FORWARD(obj));
@@ -707,6 +708,8 @@ inline StatusBase::StatusBase() noexcept
             {StatusCode::kDataLoss, "Data Loss"},
             {StatusCode::kUnauthenticated, "Unauthenticated"},
             {StatusCode::kClosed, "Closed"},
+            {StatusCode::kGrantUnavailable, "The requested grant count exceeds available count"},
+
         });
 
         std::vector<std::pair<ErrnoValue, std::string>> errno_codes;

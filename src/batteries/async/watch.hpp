@@ -287,6 +287,8 @@ class WatchAtomic
                 break;
             }
 
+            BATT_DEBUG_INFO("[WatchAtomic::await_modify] waiting for update (old_value=" << old_value << ")");
+
             StatusOr<T> updated_value = this->await_not_equal(old_value);
             BATT_REQUIRE_OK(updated_value);
 
@@ -354,7 +356,6 @@ class WatchAtomic
                 //
                 // The dtor of `unlock_guard` will atomically clear the `kLocked` flag and set `kWaiting`.
             }
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         }
         //
         // If we get here, either the initial `changed` check was true, we are closed, or the second `changed`
@@ -384,18 +385,14 @@ class WatchAtomic
         while (last_seen.ok() && !pred(*last_seen)) {
             last_seen = this->await_not_equal(*last_seen);
         }
-        BATT_CHECK(!last_seen.ok() || pred(*last_seen)) << "TODO [tastolfi 2021-10-14] TestPointNeeded";
 
         return last_seen;
     }
 
     Status await_equal(T val) const
     {
-        BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         return this
             ->await_true([val](T observed) {
-                BATT_CHECK(observed == val) << "TODO [tastolfi 2021-10-14] TestPointNeeded";
-                BATT_CHECK(!(observed == val)) << "TODO [tastolfi 2021-10-14] TestPointNeeded";
                 return observed == val;
             })
             .status();
@@ -410,7 +407,6 @@ class WatchAtomic
                 return prior_state;
             }
             std::this_thread::yield();
-            BATT_PANIC() << "TODO [tastolfi 2021-10-14] TestPointNeeded";
         }
     }
 
