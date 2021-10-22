@@ -25,6 +25,9 @@ class BatteriesConan(ConanFile):
         "src/batteries/*/*.hpp",
         "src/batteries/*_test.cpp",
         "src/batteries/*.test.cpp",
+        "src/batteries/**/*.hpp",
+        "src/batteries/**/*_test.cpp",
+        "src/batteries/**/*.test.cpp",
     ]
 
     def configure(self):

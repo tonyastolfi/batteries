@@ -501,13 +501,13 @@ class StatusOr
 
     T& value() noexcept
     {
-        BATT_ASSERT(this->status_.ok());
+        BATT_ASSERT(this->status_.ok()) << BATT_INSPECT(this->status_);
         return *reinterpret_cast<T*>(&this->storage_);
     }
 
     const T& value() const noexcept
     {
-        BATT_ASSERT(this->status_.ok());
+        BATT_ASSERT(this->status_.ok()) << BATT_INSPECT(this->status_);
         return *reinterpret_cast<const T*>(&this->storage_);
     }
 
