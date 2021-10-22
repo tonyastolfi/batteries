@@ -34,9 +34,7 @@ class QueueBase
     StatusOr<i64> await_empty()
     {
         return this->pending_count_.await_true([](i64 count) {
-            BATT_CHECK_EQ(count, 0) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-            BATT_CHECK_GE(count, 0) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-            BATT_CHECK_LE(count, 0) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
+            BATT_ASSERT_GE(count, 0);
             return count == 0;
         });
     }
@@ -50,8 +48,6 @@ class QueueBase
     Status await_one() noexcept
     {
         StatusOr<i64> prior_count = this->pending_count_.await_modify(&decrement_if_positive);
-        BATT_CHECK(prior_count.ok()) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-        BATT_CHECK(!prior_count.ok()) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         BATT_REQUIRE_OK(prior_count);
 
         BATT_CHECK_GT(*prior_count, 0);
@@ -63,7 +59,6 @@ class QueueBase
     {
         Optional<i64> prior_count = this->pending_count_.modify_if(&decrement_if_positive);
         if (!prior_count) {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
             return false;
         }
         BATT_CHECK_GT(*prior_count, 0);
@@ -72,8 +67,6 @@ class QueueBase
 
     void notify(i64 count)
     {
-        BATT_CHECK_GE(count, 1) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-        BATT_CHECK_LE(count, 1) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         this->pending_count_.fetch_add(count);
     }
 
@@ -83,7 +76,6 @@ class QueueBase
         if (n > 0) {
             return n - 1;
         }
-        BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         return None;
     }
 
@@ -98,7 +90,6 @@ class Queue : public QueueBase
     bool push(Args&&... args)
     {
         if (!this->is_open()) {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
             return false;
         }
         this->pending_items_.lock()->emplace_back(BATT_FORWARD(args)...);
@@ -112,14 +103,10 @@ class Queue : public QueueBase
     bool push_all(Items&& items)
     {
         if (!this->is_open()) {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
             return false;
         }
         const usize count = std::distance(std::begin(items), std::end(items));
-        BATT_CHECK_EQ(count, 0u) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-        BATT_CHECK_NE(count, 0u) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         this->pending_items_.with_lock([&](auto& pending) {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
             pending.insert(pending.end(), std::begin(items), std::end(items));
         });
         this->notify(count);
@@ -129,8 +116,6 @@ class Queue : public QueueBase
     StatusOr<T> await_next()
     {
         Status acquired = this->await_one();
-        BATT_CHECK(acquired.ok()) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-        BATT_CHECK(!acquired.ok()) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         BATT_REQUIRE_OK(acquired);
 
         return this->pop_next_or_panic();
@@ -139,7 +124,6 @@ class Queue : public QueueBase
     Optional<T> try_pop_next()
     {
         if (!this->try_acquire()) {
-            BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
             return None;
         }
         return this->pop_next_or_panic();
@@ -148,7 +132,7 @@ class Queue : public QueueBase
     T pop_next_or_panic()
     {
         auto locked = this->pending_items_.lock();
-        BATT_CHECK(!locked->empty());
+        BATT_CHECK(!locked->empty()) << "pop_next_or_panic FAILED because the queue is empty";
 
         auto on_return = batt::finally([&] {
             locked->pop_front();

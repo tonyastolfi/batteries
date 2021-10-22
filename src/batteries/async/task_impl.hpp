@@ -1,4 +1,4 @@
-	// Copyright 2021 Tony Astolfi
+// Copyright 2021 Tony Astolfi
 //
 #include <batteries/async/task.hpp>
 //
@@ -247,7 +247,8 @@ BATT_INLINE_IMPL void Task::schedule_to_run(u32 observed_state, bool force_post)
         this->run();
     });
 
-    if (Task::nesting_depth() < kMaxNestingDepth && !force_post) {
+    const bool should_preempt = Task::current_priority() < this->get_priority();
+    if (should_preempt && Task::nesting_depth() < kMaxNestingDepth && !force_post) {
         ++Task::nesting_depth();
         auto on_scope_exit = batt::finally([] {
             --Task::nesting_depth();

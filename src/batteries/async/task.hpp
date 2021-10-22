@@ -75,6 +75,8 @@ class Task
    public:
     using state_type = u32;
 
+    BATT_STRONG_TYPEDEF_WITH_DEFAULT(i32, Priority, 0);
+
     using executor_type = boost::asio::any_io_executor;
 
     using AllTaskList = boost::intrusive::list<Task, boost::intrusive::constant_time_size<false>>;
@@ -296,6 +298,15 @@ class Task
         return "(anonymous)";
     }
 
+    static Priority current_priority()
+    {
+        Task* current_task = Task::current_ptr();
+        if (current_task == nullptr) {
+            return Priority{0};
+        }
+        return current_task->get_priority();
+    }
+
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
     Task(const Task&) = delete;
@@ -310,9 +321,10 @@ class Task
     template <typename BodyFn>
     explicit Task(const boost::asio::any_io_executor& ex, BodyFn&& body_fn,
                   std::string&& name = default_name(), StackSize stack_size = StackSize{16 * 1024},
-                  StackType stack_type = StackType::kFixedSize) noexcept
+                  StackType stack_type = StackType::kFixedSize, Optional<Priority> priority = None) noexcept
         : name_(std::move(name))
         , ex_(ex)
+        , priority_{priority.value_or(Task::current_priority() + 100)}
     {
         this->self_ = callcc(  //
             stack_size, stack_type,
@@ -355,6 +367,16 @@ class Task
     std::string_view name() const
     {
         return this->name_;
+    }
+
+    Priority get_priority() const
+    {
+        return Priority{this->priority_.load()};
+    }
+
+    void set_priority(Priority new_priority)
+    {
+        this->priority_.store(new_priority);
     }
 
     usize stack_pos() const
@@ -532,6 +554,7 @@ class Task
     Continuation scheduler_;
     Continuation self_;
     std::atomic<state_type> state_{kSuspended};
+    std::atomic<Priority::value_type> priority_;
     Promise<NoneType> promise_;
     Optional<boost::asio::deadline_timer> sleep_timer_;
     Optional<boost::stacktrace::stacktrace> stack_trace_;
