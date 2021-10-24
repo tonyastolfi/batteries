@@ -320,7 +320,7 @@ class Task
 
     template <typename BodyFn>
     explicit Task(const boost::asio::any_io_executor& ex, BodyFn&& body_fn,
-                  std::string&& name = default_name(), StackSize stack_size = StackSize{16 * 1024},
+                  std::string&& name = default_name(), StackSize stack_size = StackSize{512 * 1024},
                   StackType stack_type = StackType::kFixedSize, Optional<Priority> priority = None) noexcept
         : name_(std::move(name))
         , ex_(ex)

@@ -316,8 +316,8 @@ class StatusOr
             new (&this->storage_) T(std::move(that.value()));
             this->status_ = OkStatus();
 
-            that.status_ = StatusCode::kUnknown;
             that.value().~T();
+            that.status_ = StatusCode::kUnknown;
         } else {
             this->status_ = std::move(that.status_);
         }
@@ -358,8 +358,8 @@ class StatusOr
             new (&this->storage_) T(std::move(that.value()));
             this->status_ = OkStatus();
 
-            that.status_ = StatusCode::kUnknown;
             that.value().~U();
+            that.status_ = StatusCode::kUnknown;
         } else {
             this->status_ = std::move(that).status();
         }
@@ -492,11 +492,6 @@ class StatusOr
     const Status& status() const&
     {
         return this->status_;
-    }
-
-    Status status() && noexcept
-    {
-        return std::move(this->status_);
     }
 
     T& value() noexcept
