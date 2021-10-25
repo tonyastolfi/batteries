@@ -171,7 +171,8 @@ TEST(AsyncWatchTest, NonAtomicClose)
     batt::StatusOr<std::string> result;
     int predicate_count = 0;
 
-    batt::Task closer_task{io.get_executor(), [&] {
+    batt::Task closer_task{io.get_executor(),
+                           [&] {
                                while (predicate_count < 1) {
                                    batt::Task::yield();
                                }
@@ -183,14 +184,17 @@ TEST(AsyncWatchTest, NonAtomicClose)
                                }
 
                                str.close();
-                           }};
+                           },
+                           "closer_task"};
 
-    batt::Task getter_task{io.get_executor(), [&] {
+    batt::Task getter_task{io.get_executor(),
+                           [&] {
                                result = str.await_true([&](const std::string& observed) {
                                    predicate_count += 1;
                                    return observed.length() > 4;
                                });
-                           }};
+                           },
+                           "getter_task"};
 
     EXPECT_EQ(result.status(), batt::StatusCode::kUnknown);
 

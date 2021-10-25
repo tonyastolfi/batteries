@@ -441,6 +441,17 @@ class Task
         const state_type mask_;
     };
 
+    class Trampoline
+    {
+       public:
+        static void activate_task(Task* t);
+
+       private:
+        static Trampoline& per_thread_instance();
+
+        Task* next_to_run_ = nullptr;
+    };
+
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
     static i32 next_id();
@@ -546,6 +557,18 @@ class Task
     //
     bool try_dump_stack_trace();
 
+    // Activate this task via boost::asio::post.
+    //
+    void post_activation();
+
+    // Activate this task via boost::asio::dispatchx.
+    //
+    void dispatch_activation();
+
+    // Create an activation completion handler for use inside `post_activation`, `dispatch_activation`, etc.
+    //
+    auto make_activation_handler(bool via_post);
+
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
     const i32 id_ = next_id();
@@ -563,6 +586,8 @@ class Task
     const volatile u8* stack_base_ = nullptr;
     // TODO [tastolfi 2021-10-18]
     //    std::atomic<DebugTrace*> debug_trace_{nullptr};
+
+    bool is_preempted_ = false;
 };
 
 }  // namespace batt

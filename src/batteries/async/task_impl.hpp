@@ -138,6 +138,7 @@ BATT_INLINE_IMPL Continuation Task::post_exit() noexcept
         return std::move(this->completion_handlers_);
     }();
 
+    Task::current_ptr() = nullptr;
     Continuation parent = std::move(this->scheduler_);
 
     this->handle_event(kTerminated);
@@ -154,6 +155,7 @@ BATT_INLINE_IMPL void Task::yield_impl()
     BATT_CHECK(this->scheduler_) << StateBitset{this->state_.load()};
 
     for (;;) {
+        Task::current_ptr() = nullptr;
         this->scheduler_ = this->scheduler_.resume();
 
         // If a stack trace has been requested, print it and suspend.
@@ -216,7 +218,9 @@ BATT_INLINE_IMPL void Task::handle_event(u32 event_mask)
     const u32 new_state = this->state_.fetch_or(event_mask) | event_mask;
 
     if (is_ready_state(new_state)) {
-        this->schedule_to_run(new_state);
+        const bool force_post = this->is_preempted_;
+        this->is_preempted_ = false;
+        this->schedule_to_run(new_state, force_post);
     } else if (is_terminal_state(new_state)) {
 #ifdef BATT_GLOG_AVAILABLE
         VLOG(1) << "[Task] " << this->name_ << " exiting";
@@ -241,29 +245,17 @@ BATT_INLINE_IMPL void Task::schedule_to_run(u32 observed_state, bool force_post)
         }
     }
 
-    // If we dispatch, it may preempt the currently running task; if we post, the current task stays
-    // running.  There are a couple of things to do here:
-    //
-    // - TODO [tastolfi 2020-12-12] If running preempts an existing task, reschedule it on another thread if
-    //   it is ready to run?  This requires a bit of thought; it's non-obvious how to schedule the current
-    //   task elsewhere...
-    // - TODO [tastolfi 2020-12-12] If `this` ran for a very short time last time it ran -OR- `current` has
-    //   been running for a long time, then `dispatch`, otherwise `post`.
-    //
-    auto activation = make_custom_alloc_handler(this->activate_memory_, [this] {
-        this->run();
-    });
+    BATT_CHECK(is_ready_state(observed_state));
+    BATT_CHECK(this->self_);
 
-    const bool should_preempt = Task::current_priority() < this->get_priority();
-    if (should_preempt && Task::nesting_depth() < kMaxNestingDepth && !force_post) {
+    if (!force_post && Task::nesting_depth() < kMaxNestingDepth) {
         ++Task::nesting_depth();
         auto on_scope_exit = batt::finally([] {
             --Task::nesting_depth();
         });
-
-        boost::asio::dispatch(this->ex_, std::move(activation));
+        this->dispatch_activation();
     } else {
-        boost::asio::post(this->ex_, std::move(activation));
+        this->post_activation();
     }
 }
 
@@ -309,10 +301,12 @@ BATT_INLINE_IMPL void Task::run()
 //
 BATT_INLINE_IMPL void Task::resume_impl()
 {
-    Task* const saved_task = Task::current_ptr();
+    BATT_CHECK_EQ(Task::current_ptr(), nullptr);
+
     Task::current_ptr() = this;
-    auto on_scope_exit = batt::finally([saved_task] {
-        Task::current_ptr() = saved_task;
+
+    auto on_scope_exit = batt::finally([] {
+        BATT_CHECK_EQ(Task::current_ptr(), nullptr);
     });
 
     BATT_CHECK(this->self_);
@@ -409,6 +403,65 @@ BATT_INLINE_IMPL bool Task::try_dump_stack_trace()
     this->schedule_to_run(after_state, /*force_post=*/true);
 
     return true;
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL auto Task::make_activation_handler(bool via_post)
+{
+    return make_custom_alloc_handler(this->activate_memory_, [this, via_post] {
+        if (via_post) {
+            BATT_CHECK_EQ(Task::current_ptr(), nullptr);
+        }
+        Trampoline::activate_task(this);
+    });
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL void Task::post_activation()
+{
+    boost::asio::post(this->ex_, this->make_activation_handler(/*via_post=*/true));
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL void Task::dispatch_activation()
+{
+    boost::asio::dispatch(this->ex_, this->make_activation_handler(/*via_post=*/false));
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+
+BATT_INLINE_IMPL void Task::Trampoline::activate_task(Task* task_to_activate)
+{
+    auto& self = per_thread_instance();
+
+    while (task_to_activate != nullptr) {
+        Task* const current_task = Task::current_ptr();
+        if (current_task != nullptr) {
+            if (current_task->get_priority() >= task_to_activate->get_priority()) {
+                task_to_activate->post_activation();
+                break;
+            }
+
+            self.next_to_run_ = task_to_activate;
+            current_task->is_preempted_ = true;
+            current_task->yield_impl();
+            break;
+        }
+
+        task_to_activate->run();
+
+        task_to_activate = self.next_to_run_;
+        self.next_to_run_ = nullptr;
+    }
+}
+
+BATT_INLINE_IMPL auto Task::Trampoline::per_thread_instance() -> Trampoline&
+{
+    thread_local Trampoline instance;
+    return instance;
 }
 
 }  // namespace batt

@@ -186,7 +186,6 @@ TEST(StatusOrTest, MoveConstruct)
     batt::StatusOr<std::unique_ptr<int>> i2 = std::move(i);
 
     EXPECT_FALSE(i.ok());
-    EXPECT_TRUE(*i == nullptr);
 
     EXPECT_TRUE(i2.ok());
     EXPECT_TRUE(*i2 != nullptr);
