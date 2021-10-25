@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/tuples.hpp>
 //
 #include <gmock/gmock.h>

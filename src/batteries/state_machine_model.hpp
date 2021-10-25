@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_STATE_MACHINE_MODEL_HPP
 #define BATTERIES_STATE_MACHINE_MODEL_HPP

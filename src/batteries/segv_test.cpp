@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/segv.hpp>
 //
 #include <batteries/segv.hpp>
@@ -8,20 +10,17 @@
 
 namespace {
 
-void BATT_NO_OPTIMIZE
-level_three()
+void BATT_NO_OPTIMIZE level_three()
 {
     raise(SIGSEGV);
 }
 
-void BATT_NO_OPTIMIZE
-level_two()
+void BATT_NO_OPTIMIZE level_two()
 {
     level_three();
 }
 
-void BATT_NO_OPTIMIZE
-level_one()
+void BATT_NO_OPTIMIZE level_one()
 {
     level_two();
 }
@@ -32,8 +31,8 @@ TEST(Segv, StackTraceOnSegv)
                  "Seg.*fault"
 #ifndef __APPLE__
                  ".*level_three.*level_two.*level_one.*Segv_StackTraceOnSegv_Test::TestBody()"
-#endif // __APPLE__
+#endif  // __APPLE__
     );
 }
 
-} // namespace
+}  // namespace

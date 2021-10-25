@@ -1,10 +1,12 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_ASYNC_LATCH_HPP
 #define BATTERIES_ASYNC_LATCH_HPP
 
 #include <batteries/assert.hpp>
 #include <batteries/async/handler.hpp>
-#include <batteries/async/watch.hpp>
+#include <batteries/async/watch_decl.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/status.hpp>
 #include <batteries/utility.hpp>
@@ -57,7 +59,6 @@ class Latch
     StatusOr<T> await()
     {
         Status status = this->state_.await_equal(kReady);
-        BATT_CHECK(status.ok()) << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         BATT_REQUIRE_OK(status);
 
         return this->get_ready_value_or_panic();
@@ -90,39 +91,39 @@ class Latch
     template <typename Handler>
     void async_get(Handler&& handler)
     {
-        BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
         this->state_.async_wait(
             kInitial,
             bind_handler(BATT_FORWARD(handler), [this](Handler&& handler, const StatusOr<u32>& result) {
                 if (!result.ok()) {
-                    BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
                     BATT_FORWARD(handler)(result.status());
                     return;
                 }
-                BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
                 if (*result == kReady) {
-                    BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
                     BATT_CHECK(this->value_);
                     BATT_FORWARD(handler)(*this->value_);
                     return;
                 }
-                BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
 
                 BATT_CHECK_EQ(*result, kSetting);
-                this->state_.async_wait(
-                    kSetting, bind_handler(BATT_FORWARD(handler), [this](Handler&& handler,
-                                                                         const StatusOr<u32>& result) {
-                        if (!result.ok()) {
-                            BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-                            BATT_FORWARD(handler)(result.status());
-                            return;
-                        }
+                this->state_.async_wait(kSetting,
+                                        bind_handler(BATT_FORWARD(handler),
+                                                     [this](Handler&& handler, const StatusOr<u32>& result) {
+                                                         if (!result.ok()) {
+                                                             BATT_FORWARD(handler)(result.status());
+                                                             return;
+                                                         }
 
-                        BATT_PANIC() << "TODO [tastolfi 2021-10-20] TestPointNeeded";
-                        BATT_CHECK(this->value_);
-                        BATT_FORWARD(handler)(*this->value_);
-                    }));
+                                                         BATT_CHECK(this->value_);
+                                                         BATT_FORWARD(handler)(*this->value_);
+                                                     }));
             }));
+    }
+
+    // Force the latch into an invalid state (for testing mostly).
+    //
+    void invalidate()
+    {
+        this->state_.close();
     }
 
    private:
@@ -133,3 +134,9 @@ class Latch
 }  // namespace batt
 
 #endif  // BATTERIES_ASYNC_LATCH_HPP
+
+#include <batteries/config.hpp>
+
+#if BATT_HEADER_ONLY
+#include "watch_impl.hpp"
+#endif

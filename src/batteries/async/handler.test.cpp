@@ -1,4 +1,4 @@
-// Copyright 2021 Tony Astolfi
+// Copyright 2021 Anthony Paul Astolfi
 //
 #include <batteries/async/handler.hpp>
 //

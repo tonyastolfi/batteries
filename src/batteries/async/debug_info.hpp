@@ -1,6 +1,5 @@
-// Copyright 2021 Tony Astolfi
+// Copyright 2021 Anthony Paul Astolfi
 //
-
 #include <batteries/config.hpp>
 
 #include "debug_info_decl.hpp"

@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #ifndef BATT_STRONG_TYPEDEF_HPP
 #define BATT_STRONG_TYPEDEF_HPP
 

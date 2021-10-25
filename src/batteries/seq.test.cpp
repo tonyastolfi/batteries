@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/seq.hpp>
 //
 #include <batteries/seq.hpp>

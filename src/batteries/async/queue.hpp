@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_ASYNC_QUEUE_HPP
 #define BATTERIES_ASYNC_QUEUE_HPP

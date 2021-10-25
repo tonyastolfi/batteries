@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #pragma once
 
 #ifdef BOOST_STACKTRACE_USE_NOOP

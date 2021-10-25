@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_SEQ_STATUS_OK_HPP
 #define BATTERIES_SEQ_STATUS_OK_HPP

@@ -1,5 +1,6 @@
-// Copyright 2021 Tony Astolfi
+// Copyright 2021 Anthony Paul Astolfi
 //
+#pragma once
 #ifndef BATTERIES_ASYNC_DEBUG_INFO_IMPL_HPP
 #define BATTERIES_ASYNC_DEBUG_INFO_IMPL_HPP
 

@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include "strong_typedef.hpp"
 //
 #include "strong_typedef.hpp"

@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/case_of.hpp>
 //
 #include <gmock/gmock.h>

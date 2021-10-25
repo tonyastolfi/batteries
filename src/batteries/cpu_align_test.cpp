@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/cpu_align.hpp>
 //
 #include <gmock/gmock.h>

@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATT_CPU_ALIGN_HPP
 #define BATT_CPU_ALIGN_HPP

@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/var_size_array.hpp>
 //
 #include <batteries/var_size_array.hpp>

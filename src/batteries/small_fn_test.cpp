@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/small_fn.hpp>
 //
 #include <gmock/gmock.h>
@@ -13,7 +15,9 @@ using batt::UniqueSmallFn;
 
 TEST(SmallFnTest, CopyAndInvoke)
 {
-    SmallFn<auto(int)->int> fn = [](int i) { return i + 1; };
+    SmallFn<auto(int)->int> fn = [](int i) {
+        return i + 1;
+    };
 
     ASSERT_TRUE(fn);
     ASSERT_FALSE(!fn);
@@ -42,7 +46,9 @@ TEST(SmallFnTest, CopyAndInvoke)
     EXPECT_EQ(2, fn2(1));
     EXPECT_EQ(2, fn3(1));
 
-    fn2 = [](int i) { return i + 2; };
+    fn2 = [](int i) {
+        return i + 2;
+    };
     fn3 = std::move(fn2);
 
     ASSERT_FALSE(fn2);
@@ -52,8 +58,9 @@ TEST(SmallFnTest, CopyAndInvoke)
 
 TEST(UniqueSmallFnTest, MoveAndInvoke)
 {
-    UniqueSmallFn<auto(int)->int> fn =
-        [delta = std::make_unique<int>(3)](int i) { return i + *delta; };
+    UniqueSmallFn<auto(int)->int> fn = [delta = std::make_unique<int>(3)](int i) {
+        return i + *delta;
+    };
 
     ASSERT_TRUE(fn);
     ASSERT_FALSE(!fn);
@@ -64,8 +71,12 @@ TEST(UniqueSmallFnTest, MoveAndInvoke)
     ASSERT_TRUE(fn2);
     ASSERT_FALSE(fn);
 
-    SmallFn<auto(int)->int> fn3 = [](int i) { return i + i + 1; };
-    const SmallFn<auto(int)->int> fn4 = [](int i) { return i + i + 1; };
+    SmallFn<auto(int)->int> fn3 = [](int i) {
+        return i + i + 1;
+    };
+    const SmallFn<auto(int)->int> fn4 = [](int i) {
+        return i + i + 1;
+    };
 
     fn2 = fn3;
 

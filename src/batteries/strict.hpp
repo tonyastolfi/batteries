@@ -1,8 +1,10 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #pragma once
 
 #ifndef BATT_NO_STRICT
 
-#    pragma GCC diagnostic error "-Wall"
-#    pragma GCC diagnostic error "-Wextra"
+#pragma GCC diagnostic error "-Wall"
+#pragma GCC diagnostic error "-Wextra"
 
-#endif // BATT_NO_STRICT
+#endif  // BATT_NO_STRICT

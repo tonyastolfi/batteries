@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #pragma once
 
 #include <iterator>
@@ -163,5 +165,28 @@ struct DecayRValueRefImpl
 
 template <typename T>
 using DecayRValueRef = typename DecayRValueRefImpl<T>::type;
+
+// =============================================================================
+// CanBeEqCompared<T, U> - std::true_type or std::false_type depending on whether types `T` and `U` can be
+// equality-compared.
+//
+namespace detail {
+
+template <typename T, typename U, typename = decltype(std::declval<const T&>() == std::declval<const U>())>
+std::true_type can_be_eq_compared_helper(const T*, const U*)
+{
+    return {};
+}
+
+template <typename T, typename U>
+std::false_type can_be_eq_compared_helper(...)
+{
+    return {};
+}
+
+}  // namespace detail
+
+template <typename T, typename U = T>
+using CanBeEqCompared = decltype(detail::can_be_eq_compared_helper<T, U>(nullptr, nullptr));
 
 }  // namespace batt

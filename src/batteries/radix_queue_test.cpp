@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/radix_queue.hpp>
 //
 #include <batteries/radix_queue.hpp>

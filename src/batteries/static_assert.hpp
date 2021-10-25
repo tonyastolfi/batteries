@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_STATIC_ASSERT_HPP
 #define BATTERIES_STATIC_ASSERT_HPP

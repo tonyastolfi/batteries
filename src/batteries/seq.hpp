@@ -1,3 +1,6 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
+
 // Utilities for dealing with sequences.
 //
 #pragma once

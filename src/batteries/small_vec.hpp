@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_SMALL_VEC_HPP
 #define BATTERIES_SMALL_VEC_HPP

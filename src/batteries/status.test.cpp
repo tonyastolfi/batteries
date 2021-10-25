@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/status.hpp>
 //
 #include <batteries/status.hpp>

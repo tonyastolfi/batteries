@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/checked_cast.hpp>
 //
 #include <batteries/checked_cast.hpp>

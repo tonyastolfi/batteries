@@ -1,8 +1,15 @@
-// Copyright 2021 Tony Astolfi
+// Copyright 2021 Anthony Paul Astolfi
 //
+#pragma once
+#ifndef BATTERIES_ASYNC_TASK_IMPL_HPP
+#define BATTERIES_ASYNC_TASK_IMPL_HPP
+
 #include <batteries/async/task.hpp>
 //
 
+#include <batteries/async/debug_info.hpp>
+#include <batteries/async/future.hpp>
+#include <batteries/async/watch.hpp>
 #include <batteries/config.hpp>
 #include <batteries/stream_util.hpp>
 
@@ -183,7 +190,7 @@ BATT_INLINE_IMPL ErrorCode Task::sleep_impl(const boost::posix_time::time_durati
 //
 BATT_INLINE_IMPL void Task::join()
 {
-    await(get_future(this->promise_));
+    await(get_future(this->promise_)).IgnoreError();
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -405,3 +412,5 @@ BATT_INLINE_IMPL bool Task::try_dump_stack_trace()
 }
 
 }  // namespace batt
+
+#endif  // BATTERIES_ASYNC_TASK_IMPL_HPP

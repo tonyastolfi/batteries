@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/type_traits.hpp>
 //
 #include <array>
@@ -69,9 +71,20 @@ static_assert(BATT_STATIC_VALUE(&IsARange::begin){} == &IsARange::begin, "");
 
 // =============================================================================
 // DecayRValueRef tests.
+//
 static_assert(std::is_same_v<batt::DecayRValueRef<int>, int>, "");
 static_assert(std::is_same_v<batt::DecayRValueRef<const int>, const int>, "");
 static_assert(std::is_same_v<batt::DecayRValueRef<int&>, int&>, "");
 static_assert(std::is_same_v<batt::DecayRValueRef<const int&>, const int&>, "");
 static_assert(std::is_same_v<batt::DecayRValueRef<int&&>, int>, "");
 static_assert(std::is_same_v<batt::DecayRValueRef<const int&&>, int>, "");
+
+// =============================================================================
+// CanBeEqCompared tests.
+//
+static_assert(batt::CanBeEqCompared<int, long>{}, "");
+static_assert(batt::CanBeEqCompared<std::string, const char*>{}, "");
+static_assert(batt::CanBeEqCompared<const char*, std::string>{}, "");
+static_assert(!batt::CanBeEqCompared<bool, std::string>{}, "");
+static_assert(!batt::CanBeEqCompared<NotARange, NotARange>{}, "");
+static_assert(!batt::CanBeEqCompared<NotARange>{}, "");

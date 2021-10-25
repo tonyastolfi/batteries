@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #include <batteries/state_machine_model.hpp>
 //
 #include <batteries/state_machine_model.hpp>

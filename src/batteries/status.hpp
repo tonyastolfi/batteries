@@ -1,3 +1,5 @@
+// Copyright 2021 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_STATUS_HPP
 #define BATTERIES_STATUS_HPP
@@ -536,6 +538,27 @@ class StatusOr
     std::aligned_storage_t<sizeof(T), alignof(T)> storage_;
 };
 
+template <typename T, typename U, typename = std::enable_if_t<CanBeEqCompared<T, U>{}>>
+inline bool operator==(const StatusOr<T>& l, const StatusOr<U>& r)
+{
+    return (l.ok() && r.ok() && *l == *r) || (l.status() == r.status());
+}
+
+// If `T` (and `U`) can't be equality-compared, then we define StatusOr<T> to be equal iff the non-ok status
+// values are equal.
+//
+template <typename T, typename U, typename = std::enable_if_t<!CanBeEqCompared<T, U>{}>, typename = void>
+inline bool operator==(const StatusOr<T>& l, const StatusOr<U>& r)
+{
+    return (!l.ok() && !r.ok() && l.status() == r.status());
+}
+
+template <typename T, typename U>
+inline bool operator!=(const StatusOr<T>& l, const StatusOr<U>& r)
+{
+    return !(l == r);
+}
+
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
 template <typename T>
@@ -717,7 +740,7 @@ std::ostream& operator<<(std::ostream& out, T&& status_or)
     if (!status_or.ok()) {
         return out << "Status{" << status_or.status() << "}";
     }
-    return out << "Ok{" << *status_or << "}";
+    return out << "Ok{" << make_printable(*status_or) << "}";
 }
 
 inline bool status_is_retryable(const Status& s)
