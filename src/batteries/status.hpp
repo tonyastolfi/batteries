@@ -10,6 +10,8 @@
 #include <batteries/strong_typedef.hpp>
 #include <batteries/utility.hpp>
 
+#include <boost/preprocessor/cat.hpp>
+
 #include <atomic>
 #include <cstring>
 #include <limits>
@@ -711,6 +713,11 @@ inline decltype(auto) to_status(T&& s)
         {                                                                                                    \
             __FILE__, __LINE__, ::batt::to_status(BATT_FORWARD(expr))                                        \
         }
+
+#define BATT_ASSIGN_OK_RESULT(lvalue_expr, statusor_expr)                                                    \
+    auto BOOST_PP_CAT(BATTERIES_temp_StatusOr_result_, __LINE__) = statusor_expr;                            \
+    BATT_REQUIRE_OK(BOOST_PP_CAT(BATTERIES_temp_StatusOr_result_, __LINE__));                                \
+    lvalue_expr = std::move(*BOOST_PP_CAT(BATTERIES_temp_StatusOr_result_, __LINE__))
 
 inline Status status_from_errno(int code)
 {
