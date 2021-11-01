@@ -89,35 +89,7 @@ class Latch
     // immediately if the Latch is ready when this method is called.
     //
     template <typename Handler>
-    void async_get(Handler&& handler)
-    {
-        this->state_.async_wait(
-            kInitial,
-            bind_handler(BATT_FORWARD(handler), [this](Handler&& handler, const StatusOr<u32>& result) {
-                if (!result.ok()) {
-                    BATT_FORWARD(handler)(result.status());
-                    return;
-                }
-                if (*result == kReady) {
-                    BATT_CHECK(this->value_);
-                    BATT_FORWARD(handler)(*this->value_);
-                    return;
-                }
-
-                BATT_CHECK_EQ(*result, kSetting);
-                this->state_.async_wait(kSetting,
-                                        bind_handler(BATT_FORWARD(handler),
-                                                     [this](Handler&& handler, const StatusOr<u32>& result) {
-                                                         if (!result.ok()) {
-                                                             BATT_FORWARD(handler)(result.status());
-                                                             return;
-                                                         }
-
-                                                         BATT_CHECK(this->value_);
-                                                         BATT_FORWARD(handler)(*this->value_);
-                                                     }));
-            }));
-    }
+    void async_get(Handler&& handler);
 
     // Force the latch into an invalid state (for testing mostly).
     //
@@ -127,9 +99,53 @@ class Latch
     }
 
    private:
+    class AsyncGetHandler;
+
+    //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+
     Watch<u32> state_{kInitial};
     Optional<StatusOr<T>> value_;
 };
+
+//#=##=##=#==#=#==#===#+==#+==========+==+=+=+=+=+=++=+++=+++++=-++++=-+++++++++++
+
+template <typename T>
+class Latch<T>::AsyncGetHandler
+{
+   public:
+    explicit AsyncGetHandler(Latch* latch) noexcept : latch_{latch}
+    {
+    }
+
+    template <typename Handler>
+    void operator()(Handler&& handler, const StatusOr<u32>& result) const
+    {
+        if (!result.ok()) {
+            BATT_FORWARD(handler)(result.status());
+            return;
+        }
+
+        if (*result == kReady) {
+            BATT_CHECK(this->latch_->value_);
+            BATT_FORWARD(handler)(*this->latch_->value_);
+            return;
+        }
+
+        this->latch_->state_.async_wait(/*last_seen=*/*result, bind_handler(BATT_FORWARD(handler), *this));
+    }
+
+   private:
+    Latch* latch_;
+};
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+template <typename T>
+template <typename Handler>
+inline void Latch<T>::async_get(Handler&& handler)
+{
+    this->state_.async_wait(kInitial, bind_handler(BATT_FORWARD(handler), AsyncGetHandler{this}));
+}
 
 }  // namespace batt
 
