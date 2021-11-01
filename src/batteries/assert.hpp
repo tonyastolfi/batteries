@@ -19,8 +19,6 @@
 #include <mutex>
 #include <sstream>
 
-#include <cxxabi.h>
-
 #ifdef BATT_FAIL_CHECK_OUT
 #error This macro is deprecated; use BATT_GLOG_AVAILABLE
 #endif
@@ -43,10 +41,8 @@ decltype(auto) make_printable(T&& obj)
 template <typename T, typename = std::enable_if_t<!IsPrintable<T>{}>, typename = void>
 std::string make_printable(T&& obj)
 {
-    int status = -1;
     std::ostringstream oss;
-    oss << "(" << abi::__cxa_demangle(typeid(T).name(), NULL, NULL, &status) << ") " << std::hex
-        << std::setw(2) << std::setfill('0');
+    oss << "(" << name_of<T>() << ") " << std::hex << std::setw(2) << std::setfill('0');
 
     for (const u8* bytes = (const u8*)&obj; bytes != (const u8*)((&obj) + 1); ++bytes) {
         oss << (int)*bytes;

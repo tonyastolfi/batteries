@@ -2,6 +2,8 @@
 //
 #pragma once
 
+#include <cxxabi.h>
+
 #include <iterator>
 #include <tuple>
 #include <type_traits>
@@ -188,5 +190,14 @@ std::false_type can_be_eq_compared_helper(...)
 
 template <typename T, typename U = T>
 using CanBeEqCompared = decltype(detail::can_be_eq_compared_helper<T, U>(nullptr, nullptr));
+
+// =============================================================================
+
+template <typename T>
+auto name_of(batt::StaticType<T> = {})
+{
+    int status = -1;
+    return abi::__cxa_demangle(typeid(T).name(), NULL, NULL, &status);
+}
 
 }  // namespace batt
