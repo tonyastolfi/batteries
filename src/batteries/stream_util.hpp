@@ -10,6 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/io/ios_state.hpp>
 
+#include <atomic>
 #include <iomanip>
 #include <optional>
 #include <ostream>
@@ -129,6 +130,12 @@ BATT_UNSUPPRESS()
 // c_str_literal(str) - escape a C string.
 //
 struct EscapedStringLiteral {
+    static std::atomic<usize>& max_show_length()
+    {
+        static std::atomic<usize> len{std::numeric_limits<usize>::max()};
+        return len;
+    }
+
     std::string_view str;
 };
 
@@ -143,11 +150,16 @@ inline std::ostream& operator<<(std::ostream& out, const EscapedStringLiteral& t
                                     '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
     const auto emit_hex_ascii = [&](char ch) {
-        out << "\\x" << xdigit[(ch & 0xf) >> 4] << xdigit[ch & 0xf];
+        out << "\\x" << xdigit[(ch >> 4) & 0xf] << xdigit[ch & 0xf];
     };
 
     out << '"';
+    usize i = 0;
     for (char ch : t.str) {
+        if (i > EscapedStringLiteral::max_show_length()) {
+            return out << "\"...(" << t.str.length() - i << " skipped chars)";
+        }
+        ++i;
         if (ch & 0b10000000) {
             emit_hex_ascii(ch);
             continue;

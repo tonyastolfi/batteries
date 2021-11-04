@@ -5,6 +5,7 @@
 #define BATTERIES_SLICE_HPP
 
 #include <batteries/seq.hpp>
+#include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
 
 #include <boost/range/iterator_range.hpp>
@@ -48,6 +49,13 @@ template <typename ElementT>
 Slice<ElementT> as_slice(const Slice<ElementT>& slice)
 {
     return slice;
+}
+
+template <typename ElementT>
+Slice<ElementT> empty_slice(StaticType<ElementT> = {})
+{
+    static std::aligned_storage_t<sizeof(ElementT), alignof(ElementT)> storage_;
+    return as_slice(reinterpret_cast<ElementT*>(&storage_), 0);
 }
 
 template <typename T>

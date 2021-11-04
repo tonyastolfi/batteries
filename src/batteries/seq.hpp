@@ -327,8 +327,9 @@ template <typename KSeqs, typename Compare>
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 // map_pairwise
+//  Given: seqA = {a0, a1, a2, ...}, seqB = {b0, b1, b2, ...}, fn = (A, B) -> T
+//  Produce: {fn(a0, b0), fn(a1, b1), fn(a2, b2), ...}
 //
-
 template <typename LeftSeq, typename RightSeq, typename MapFn>
 class MapPairwise
 {
