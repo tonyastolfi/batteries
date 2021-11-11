@@ -135,15 +135,16 @@ inline bool lock_fail_check_mutex()
 
 #else  // NDEBUG  ==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
-#define BATT_ASSERT(x) BATT_ASSERT_DISABLED(::batt::ignore(x))
-#define BATT_ASSERT_EQ(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
-#define BATT_ASSERT_NE(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
-#define BATT_ASSERT_GE(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
-#define BATT_ASSERT_GT(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
-#define BATT_ASSERT_LE(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
-#define BATT_ASSERT_LT(x, y) BATT_ASSERT_DISABLED(::batt::ignore(x, y))
-#define BATT_ASSERT_IMPLIES(p, q) BATT_ASSERT_DISABLED(::batt::ignore(p, q))
-#define BATT_ASSERT_IN_RANGE(low, x, high) BATT_ASSERT_DISABLED(::batt::ignore(low, x, high))
+#define BATT_ASSERT(x) BATT_ASSERT_DISABLED(::batt::ignore((x)))
+#define BATT_ASSERT_EQ(x, y) BATT_ASSERT_DISABLED(::batt::ignore((x), (y), (x) == (y)))
+#define BATT_ASSERT_NE(x, y) BATT_ASSERT_DISABLED(::batt::ignore((x), (y), (x) != (y)))
+#define BATT_ASSERT_GE(x, y) BATT_ASSERT_DISABLED(::batt::ignore((x), (y), (x) >= (y)))
+#define BATT_ASSERT_GT(x, y) BATT_ASSERT_DISABLED(::batt::ignore((x), (y), (x) > (y)))
+#define BATT_ASSERT_LE(x, y) BATT_ASSERT_DISABLED(::batt::ignore((x), (y), (x) <= (y)))
+#define BATT_ASSERT_LT(x, y) BATT_ASSERT_DISABLED(::batt::ignore((x), (y), (x) < (y)))
+#define BATT_ASSERT_IMPLIES(p, q) BATT_ASSERT_DISABLED(::batt::ignore((p), (q), !(p), bool(q)))
+#define BATT_ASSERT_IN_RANGE(low, x, high)                                                                   \
+    BATT_ASSERT_DISABLED(::batt::ignore((low), (x), (high), (low) <= (x), (x) < (high)))
 
 #endif  // NDEBUG ==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 

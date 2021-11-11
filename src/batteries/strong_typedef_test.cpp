@@ -9,6 +9,9 @@
 
 BATT_STRONG_TYPEDEF(int, Count);
 
+constexpr Count kStaticCount{5};
+static_assert(kStaticCount == 2 + 3, "");
+
 TEST(StrongTypedef, ConstructFromT)
 {
     auto c = Count{1};
@@ -30,6 +33,12 @@ BATT_STRONG_TYPEDEF_WITH_DEFAULT(int, Count, 3);
 namespace bar {
 BATT_STRONG_TYPEDEF_WITH_DEFAULT(int, Count, 5);
 }  // namespace bar
+
+constexpr foo::Count kStaticFooCount;
+constexpr bar::Count kStaticBarCount;
+
+static_assert(kStaticFooCount == 3, "");
+static_assert(kStaticBarCount == 5, "");
 
 TEST(StrongTypedef, DefaultPerNamespace)
 {
@@ -71,3 +80,13 @@ TEST(StrongTypedef, Numerics)
 
     EXPECT_EQ(a, 11.5);
 }
+
+BATT_STRONG_TYPEDEF_WITH_DEFAULT(unsigned, NaturalNumber, 1);
+
+BATT_STRONG_TYPEDEF_SUPPORTS_NUMERICS(NaturalNumber);
+
+constexpr NaturalNumber one;
+constexpr NaturalNumber two{2};
+constexpr NaturalNumber three = one + two;
+
+static_assert(three == 3, "");

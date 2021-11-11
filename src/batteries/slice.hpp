@@ -4,10 +4,12 @@
 #ifndef BATTERIES_SLICE_HPP
 #define BATTERIES_SLICE_HPP
 
+#include <batteries/interval.hpp>
 #include <batteries/seq.hpp>
 #include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
 
+#include <boost/range/begin.hpp>
 #include <boost/range/iterator_range.hpp>
 
 #include <memory>
@@ -86,6 +88,14 @@ template <typename Iter>
 boost::iterator_range<Iter> as_range(const std::pair<Iter, Iter>& p)
 {
     return boost::make_iterator_range(p.first, p.second);
+}
+
+template <typename RangeT, typename Iter = std::decay_t<decltype(boost::begin(std::declval<RangeT>()))>,
+          typename OffsetT, typename = std::enable_if_t<std::is_integral_v<OffsetT>>>
+boost::iterator_range<Iter> slice_range(RangeT&& range, const Interval<OffsetT>& i)
+{
+    return boost::make_iterator_range(std::next(boost::begin(range), i.lower_bound),
+                                      std::next(boost::begin(range), i.upper_bound));
 }
 
 }  // namespace batt

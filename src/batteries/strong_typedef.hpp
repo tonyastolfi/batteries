@@ -27,20 +27,20 @@ class StrongType
     using value_type = T;
     using tag_type = Tag;
 
-    StrongType() noexcept : value_{strong_typedef_default_value((Tag*)nullptr)}
+    constexpr StrongType() noexcept : value_{strong_typedef_default_value((Tag*)nullptr)}
     {
     }
 
-    explicit StrongType(T init_value) noexcept : value_{init_value}
+    explicit constexpr StrongType(T init_value) noexcept : value_{init_value}
     {
     }
 
-    T value() const
+    constexpr T value() const
     {
         return value_;
     }
 
-    operator T() const
+    constexpr operator T() const
     {
         return value();
     }
@@ -78,7 +78,7 @@ struct StrongType<T, Tag>::Delta : StrongType<T, Tag> {
 
 #define BATT_STRONG_TYPEDEF_WITH_DEFAULT(TYPE, NAME, VALUE)                                                  \
     struct BATT_STRONG_TYPEDEF_PASTE_(NAME, _TAG);                                                           \
-    inline TYPE strong_typedef_default_value(BATT_STRONG_TYPEDEF_PASTE_(NAME, _TAG)*)                        \
+    inline constexpr TYPE strong_typedef_default_value(BATT_STRONG_TYPEDEF_PASTE_(NAME, _TAG)*)              \
     {                                                                                                        \
         return VALUE;                                                                                        \
     }                                                                                                        \
@@ -94,7 +94,7 @@ struct StrongType<T, Tag>::Delta : StrongType<T, Tag> {
 #define BATT_STRONG_TYPEDEF_NUMERIC_OPERATOR_DEFN(op_long, op_short)                                         \
     template <typename T, typename Tag,                                                                      \
               typename = std::enable_if_t<batt_strong_typedef_supports_numerics((Tag*)nullptr)>>             \
-    StrongType<T, Tag> op_long(StrongType<T, Tag> a, StrongType<T, Tag> b)                                   \
+    constexpr StrongType<T, Tag> op_long(StrongType<T, Tag> a, StrongType<T, Tag> b)                         \
     {                                                                                                        \
         return StrongType<T, Tag>{a.value() op_short b.value()};                                             \
     }
