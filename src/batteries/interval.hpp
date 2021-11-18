@@ -136,6 +136,30 @@ struct BasicInterval {
     using ReverseLexicographicalOrder = seq::Reverse<LexicographicalOrder>;
 };
 
+template <typename TraitsT, typename DeltaT>
+BasicInterval<TraitsT> push_back(const BasicInterval<TraitsT>& i, DeltaT delta)
+{
+    return {i.lower_bound, i.upper_bound + delta};
+}
+
+template <typename TraitsT, typename DeltaT>
+BasicInterval<TraitsT> push_front(const BasicInterval<TraitsT>& i, DeltaT delta)
+{
+    return {i.lower_bound - delta, i.upper_bound};
+}
+
+template <typename TraitsT, typename DeltaT>
+BasicInterval<TraitsT> pop_back(const BasicInterval<TraitsT>& i, DeltaT delta)
+{
+    return {i.lower_bound, i.upper_bound - delta};
+}
+
+template <typename TraitsT, typename DeltaT>
+BasicInterval<TraitsT> pop_front(const BasicInterval<TraitsT>& i, DeltaT delta)
+{
+    return {i.lower_bound + delta, i.upper_bound};
+}
+
 template <typename T, typename U>
 BasicInterval<IClosedOpen<std::decay_t<T>, std::decay_t<U>>> make_interval(T&& lower, U&& upper)
 {

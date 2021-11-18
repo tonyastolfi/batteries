@@ -109,7 +109,7 @@ class Status final : private StatusBase
     }
 
     template <typename EnumT>
-    static void register_codes(const std::vector<std::pair<EnumT, std::string>>& codes);
+    static bool register_codes(const std::vector<std::pair<EnumT, std::string>>& codes);
 
     static std::string_view message_from_code(value_type value)
     {
@@ -255,7 +255,7 @@ class Status final : private StatusBase
     }
 
     template <typename EnumT>
-    static void register_codes_internal(const std::vector<std::pair<EnumT, std::string>>& codes);
+    static bool register_codes_internal(const std::vector<std::pair<EnumT, std::string>>& codes);
 
     value_type value_;
 #ifdef BATT_STATUS_CUSTOM_MESSSAGES
@@ -799,23 +799,21 @@ inline StatusBase::StatusBase() noexcept
                 errno_codes.emplace_back(static_cast<ErrnoValue>(code), std::string(msg));
             }
         }
-        Status::register_codes_internal<ErrnoValue>(errno_codes);
-
-        return true;
+        return Status::register_codes_internal<ErrnoValue>(errno_codes);
     }();
     BATT_ASSERT(initialized);
 }
 
 template <typename EnumT>
-inline void Status::register_codes(const std::vector<std::pair<EnumT, std::string>>& codes)
+inline bool Status::register_codes(const std::vector<std::pair<EnumT, std::string>>& codes)
 {
     static StatusBase base;
 
-    register_codes_internal<EnumT>(codes);
+    return register_codes_internal<EnumT>(codes);
 }
 
 template <typename EnumT>
-inline void Status::register_codes_internal(const std::vector<std::pair<EnumT, std::string>>& codes)
+inline bool Status::register_codes_internal(const std::vector<std::pair<EnumT, std::string>>& codes)
 {
     static bool exactly_once = [&]() -> bool {
         [&] {
@@ -885,7 +883,8 @@ inline void Status::register_codes_internal(const std::vector<std::pair<EnumT, s
         }();
         return true;
     }();
-    (void)exactly_once;
+
+    return exactly_once;
 }
 
 }  // namespace batt

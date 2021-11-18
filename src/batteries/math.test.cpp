@@ -62,4 +62,20 @@ TEST(MathTest, Log2CeilFloor)
     }
 }
 
+static_assert(batt::ipow(2, 0) == 1, "");
+static_assert(batt::ipow(2, 1) == 2, "");
+static_assert(batt::ipow(2, 2) == 4, "");
+static_assert(batt::ipow(2, 3) == 8, "");
+static_assert(batt::ipow(2, 4) == 16, "");
+static_assert(batt::ipow(2, 5) == 32, "");
+static_assert(batt::ipow(2, 6) == 64, "");
+static_assert(batt::ipow(2, 7) == 128, "");
+static_assert(batt::ipow(2, 8) == 256, "");
+
+static_assert(batt::ipow(3, 0) == 1, "");
+static_assert(batt::ipow(3, 1) == 3, "");
+static_assert(batt::ipow(3, 2) == 9, "");
+static_assert(batt::ipow(3, 3) == 27, "");
+static_assert(batt::ipow(3, 4) == 81, "");
+
 }  // namespace

@@ -6,6 +6,8 @@
 
 #include <batteries/int_types.hpp>
 
+#include <type_traits>
+
 namespace batt {
 
 inline constexpr i32 log2_ceil(u64 i)
@@ -45,6 +47,15 @@ template <typename IntT>
 inline constexpr IntT round_up_bits(i32 bits, IntT n)
 {
     return round_down_bits(bits, n + lsb_mask<IntT>(bits));
+}
+
+// Compile-time integer exponentiation.
+//
+template <typename IntT>
+inline constexpr IntT ipow(IntT base, IntT exponent, IntT accumulator = static_cast<IntT>(1))
+{
+    static_assert(std::is_integral_v<IntT>, "batt::ipow may only be used with integral types.");
+    return (exponent > 0) ? ipow(base, exponent - 1, accumulator * base) : accumulator;
 }
 
 }  // namespace batt
