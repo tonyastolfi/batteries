@@ -9,6 +9,7 @@
 //
 
 #include <batteries/async/task.hpp>
+#include <batteries/segv.hpp>
 
 #include <array>
 
@@ -79,6 +80,13 @@ BATT_INLINE_IMPL void this_task_debug_info(std::ostream& out)
 {
     print_debug_info(DebugInfoFrame::top(), out);
 }
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL const bool kTaskDebugInfoSegvCallbackInstalled = [] {
+    extra_segv_debug_info_callback() = &this_task_debug_info;
+    return true;
+}();
 
 }  // namespace batt
 

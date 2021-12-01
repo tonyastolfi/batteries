@@ -10,6 +10,10 @@
 #include <batteries/strong_typedef.hpp>
 #include <batteries/type_traits.hpp>
 
+#ifndef NDEBUG
+#define BOOST_USE_VALGRIND 1
+#endif
+
 #include <boost/context/continuation.hpp>
 #include <boost/context/fixedsize_stack.hpp>
 #include <boost/context/pooled_fixedsize_stack.hpp>
@@ -81,12 +85,12 @@ class StackAllocator
         return *this;
     }
 
-    boost::context::stack_context allocate()
+    boost::context::stack_context allocate() const
     {
         return this->impl_->allocate();
     }
 
-    void deallocate(boost::context::stack_context& ctx)
+    void deallocate(boost::context::stack_context& ctx) const
     {
         return this->impl_->deallocate(ctx);
     }
@@ -95,7 +99,11 @@ class StackAllocator
     boost::intrusive_ptr<AbstractStackAllocator> impl_;
 };
 
+#ifdef BOOST_USE_VALGRIND
+BATT_STATIC_ASSERT_EQ(sizeof(void*) * 3, sizeof(boost::context::stack_context));
+#else
 BATT_STATIC_ASSERT_EQ(sizeof(void*) * 2, sizeof(boost::context::stack_context));
+#endif
 
 enum struct StackType {
     kFixedSize = 0,
@@ -106,16 +114,17 @@ enum struct StackType {
 
 BATT_STRONG_TYPEDEF(usize, StackSize);
 
-using boost::context::callcc;
+constexpr usize kMinStackSizeLog2 = 10u;
+constexpr usize kMaxStackSizeLog2 = 32u;
 
 template <typename T>
-inline StackAllocator get_stack_allocator_with_type(StackSize stack_size)
+inline const StackAllocator& get_stack_allocator_with_type(StackSize stack_size)
 {
-    static const std::array<StackAllocator, 32> instance = [] {
-        std::array<StackAllocator, 32> a;
+    static const std::array<StackAllocator, kMaxStackSizeLog2> instance = [] {
+        std::array<StackAllocator, kMaxStackSizeLog2> a;
         usize z = 1;
         for (usize i = 0; i < a.size(); ++i) {
-            if (i >= 10) {
+            if (i >= kMinStackSizeLog2) {
                 BATT_CHECK_EQ(z, usize{1} << i);
                 a[i] = T{usize{1} << i};
             }
@@ -124,13 +133,14 @@ inline StackAllocator get_stack_allocator_with_type(StackSize stack_size)
         return a;
     }();
 
-    usize n = log2_ceil(stack_size);
+    const usize n = std::max<usize>(kMinStackSizeLog2, log2_ceil(stack_size));
+    BATT_CHECK_GE(n, kMinStackSizeLog2);
     BATT_CHECK_LT(n, instance.size());
     BATT_CHECK_GE(usize{1} << n, stack_size);
     return instance[n];
 }
 
-inline StackAllocator get_stack_allocator(StackSize stack_size, StackType stack_type)
+inline const StackAllocator& get_stack_allocator(StackSize stack_size, StackType stack_type)
 {
     switch (stack_type) {
     case StackType::kFixedSize:

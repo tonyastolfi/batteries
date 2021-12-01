@@ -390,4 +390,19 @@ TEST(StatusOrTest, ConstructFromDerivedClass)
     }
 }
 
+void function_taking_status(const batt::Status&)
+{
+}
+
+TEST(StatusOrStatusTest, Test)
+{
+    batt::StatusOr<batt::Status> s1{batt::StatusCode::kResourceExhausted};
+
+    batt::Status s2 = s1;
+
+    function_taking_status(s1);
+
+    EXPECT_EQ(s1, s2);
+}
+
 }  // namespace

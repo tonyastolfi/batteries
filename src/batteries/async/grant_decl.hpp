@@ -6,8 +6,13 @@
 
 #include <batteries/async/types.hpp>
 #include <batteries/async/watch.hpp>
+#include <batteries/config.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/pointers.hpp>
+
+#ifdef BATT_GLOG_AVAILABLE
+#include <glog/logging.h>
+#endif  // BATT_GLOG_AVAILABLE
 
 #include <atomic>
 
@@ -93,6 +98,11 @@ class Grant
     bool is_valid() const
     {
         return this->size() != 0 && this->issuer_;
+    }
+
+    bool is_revoked() const
+    {
+        return this->size_.is_closed();
     }
 
     // Increase this grant by that.size() and set that to empty.

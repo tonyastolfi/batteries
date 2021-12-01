@@ -16,6 +16,7 @@
 #include <batteries/int_types.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/segv.hpp>
+#include <batteries/status.hpp>
 #include <batteries/utility.hpp>
 
 #ifdef BATT_GLOG_AVAILABLE

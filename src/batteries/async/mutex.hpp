@@ -118,6 +118,12 @@ class Mutex
         return ptr;
     }
 
+    template <typename Self, typename Base = typename Self::ThreadSafeBase>
+    static const Base* thread_safe_base(const Self* ptr)
+    {
+        return ptr;
+    }
+
     template <typename Self, typename Base = typename Self::ThreadSafeBase, typename = void>
     static Base* thread_safe_base(const std::unique_ptr<Self>* ptr)
     {
@@ -139,6 +145,11 @@ class Mutex
     }
 
     decltype(auto) no_lock()
+    {
+        return *thread_safe_base(&this->value_);
+    }
+
+    decltype(auto) no_lock() const
     {
         return *thread_safe_base(&this->value_);
     }

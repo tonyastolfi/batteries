@@ -162,3 +162,5 @@ inline bool lock_fail_check_mutex()
 #define BATT_INSPECT(expr) " " << #expr << " == " << (expr)
 
 }  // namespace batt
+
+#include <batteries/segv.hpp>

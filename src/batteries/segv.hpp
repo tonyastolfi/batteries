@@ -19,6 +19,7 @@ BATT_SUPPRESS("-Wmaybe-uninitialized")
 BATT_UNSUPPRESS()
 #endif
 
+#include <atomic>
 #include <iostream>
 
 #include <execinfo.h>
@@ -29,6 +30,20 @@ BATT_UNSUPPRESS()
 #include <unistd.h>
 
 namespace batt {
+
+using PrintToStreamFunctionPointer = void (*)(std::ostream&);
+
+namespace detail {
+inline void print_nothing(std::ostream&)
+{
+}
+}  // namespace detail
+
+inline std::atomic<PrintToStreamFunctionPointer>& extra_segv_debug_info_callback()
+{
+    static std::atomic<PrintToStreamFunctionPointer> ptr_{&detail::print_nothing};
+    return ptr_;
+}
 
 inline void print_stack_trace()
 {
@@ -42,6 +57,8 @@ inline void print_stack_trace()
     fflush(stderr);
 
     std::cerr << std::endl << boost::stacktrace::stacktrace{} << std::endl;
+
+    extra_segv_debug_info_callback().load()(std::cerr);
 }
 
 #ifndef BATT_STACK_TRACE_AT_EXIT

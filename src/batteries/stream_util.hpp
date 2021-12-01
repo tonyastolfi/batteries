@@ -144,6 +144,24 @@ inline EscapedStringLiteral c_str_literal(const std::string_view& str)
     return EscapedStringLiteral{str};
 }
 
+#define BATT_DETAIL_OVERLOAD_STRING_PRINTABLE(type)                                                          \
+    inline decltype(auto) make_printable(type str)                                                           \
+    {                                                                                                        \
+        return c_str_literal(str);                                                                           \
+    }
+
+#define BATT_DETAIL_SPECIALIZE_STRING_PRINTABLE(type)                                                        \
+    BATT_DETAIL_OVERLOAD_STRING_PRINTABLE(type&)                                                             \
+    BATT_DETAIL_OVERLOAD_STRING_PRINTABLE(type&&)                                                            \
+    BATT_DETAIL_OVERLOAD_STRING_PRINTABLE(const type&)                                                       \
+    BATT_DETAIL_OVERLOAD_STRING_PRINTABLE(const type&&)
+
+BATT_DETAIL_SPECIALIZE_STRING_PRINTABLE(std::string)
+BATT_DETAIL_SPECIALIZE_STRING_PRINTABLE(std::string_view)
+
+#undef BATT_DETAIL_SPECIALIZE_STRING_PRINTABLE
+#undef BATT_DETAIL_OVERLOAD_STRING_PRINTABLE
+
 inline std::ostream& operator<<(std::ostream& out, const EscapedStringLiteral& t)
 {
     static const char xdigit[16] = {'0', '1', '2', '3', '4', '5', '6', '7',

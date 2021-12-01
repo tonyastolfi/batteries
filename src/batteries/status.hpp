@@ -68,7 +68,7 @@ enum ErrnoValue {};
 
 class BATT_WARN_UNUSED_RESULT Status;
 
-class Status final : private StatusBase
+class Status : private StatusBase
 {
    public:
     BATT_STRONG_TYPEDEF(usize, PinGroup);
@@ -540,6 +540,25 @@ class StatusOr
     std::aligned_storage_t<sizeof(T), alignof(T)> storage_;
 };
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// StatusOr<Status> == Status.
+//
+template <>
+class StatusOr<Status> : public Status
+{
+   public:
+    using Status::Status;
+
+    /*implicit*/ StatusOr(const Status& status) : Status{status}
+    {
+    }
+    /*implicit*/ StatusOr(Status&& status) : Status{std::move(status)}
+    {
+    }
+};
+
+static_assert(sizeof(Status) == sizeof(StatusOr<Status>), "");
+
 template <typename T, typename U, typename = std::enable_if_t<CanBeEqCompared<T, U>{}>>
 inline bool operator==(const StatusOr<T>& l, const StatusOr<U>& r)
 {
@@ -747,7 +766,8 @@ inline T&& ok_result_or_panic(StatusOr<T>&& result)
     return std::move(*result);
 }
 
-template <typename T, typename = std::enable_if_t<IsStatusOr<std::decay_t<T>>{}>>
+template <typename T, typename = std::enable_if_t<IsStatusOr<std::decay_t<T>>{} &&
+                                                  !std::is_same_v<std::decay_t<T>, StatusOr<Status>>>>
 std::ostream& operator<<(std::ostream& out, T&& status_or)
 {
     if (!status_or.ok()) {
