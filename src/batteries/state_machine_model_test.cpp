@@ -237,7 +237,22 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
         BATT_STATE_MACHINE_VERBOSE() << " No winner.  Generating moves...";
 
         usize i = this->pick_int(0, 2);
-        usize j = this->pick_int(100, 102) - 100;
+        usize j = 9999;
+        this->do_one_of(
+            [&] {
+                j = this->pick_int(100, 102) - 100;
+            },
+            [&] {
+                j = 0;
+            },
+            [&] {
+                j = 1;
+            },
+            [&] {
+                j = 2;
+            });
+
+        BATT_CHECK_IN_RANGE(0, j, 3);
 
         BATT_STATE_MACHINE_VERBOSE() << " Place at: (" << i << "," << j << ")";
 
@@ -325,8 +340,8 @@ TEST(StateMachineModelTest, Basic)
 
     EXPECT_TRUE(r.ok);
     EXPECT_EQ(r.state_count, 764u);
-    EXPECT_EQ(r.branch_count, 5805u);
-    EXPECT_EQ(r.self_branch_count, 3535u);
+    EXPECT_EQ(r.branch_count, 11475u);
+    EXPECT_EQ(r.self_branch_count, 6935u);
 }
 
 }  // namespace

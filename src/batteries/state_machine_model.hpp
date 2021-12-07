@@ -137,7 +137,7 @@ class StateMachineModel
     {
         auto actions_tuple = std::forward_as_tuple(BATT_FORWARD(actions)...);
 
-        static_dispatch<usize, 0, sizeof...(Fn)>([&](auto kI) {
+        static_dispatch<usize, 0, sizeof...(Fn)>(this->pick_int(0, sizeof...(Fn) - 1), [&](auto kI) {
             std::get<decltype(kI)::value>(std::move(actions_tuple))();
         });
     }
