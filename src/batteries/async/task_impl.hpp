@@ -348,15 +348,15 @@ BATT_INLINE_IMPL void Task::spin_unlock(u32 lock_mask)
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL i32 Task::backtrace_all()
+BATT_INLINE_IMPL i32 Task::backtrace_all(bool force)
 {
     i32 i = 0;
     std::unique_lock<std::mutex> lock{global_mutex()};
     std::cerr << std::endl;
     for (auto& t : all_tasks()) {
         std::cerr << "-- Task{id=" << t.id() << ", name=" << t.name_ << "} -------------" << std::endl;
-        if (!t.try_dump_stack_trace()) {
-            std::cerr << "(running)" << std::endl;
+        if (!t.try_dump_stack_trace(force)) {
+            std::cerr << " <no stack available>" << std::endl;
         }
         std::cerr << std::endl;
         ++i;
@@ -370,12 +370,30 @@ BATT_INLINE_IMPL i32 Task::backtrace_all()
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL bool Task::try_dump_stack_trace()
+BATT_INLINE_IMPL bool Task::try_dump_stack_trace(bool force)
 {
+    const auto dump_debug_info = [&] {
+        if (this->debug_info) {
+            std::cerr << "DEBUG:" << std::endl;
+            print_debug_info(this->debug_info, std::cerr);
+        }
+    };
+
+    const auto dump_state_bits = [&](std::ostream& out) {
+        out << "state=" << StateBitset{this->state_}
+            << " tims,hdlr,timr,dump,term,susp,have,need (0==running)";
+    };
+
     u32 observed_state = this->state_.load();
     for (;;) {
         if (is_running_state(observed_state) || is_ready_state(observed_state) ||
             is_terminal_state(observed_state) || (observed_state & kStackTrace)) {
+            std::cerr << "(running) " << dump_state_bits << std::endl;
+            if (force) {
+                // This is dangerous, but sometimes you just need a clue about what is happening!
+                //
+                dump_debug_info();
+            }
             return false;
         }
         const u32 target_state = observed_state | kStackTrace;
@@ -384,13 +402,9 @@ BATT_INLINE_IMPL bool Task::try_dump_stack_trace()
         }
     }
 
-    std::cerr << "(suspended) state=" << StateBitset{this->state_}
-              << " hdlr,timr,lock,dump,term,susp,have,need (0=running)" << std::endl;
+    std::cerr << "(suspended) " << dump_state_bits << std::endl;
 
-    if (this->debug_info) {
-        std::cerr << "DEBUG:" << std::endl;
-        print_debug_info(this->debug_info, std::cerr);
-    }
+    dump_debug_info();
 
     this->resume_impl();
 

@@ -204,7 +204,7 @@ class Task
 
     // Dumps stack traces and debug info from all Tasks and threads to stderr.
     //
-    static i32 backtrace_all();
+    static i32 backtrace_all(bool force);
 
     // Yield control from the current Task/thread, allowing other tasks to run.
     //
@@ -556,7 +556,7 @@ class Task
     // Attempt to collect a stack trace from the task, dumping it to stderr if successful.  This will fail if
     // the task is running, ready-to-run, or terminated.  Returns true iff successful.
     //
-    bool try_dump_stack_trace();
+    bool try_dump_stack_trace(bool force);
 
     // Activate this task via boost::asio::post.
     //
