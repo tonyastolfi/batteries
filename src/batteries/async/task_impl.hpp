@@ -376,19 +376,32 @@ BATT_INLINE_IMPL bool Task::try_dump_stack_trace(bool force)
         if (this->debug_info) {
             std::cerr << "DEBUG:" << std::endl;
             print_debug_info(this->debug_info, std::cerr);
+            std::cerr << std::endl;
         }
     };
 
+    u32 observed_state = this->state_.load();
+
     const auto dump_state_bits = [&](std::ostream& out) {
+        if (is_terminal_state(observed_state)) {
+            out << "(terminated) ";
+        } else if (is_running_state(observed_state)) {
+            out << "(running) ";
+        } else if (is_ready_state(observed_state)) {
+            out << "(ready) ";
+        } else if (observed_state & kStackTrace) {
+            out << "(busy) ";
+        } else {
+            out << "(suspended) ";
+        }
         out << "state=" << StateBitset{this->state_}
             << " tims,hdlr,timr,dump,term,susp,have,need (0==running)";
     };
 
-    u32 observed_state = this->state_.load();
     for (;;) {
         if (is_running_state(observed_state) || is_ready_state(observed_state) ||
             is_terminal_state(observed_state) || (observed_state & kStackTrace)) {
-            std::cerr << "(running) " << dump_state_bits << std::endl;
+            std::cerr << dump_state_bits << std::endl;
             if (force) {
                 // This is dangerous, but sometimes you just need a clue about what is happening!
                 //
@@ -402,7 +415,7 @@ BATT_INLINE_IMPL bool Task::try_dump_stack_trace(bool force)
         }
     }
 
-    std::cerr << "(suspended) " << dump_state_bits << std::endl;
+    std::cerr << dump_state_bits << std::endl;
 
     dump_debug_info();
 

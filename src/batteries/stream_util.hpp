@@ -372,7 +372,7 @@ class RangeDumper
         std::string indent(detail::range_dump_depth() * 2, ' ');
         ++detail::range_dump_depth();
         out << "{ ";
-        if (pretty) {
+        if (pretty && std::begin(t.value_) != std::end(t.value_)) {
             out << std::endl << indent;
         }
         for (const auto& item : t.value_) {

@@ -125,41 +125,41 @@ TEST(TaskTest, ClientServerAsio)
 
                 BATT_CHECK_EQ((void*)self, (void*)&Task::current());
 
-                Task client{
-                    io.get_executor(), [&] {
-                        tcp::socket stream{io, tcp::v4()};
-                        stream.set_option(tcp::no_delay{true});
-
-                        ErrorCode connect_ec;
-
-                        for (int retry = 0; retry < 100; ++retry) {
-                            if (!connect_ec) {
-                                connect_ec = Task::await<boost::system::error_code>([&](auto&& handler) {
-                                    stream.async_connect(listening.local_endpoint(), BATT_FORWARD(handler));
-                                });
-                            }
-                            if (!connect_ec) {
-                                break;
-                            }
-                            std::cerr << "." << std::flush;
-                            stream.close(connect_ec);
-                            Task::sleep(boost::posix_time::milliseconds(2500));
-
-                            stream.open(tcp::v4(), connect_ec);
-                            if (!connect_ec) {
+                Task client{io.get_executor(), [&] {
+                                tcp::socket stream{io, tcp::v4()};
                                 stream.set_option(tcp::no_delay{true});
-                            }
-                        }
-                        BATT_CHECK(!connect_ec) << connect_ec.message();
 
-                        ++client_connected;
+                                ErrorCode connect_ec;
 
-                        auto write_ec = write_all(boost::asio::buffer(test_data), stream);
+                                for (int retry = 0; retry < 100; ++retry) {
+                                    if (!connect_ec) {
+                                        connect_ec = Task::await<ErrorCode>([&](auto&& handler) {
+                                            stream.async_connect(listening.local_endpoint(),
+                                                                 BATT_FORWARD(handler));
+                                        });
+                                    }
+                                    if (!connect_ec) {
+                                        break;
+                                    }
+                                    std::cerr << "." << std::flush;
+                                    stream.close(connect_ec);
+                                    Task::sleep(boost::posix_time::milliseconds(2500));
 
-                        BATT_CHECK(!write_ec) << write_ec.message();
+                                    stream.open(tcp::v4(), connect_ec);
+                                    if (!connect_ec) {
+                                        stream.set_option(tcp::no_delay{true});
+                                    }
+                                }
+                                BATT_CHECK(!connect_ec) << connect_ec.message();
 
-                        ++client_sent_data;
-                    }};
+                                ++client_connected;
+
+                                auto write_ec = write_all(boost::asio::buffer(test_data), stream);
+
+                                BATT_CHECK(!write_ec) << write_ec.message();
+
+                                ++client_sent_data;
+                            }};
 
                 BATT_CHECK_EQ((void*)self, (void*)&Task::current());
 

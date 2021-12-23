@@ -107,9 +107,7 @@ BATT_INLINE_IMPL Grant::~Grant() noexcept
 //
 BATT_INLINE_IMPL void Grant::revoke()
 {
-    if (this->issuer_) {
-        this->issuer_->recycle(this->size());
-    }
+    this->spend_all();
     this->size_.close();
 }
 

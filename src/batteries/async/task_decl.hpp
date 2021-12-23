@@ -262,7 +262,6 @@ class Task
         HandlerMemory<kHandlerMemoryBytes> handler_memory;
         std::promise<R> prom;
         std::atomic<bool> ok_to_exit{false};
-
         BATT_FORWARD(fn)
         (make_custom_alloc_handler(handler_memory, [&prom, &ok_to_exit](auto&&... args) {
             prom.set_value(R{BATT_FORWARD(args)...});
@@ -280,6 +279,8 @@ class Task
         return prom.get_future().get();
     }
 
+    // TODO [tastolfi 2021-12-22] - Implement await_with_timeout
+    //
     template <typename R, typename Fn>
     static R await(batt::StaticType<R>, Fn&& fn)
     {

@@ -46,6 +46,8 @@ class IOResult
         return value_;
     }
 
+    // TODO [tastolfi 2021-12-22] define operator->, value().
+
    private:
     ErrorCode ec_;
     value_type value_;

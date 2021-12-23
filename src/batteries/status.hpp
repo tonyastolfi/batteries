@@ -552,12 +552,35 @@ class StatusOr<Status> : public Status
     /*implicit*/ StatusOr(const Status& status) : Status{status}
     {
     }
+
     /*implicit*/ StatusOr(Status&& status) : Status{std::move(status)}
     {
     }
 };
 
 static_assert(sizeof(Status) == sizeof(StatusOr<Status>), "");
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// StatusOr<StatusOr<T>> == StatusOr<T>
+//
+template <typename T>
+class StatusOr<StatusOr<T>> : public StatusOr<T>
+{
+   public:
+    using StatusOr<T>::StatusOr;
+
+    /*implicit*/ StatusOr(const StatusOr<T>& status_or) : StatusOr<T>{status_or}
+    {
+    }
+
+    /*implicit*/ StatusOr(StatusOr<T>&& status_or) : StatusOr<T>{std::move(status_or)}
+    {
+    }
+};
+
+static_assert(sizeof(StatusOr<StatusOr<int>>) == sizeof(StatusOr<int>), "");
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
 template <typename T, typename U, typename = std::enable_if_t<CanBeEqCompared<T, U>{}>>
 inline bool operator==(const StatusOr<T>& l, const StatusOr<U>& r)
