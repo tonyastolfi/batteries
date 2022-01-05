@@ -90,3 +90,14 @@ constexpr NaturalNumber two{2};
 constexpr NaturalNumber three = one + two;
 
 static_assert(three == 3, "");
+
+TEST(StrongTypedef, NumericsDeltaImplicitConversion)
+{
+    NaturalNumber n{1};
+    NaturalNumber::Delta dn = n;
+
+    n += n;
+
+    EXPECT_EQ(n, 2u);
+    EXPECT_EQ(dn, 1u);
+}

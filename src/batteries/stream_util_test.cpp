@@ -87,9 +87,7 @@ TEST_F(DumpRangeTest, Nested_Many_NoPretty)
 
 TEST_F(DumpRangeTest, Empty_Pretty)
 {
-    EXPECT_EQ(batt::to_string(batt::dump_range(empty_, batt::Pretty::True)),
-              "{ \n"
-              "}");
+    EXPECT_THAT(batt::to_string(batt::dump_range(empty_, batt::Pretty::True)), ::testing::StrEq("{ }"));
 }
 
 TEST_F(DumpRangeTest, Single_Pretty)
@@ -113,11 +111,10 @@ TEST_F(DumpRangeTest, Many_Pretty)
 
 TEST_F(DumpRangeTest, Nested_Empty_Pretty)
 {
-    EXPECT_EQ(batt::to_string(batt::dump_range(nested_empty_, batt::Pretty::True)),
-              "{ \n"
-              "  { \n"
-              "  }, \n"
-              "}");
+    EXPECT_THAT(batt::to_string(batt::dump_range(nested_empty_, batt::Pretty::True)),
+                ::testing::StrEq("{ \n"
+                                 "  { }, \n"
+                                 "}"));
 }
 
 TEST_F(DumpRangeTest, Nested_Single_Pretty)

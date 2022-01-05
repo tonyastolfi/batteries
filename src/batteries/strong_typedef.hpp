@@ -69,6 +69,10 @@ class StrongType
 template <typename T, typename Tag>
 struct StrongType<T, Tag>::Delta : StrongType<T, Tag> {
     using StrongType::StrongType;
+
+    /*implicit*/ Delta(StrongType value) noexcept : StrongType{value}
+    {
+    }
 };
 
 #define BATT_STRONG_TYPEDEF_PASTE_2_(a, b) a##b
