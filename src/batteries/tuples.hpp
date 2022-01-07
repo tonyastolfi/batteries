@@ -1,4 +1,4 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_TUPLES_HPP
@@ -12,6 +12,17 @@ namespace batt {
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
+// Take the element types of a tuple and apply them as the args to some other
+// template to produce a new type.
+//
+// Example:
+// ```c++
+// using MyTypes = std::tuple<int, char, std::string>;
+// using Morphed = batt::MorphTuple_t<std::variant, MyTypes>;
+//
+// static_assert(std::is_same_v<Morphed, std::variant<int, char, std::string>>, "");
+// ```
+//
 template <template <typename...> class TemplateT, typename TupleT>
 struct MorphTuple;
 

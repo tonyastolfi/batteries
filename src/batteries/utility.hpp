@@ -45,6 +45,23 @@ T make_copy(const T& value)
     return value;
 }
 
+// BATT_SINK(val) - turns into BATT_FORWARD(val) if val is an rvalue-expression; otherwise, turns into
+// batt::make_copy(val).
+//
+template <typename T, typename = std::enable_if_t<std::is_same_v<T, std::decay_t<T>>>>
+T&& sink(T&& value)
+{
+    return std::forward<T>(value);
+}
+
+template <typename T>
+T sink(const T& value)
+{
+    return make_copy(value);
+}
+
+#define BATT_SINK(expr) ::batt::sink(BATT_FORWARD(expr))
+
 /// Warn/error if a function's return value is ignored:
 ///
 /// ```

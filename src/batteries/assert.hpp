@@ -1,4 +1,4 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 
@@ -160,6 +160,9 @@ inline bool lock_fail_check_mutex()
 // TODO [tastolfi 2021-10-20] Update docs for assert.hpp to include BATT_INSPECT
 //
 #define BATT_INSPECT(expr) " " << #expr << " == " << (expr)
+
+#define BATT_UNTESTED_LINE() BATT_PANIC() << "Add test point!"
+#define BATT_UNTESTED_COND(x) BATT_CHECK(!(x)) << "Add test point!"
 
 }  // namespace batt
 

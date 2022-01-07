@@ -1,4 +1,4 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_SEQ_BOXED_HPP
@@ -14,6 +14,9 @@
 #include <type_traits>
 
 namespace batt {
+
+class Status;
+enum struct StatusCode;
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 // BoxedSeq<ItemT>
@@ -72,7 +75,9 @@ class BoxedSeq
 
     BoxedSeq() = default;
 
-    template <typename T, typename = batt::EnableIfNoShadow<BoxedSeq, T&&>>
+    template <typename T, typename = batt::EnableIfNoShadow<BoxedSeq, T&&>,
+              typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Status> &&
+                                          !std::is_same_v<std::decay_t<T>, StatusCode>>>
     BoxedSeq(T&& seq) : impl_(std::make_unique<SeqImpl<T>>(BATT_FORWARD(seq)))
     {
         static_assert(std::is_same<T, std::decay_t<T>>{}, "BoxedSeq may not be used to capture a reference");
@@ -113,6 +118,14 @@ class BoxedSeq
 
    private:
     std::unique_ptr<AbstractSeq> impl_;
+};
+
+template <typename T>
+struct IsBoxedSeq : std::false_type {
+};
+
+template <typename T>
+struct IsBoxedSeq<BoxedSeq<T>> : std::true_type {
 };
 
 namespace seq {
