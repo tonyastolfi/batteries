@@ -63,7 +63,7 @@ class StateMachineModel
 
     // Invoked whenever a state is entered, prior to checking invariants and generating branches.
     //
-    virtual void set_state(const state_type&) = 0;
+    virtual void enter_state(const state_type&) = 0;
 
     // Should non-deterministically update the state machine using one or more calls to `pick_int` and/or
     // `do_one_of`.  This defines the state transition space.  Eventually all values of non-deterministic
@@ -73,7 +73,7 @@ class StateMachineModel
 
     // Invoked after step() to retrieve the serialized snapshot of the new state.
     //
-    virtual state_type get_state() = 0;
+    virtual state_type leave_state() = 0;
 
     // Verifies the invariants of the state machine that should hold after initialization and between each
     // step.  Returns false if the check failed.
@@ -185,7 +185,7 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
 
         // Enter the new state.
         //
-        this->set_state(this->current_branch_->snapshot);
+        this->enter_state(this->current_branch_->snapshot);
 
         BATT_STATE_MACHINE_VERBOSE() << " branch=" << this->current_branch_->delta;
 
@@ -209,7 +209,7 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
 
         // Grab the new state and normalize it.
         //
-        StateT after = this->normalize(this->get_state());
+        StateT after = this->normalize(this->leave_state());
 
         if (after == this->current_branch_->snapshot) {
             BATT_STATE_MACHINE_VERBOSE() << "(no state change) pruning self-branch";

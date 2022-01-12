@@ -922,7 +922,7 @@ template <typename Seq>
 template <typename Fn>
 auto inspect(Fn&& fn)
 {
-    return map([fn = BATT_FORWARD(fn)](auto&& item) {
+    return map([fn = BATT_FORWARD(fn)](auto&& item) -> decltype(auto) {
         fn(item);
         return BATT_FORWARD(item);
     });

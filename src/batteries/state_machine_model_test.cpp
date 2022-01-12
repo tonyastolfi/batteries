@@ -220,7 +220,7 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
                          /*to_move*/ Player::X};
     }
 
-    void set_state(const GameState& s) override
+    void enter_state(const GameState& s) override
     {
         BATT_STATE_MACHINE_VERBOSE() << std::endl
                                      << "Evaluating state: " << std::endl
@@ -265,7 +265,7 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
         }
     }
 
-    GameState get_state() override
+    GameState leave_state() override
     {
         return this->state_;
     }
