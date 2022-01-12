@@ -832,7 +832,6 @@ inline StatusBase::StatusBase() noexcept
             {StatusCode::kUnauthenticated, "Unauthenticated"},
             {StatusCode::kClosed, "Closed"},
             {StatusCode::kGrantUnavailable, "The requested grant count exceeds available count"},
-
         });
 
         std::vector<std::pair<ErrnoValue, std::string>> errno_codes;

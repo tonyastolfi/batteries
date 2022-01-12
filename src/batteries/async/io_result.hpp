@@ -46,7 +46,25 @@ class IOResult
         return value_;
     }
 
-    // TODO [tastolfi 2021-12-22] define operator->, value().
+    value_type& value()
+    {
+        return this->value_;
+    }
+
+    const value_type& value() const
+    {
+        return this->value_;
+    }
+
+    value_type* operator->()
+    {
+        return &this->value_;
+    }
+
+    const value_type* operator->() const
+    {
+        return &this->value_;
+    }
 
    private:
     ErrorCode ec_;
