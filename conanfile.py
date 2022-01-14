@@ -28,6 +28,9 @@ class BatteriesConan(ConanFile):
         "src/batteries/**/*.hpp",
         "src/batteries/**/*_test.cpp",
         "src/batteries/**/*.test.cpp",
+        "src/batteries/*.ipp",
+        "src/batteries/*/*.ipp",
+        "src/batteries/**/*.ipp",
     ]
 
     def configure(self):
@@ -49,6 +52,7 @@ class BatteriesConan(ConanFile):
 
     def package(self):
         self.copy("*.hpp", dst="include", src="src")
+        self.copy("*.ipp", dst="include", src="src")
 
     def package_info(self):
         self.cpp_info.cxxflags = ["-std=c++17 -D_GNU_SOURCE"]
