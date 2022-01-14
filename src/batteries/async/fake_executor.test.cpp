@@ -18,6 +18,17 @@ namespace {
 
 using namespace batt::int_types;
 
+class MockCompletion
+{
+   public:
+    MOCK_METHOD(void, invoke, (), (const));
+
+    void operator()() const
+    {
+        this->invoke();
+    }
+};
+
 using batt::FakeExecutionContext;
 using batt::FakeExecutor;
 
@@ -138,7 +149,7 @@ class MutexSimulationModel : public batt::StateMachineModel<MutexSimulationState
     MutexSimulationState state_;
 };
 
-TEST(AsyncFakeExecutor, Test)
+TEST(AsyncFakeExecutor, MutexSimulation)
 {
     MutexSimulationModel sim;
     MutexSimulationModel::Result result = sim.check_model();
@@ -146,6 +157,191 @@ TEST(AsyncFakeExecutor, Test)
     EXPECT_TRUE(result.ok);
     EXPECT_EQ(result.branch_count, 49u);
     EXPECT_EQ(result.state_count, 2u);
+}
+
+TEST(AsyncFakeExecutor, Query)
+{
+    batt::FakeExecutionContext context;
+
+    EXPECT_EQ(&context, &(context.get_executor().context()));
+
+    batt::FakeExecutionContext& result =
+        boost::asio::query(context.get_executor(), boost::asio::execution::context);
+
+    EXPECT_EQ(&result, &context);
+
+    boost::asio::execution_context& result2 = boost::asio::query(
+        context.get_executor(), boost::asio::execution::context_as<boost::asio::execution_context&>);
+
+    EXPECT_EQ(&result2, &context);
+
+    std::allocator<void> allocator =
+        boost::asio::query(context.get_executor(), boost::asio::execution::allocator);
+
+    EXPECT_EQ(allocator, context.get_allocator());
+}
+
+TEST(AsyncFakeExecutor, Equality)
+{
+    batt::FakeExecutionContext context1, context2;
+
+    batt::FakeExecutor ex1_1 = context1.get_executor(), ex1_2 = context1.get_executor(),
+                       ex2 = context2.get_executor();
+
+    EXPECT_EQ(ex1_1, ex1_2);
+    EXPECT_NE(ex1_1, ex2);
+}
+
+TEST(AsyncFakeExecutor, WorkCount)
+{
+    batt::FakeExecutionContext context;
+
+    EXPECT_EQ(context.work_count().get_value(), 0);
+
+    EXPECT_DEATH(context.get_executor().on_work_finished(), ".*work_count.*<|>.*.*0");
+
+    for (i64 i = 0; i < 10; ++i) {
+        context.get_executor().on_work_started();
+        EXPECT_EQ(context.work_count().get_value(), i + 1);
+    }
+
+    for (i64 i = 0; i < 10; ++i) {
+        context.get_executor().on_work_finished();
+        EXPECT_EQ(context.work_count().get_value(), 9 - i);
+    }
+}
+
+TEST(AsyncFakeExecutor, Execute)
+{
+    {
+        ::testing::StrictMock<MockCompletion> completion;
+        batt::FakeExecutionContext context;
+
+        boost::asio::post(context, std::ref(completion));
+
+        batt::Optional<batt::UniqueHandler<>> ready = context.pop_ready_handler([](usize) {
+            return 0;
+        });
+        EXPECT_TRUE(ready);
+
+        EXPECT_CALL(completion, invoke()).WillOnce(::testing::Return());
+        (*ready)();
+    }
+    {
+        ::testing::StrictMock<MockCompletion> completion;
+        batt::FakeExecutionContext context;
+
+        boost::asio::post(context.get_executor(), std::ref(completion));
+
+        batt::Optional<batt::UniqueHandler<>> ready = context.pop_ready_handler([](usize) {
+            return 0;
+        });
+        EXPECT_TRUE(ready);
+
+        EXPECT_CALL(completion, invoke()).WillOnce(::testing::Return());
+        (*ready)();
+    }
+    {
+        ::testing::StrictMock<MockCompletion> completion;
+        batt::FakeExecutionContext context;
+
+        context.get_executor().post(std::ref(completion),
+                                    boost::asio::get_associated_allocator(std::ref(completion)));
+
+        batt::Optional<batt::UniqueHandler<>> ready = context.pop_ready_handler([](usize) {
+            return 0;
+        });
+        EXPECT_TRUE(ready);
+
+        EXPECT_CALL(completion, invoke()).WillOnce(::testing::Return());
+        (*ready)();
+    }
+    {
+        ::testing::StrictMock<MockCompletion> completion;
+        batt::FakeExecutionContext context;
+
+        boost::asio::defer(context, std::ref(completion));
+
+        batt::Optional<batt::UniqueHandler<>> ready = context.pop_ready_handler([](usize) {
+            return 0;
+        });
+        EXPECT_TRUE(ready);
+
+        EXPECT_CALL(completion, invoke()).WillOnce(::testing::Return());
+        (*ready)();
+    }
+    {
+        ::testing::StrictMock<MockCompletion> completion;
+        batt::FakeExecutionContext context;
+
+        boost::asio::defer(context.get_executor(), std::ref(completion));
+
+        batt::Optional<batt::UniqueHandler<>> ready = context.pop_ready_handler([](usize) {
+            return 0;
+        });
+        EXPECT_TRUE(ready);
+
+        EXPECT_CALL(completion, invoke()).WillOnce(::testing::Return());
+        (*ready)();
+    }
+    {
+        ::testing::StrictMock<MockCompletion> completion;
+        batt::FakeExecutionContext context;
+
+        context.get_executor().defer(std::ref(completion),
+                                     boost::asio::get_associated_allocator(std::ref(completion)));
+
+        batt::Optional<batt::UniqueHandler<>> ready = context.pop_ready_handler([](usize) {
+            return 0;
+        });
+        EXPECT_TRUE(ready);
+
+        EXPECT_CALL(completion, invoke()).WillOnce(::testing::Return());
+        (*ready)();
+    }
+    {
+        ::testing::StrictMock<MockCompletion> completion;
+        batt::FakeExecutionContext context;
+
+        boost::asio::dispatch(context, std::ref(completion));
+
+        batt::Optional<batt::UniqueHandler<>> ready = context.pop_ready_handler([](usize) {
+            return 0;
+        });
+        EXPECT_TRUE(ready);
+
+        EXPECT_CALL(completion, invoke()).WillOnce(::testing::Return());
+        (*ready)();
+    }
+    {
+        ::testing::StrictMock<MockCompletion> completion;
+        batt::FakeExecutionContext context;
+
+        boost::asio::dispatch(context.get_executor(), std::ref(completion));
+
+        batt::Optional<batt::UniqueHandler<>> ready = context.pop_ready_handler([](usize) {
+            return 0;
+        });
+        EXPECT_TRUE(ready);
+
+        EXPECT_CALL(completion, invoke()).WillOnce(::testing::Return());
+        (*ready)();
+    }
+    {
+        ::testing::StrictMock<MockCompletion> completion;
+        batt::FakeExecutionContext context;
+
+        context.get_executor().dispatch(std::ref(completion),
+                                        boost::asio::get_associated_allocator(std::ref(completion)));
+
+        batt::Optional<batt::UniqueHandler<>> ready = context.pop_ready_handler([](usize) {
+            return 0;
+        });
+        EXPECT_TRUE(ready);
+
+        EXPECT_CALL(completion, invoke()).WillOnce(::testing::Return());
+        (*ready)();
+    }
 }
 
 }  // namespace

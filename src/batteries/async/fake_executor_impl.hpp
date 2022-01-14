@@ -11,7 +11,6 @@ namespace batt {
 //
 BATT_INLINE_IMPL FakeExecutionContext& FakeExecutor::query(boost::asio::execution::context_t) const noexcept
 {
-    BATT_UNTESTED_LINE();
     return *this->context_;
 }
 
@@ -20,7 +19,6 @@ BATT_INLINE_IMPL FakeExecutionContext& FakeExecutor::query(boost::asio::executio
 BATT_INLINE_IMPL boost::asio::execution_context& FakeExecutor::query(
     boost::asio::execution::context_as_t<boost::asio::execution_context&>) const noexcept
 {
-    BATT_UNTESTED_LINE();
     return *this->context_;
 }
 
@@ -29,7 +27,6 @@ BATT_INLINE_IMPL boost::asio::execution_context& FakeExecutor::query(
 BATT_INLINE_IMPL constexpr std::allocator<void> FakeExecutor::query(
     boost::asio::execution::allocator_t<void>) const noexcept
 {
-    BATT_UNTESTED_LINE();
     return this->context_->allocator_;
 }
 
@@ -37,7 +34,6 @@ BATT_INLINE_IMPL constexpr std::allocator<void> FakeExecutor::query(
 //
 BATT_INLINE_IMPL void FakeExecutor::on_work_started() const
 {
-    BATT_UNTESTED_LINE();
     BATT_CHECK_NE(this->context_->work_count_.fetch_add(1) + 1u, 0u);
 }
 
@@ -45,7 +41,6 @@ BATT_INLINE_IMPL void FakeExecutor::on_work_started() const
 //
 BATT_INLINE_IMPL void FakeExecutor::on_work_finished() const
 {
-    BATT_UNTESTED_LINE();
     BATT_CHECK_GT(this->context_->work_count_.fetch_sub(1), 0u);
 }
 
@@ -53,7 +48,6 @@ BATT_INLINE_IMPL void FakeExecutor::on_work_finished() const
 //
 BATT_INLINE_IMPL constexpr bool operator==(const FakeExecutor& l, const FakeExecutor& r) noexcept
 {
-    BATT_UNTESTED_LINE();
     return l.context_ == r.context_;
 }
 
@@ -61,7 +55,6 @@ BATT_INLINE_IMPL constexpr bool operator==(const FakeExecutor& l, const FakeExec
 //
 BATT_INLINE_IMPL constexpr bool operator!=(const FakeExecutor& l, const FakeExecutor& r) noexcept
 {
-    BATT_UNTESTED_LINE();
     return !(l == r);
 }
 

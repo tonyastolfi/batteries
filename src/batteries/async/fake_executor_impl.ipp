@@ -22,7 +22,6 @@ template <typename OtherAllocator>
 inline constexpr std::allocator<void> FakeExecutor::query(
     boost::asio::execution::allocator_t<OtherAllocator>) const noexcept
 {
-    BATT_UNTESTED_LINE();
     return this->context_->allocator_;
 }
 

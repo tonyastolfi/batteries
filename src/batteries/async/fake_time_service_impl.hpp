@@ -26,7 +26,6 @@ BATT_INLINE_IMPL /*explicit*/ FakeTimeService::FakeTimeService(boost::asio::exec
 BATT_INLINE_IMPL bool operator<(const FakeTimeService::TimerInstance& l,
                                 const FakeTimeService::TimerInstance& r)
 {
-    BATT_UNTESTED_LINE();
     return (l.impl == nullptr && r.impl != nullptr) ||
            ((l.impl != nullptr && r.impl != nullptr) && (l.impl->expires_at < r.impl->expires_at));
 }
@@ -90,7 +89,6 @@ BATT_INLINE_IMPL void FakeTimeService::State::advance_time(Duration delta)
             timer_queue_.pop();
         }
     }
-    BATT_UNTESTED_COND(expired_timers.size() > 1);
     for (TimerInstance& timer : expired_timers) {
         boost::asio::post(timer.impl->executor, std::bind(std::move(timer.impl->handler), ErrorCode{}));
     }

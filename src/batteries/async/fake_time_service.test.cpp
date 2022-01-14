@@ -6,12 +6,19 @@
 #include <gtest/gtest.h>
 
 #include <batteries/async/task.hpp>
+#include <batteries/stream_util.hpp>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#include <random>
+#include <set>
+
 namespace {
 
+using namespace batt::int_types;
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 TEST(FakeTimeServiceTest, MakeService)
 {
     boost::asio::io_context io;
@@ -27,6 +34,7 @@ TEST(FakeTimeServiceTest, MakeService)
     EXPECT_NE(&service, &(boost::asio::use_service<batt::FakeTimeService>(io2)));
 }
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 TEST(FakeTimeServiceTest, SleepWithFakeTime)
 {
     boost::asio::io_context io;
@@ -97,6 +105,72 @@ TEST(FakeTimeServiceTest, SleepWithFakeTime)
     EXPECT_TRUE(ec[4]);
 
     task.join();
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+struct Sleeper {
+    explicit Sleeper(boost::asio::io_context& io, batt::FakeTimeService::Duration sleep_duration)
+        : duration{sleep_duration}
+        , task{io.get_executor(), [this] {
+                   this->ec = batt::Task::sleep(this->duration);
+               }}
+    {
+    }
+
+    batt::Optional<batt::ErrorCode> ec;
+    batt::FakeTimeService::Duration duration;
+    batt::Task task;
+    bool observed = false;
+};
+
+TEST(FakeTimeServiceTest, ConcurrentFakeTimers)
+{
+    constexpr int kMaxDelaySec = 10;
+    constexpr int kMsPerSec = 1000;
+    constexpr int kNumSleepers = 40;
+    constexpr int kNumTrials = 1000;
+
+    for (usize n_trials = 0; n_trials < kNumTrials; ++n_trials) {
+        boost::asio::io_context io;
+        boost::asio::make_service<batt::FakeTimeService>(io);
+
+        std::vector<std::unique_ptr<Sleeper>> sleepers;
+
+        std::default_random_engine rng{0};
+        std::uniform_int_distribution<int> pick_ms{0, kMaxDelaySec * kMsPerSec};
+
+        for (usize i = 0; i < kNumSleepers; ++i) {
+            sleepers.emplace_back(
+                std::make_unique<Sleeper>(io, boost::posix_time::milliseconds(pick_ms(rng))));
+        }
+
+        std::multiset<usize> histogram;
+        for (usize i = 0; i <= kMaxDelaySec; ++i) {
+            io.poll();
+            io.reset();
+
+            usize count = 0;
+            for (auto& p_sleeper : sleepers) {
+                EXPECT_EQ(bool{p_sleeper->ec}, p_sleeper->duration <= boost::posix_time::seconds(i));
+                if (p_sleeper->ec && !p_sleeper->observed) {
+                    count += 1;
+                    p_sleeper->observed = true;
+                }
+            }
+            histogram.insert(count);
+
+            batt::FakeTimeService::advance_time(boost::posix_time::seconds(1));
+        }
+
+        for (auto& p_sleeper : sleepers) {
+            ASSERT_TRUE(p_sleeper->ec);
+            p_sleeper->task.join();
+        }
+
+        for (usize n = 1; n <= 5; ++n) {
+            EXPECT_GT(histogram.count(n), 0u) << BATT_INSPECT(n);
+        }
+    }
 }
 
 }  // namespace

@@ -33,7 +33,6 @@ class FakeExecutor
 
     FakeExecutionContext& context() const
     {
-        BATT_UNTESTED_LINE();
         return *this->context_;
     }
 
@@ -77,7 +76,7 @@ class FakeExecutor
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
     template <typename OtherAllocator>
-    constexpr Self require(boost::asio::execution::allocator_t<OtherAllocator> a) const
+    constexpr Self require(boost::asio::execution::allocator_t<OtherAllocator>) const
     {
         return *this;
     }
@@ -142,21 +141,18 @@ class FakeExecutor
     template <typename Fn, typename FnAllocator>
     void dispatch(Fn&& fn, FnAllocator&&) const
     {
-        BATT_UNTESTED_LINE();
         this->execute(fn);
     }
 
     template <typename Fn, typename FnAllocator>
     void post(Fn&& fn, FnAllocator&&) const
     {
-        BATT_UNTESTED_LINE();
         this->execute(fn);
     }
 
     template <typename Fn, typename FnAllocator>
     void defer(Fn&& fn, FnAllocator&&) const
     {
-        BATT_UNTESTED_LINE();
         this->execute(fn);
     }
 

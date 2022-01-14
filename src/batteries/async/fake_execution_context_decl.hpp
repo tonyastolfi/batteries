@@ -47,6 +47,13 @@ class FakeExecutionContext : public boost::asio::execution_context
     //
     UniqueHandler<> pop_ready_handler(const std::function<usize(usize)>& picker);
 
+    // Access the default allocator directly.
+    //
+    std::allocator<void> get_allocator() const
+    {
+        return this->allocator_;
+    }
+
    private:
     Watch<i64> work_count_{0};
     std::allocator<void> allocator_;

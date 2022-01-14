@@ -21,7 +21,6 @@ BATT_INLINE_IMPL FakeExecutor FakeExecutionContext::get_executor()
 //
 BATT_INLINE_IMPL Watch<i64>& FakeExecutionContext::work_count()
 {
-    BATT_UNTESTED_LINE();
     BATT_CHECK_GE(this->work_count_.get_value(), 0);
     return this->work_count_;
 }
@@ -31,7 +30,6 @@ BATT_INLINE_IMPL Watch<i64>& FakeExecutionContext::work_count()
 BATT_INLINE_IMPL void FakeExecutionContext::push_ready_handler(UniqueHandler<>&& handler)
 {
     if (!handler) {
-        BATT_UNTESTED_LINE();
         return;
     }
 
