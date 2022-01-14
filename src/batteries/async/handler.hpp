@@ -6,6 +6,7 @@
 
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/stream_util.hpp>
 #include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
 
@@ -24,6 +25,15 @@ template <typename... Args>
 class AbstractHandler : public boost::intrusive::list_base_hook<>
 {
    public:
+    struct Deleter {
+        void operator()(AbstractHandler* handler) const
+        {
+            if (handler != nullptr) {
+                handler->destroy();
+            }
+        }
+    };
+
     // Non-copyable!
     //
     AbstractHandler(const AbstractHandler&) = delete;
@@ -32,6 +42,14 @@ class AbstractHandler : public boost::intrusive::list_base_hook<>
     // `notify` should delete `this` as a side-effect.
     //
     virtual void notify(Args... args) = 0;
+
+    // Release memory associated with this handler and destroy the implementation object, without invoking it.
+    //
+    virtual void destroy() = 0;
+
+    // Print the type and any other associated information about the handler.
+    //
+    virtual void dump(std::ostream& out) = 0;
 
    protected:
     AbstractHandler() = default;
@@ -53,7 +71,8 @@ class HandlerImpl : public AbstractHandler<Args...>
     using allocator_type = typename std::allocator_traits<
         boost::asio::associated_allocator_t<HandlerFn>>::template rebind_alloc<HandlerImpl>;
 
-    static HandlerImpl* make_new(HandlerFn&& h)
+    template <typename HandlerFnArg>
+    static HandlerImpl* make_new(HandlerFnArg&& h)
     {
         allocator_type local_allocator = std::move(boost::asio::get_associated_allocator(h));
         void* memory = local_allocator.allocate(1);
@@ -84,6 +103,20 @@ class HandlerImpl : public AbstractHandler<Args...>
         std::move(local_fn)(BATT_FORWARD(args)...);
     }
 
+    void destroy() override
+    {
+        allocator_type local_allocator = std::move(boost::asio::get_associated_allocator(this->fn_));
+        HandlerFn local_fn = std::move(this->fn_);
+        this->~HandlerImpl();
+        local_allocator.deallocate(this, 1);
+        (void)local_fn;
+    }
+
+    void dump(std::ostream& out) override
+    {
+        out << "HandlerImpl<" << name_of(StaticType<HandlerFn>{}) << ">{}";
+    }
+
     HandlerFn& get_fn()
     {
         return this->fn_;
@@ -91,6 +124,56 @@ class HandlerImpl : public AbstractHandler<Args...>
 
    private:
     HandlerFn fn_;
+};
+
+template <typename... Args>
+class UniqueHandler
+{
+   public:
+    template <typename Fn, typename = EnableIfNoShadow<UniqueHandler, Fn>,
+              typename = std::enable_if_t<IsCallable<std::decay_t<Fn>, Args...>::value>>
+    explicit UniqueHandler(Fn&& fn) noexcept
+        : handler_{HandlerImpl<std::decay_t<Fn>, Args...>::make_new(BATT_FORWARD(fn))}
+    {
+    }
+
+    UniqueHandler() = default;
+
+    UniqueHandler(const UniqueHandler&) = delete;
+    UniqueHandler& operator=(const UniqueHandler&) = delete;
+
+    UniqueHandler(UniqueHandler&&) = default;
+    UniqueHandler& operator=(UniqueHandler&&) = default;
+
+    ~UniqueHandler() noexcept
+    {
+    }
+
+    explicit operator bool() const
+    {
+        return this->handler_ != nullptr;
+    }
+
+    void operator()(Args... args)
+    {
+        if (this->handler_ != nullptr) {
+            auto* local_handler = this->handler_.release();
+            local_handler->notify(BATT_FORWARD(args)...);
+        }
+    }
+
+    friend inline std::ostream& operator<<(std::ostream& out, const UniqueHandler& t)
+    {
+        if (t.handler_ == nullptr) {
+            return out << "<nullptr>";
+        }
+        out << (void*)t.handler_.get() << ": ";
+        t.handler_->dump(out);
+        return out;
+    }
+
+   private:
+    std::unique_ptr<AbstractHandler<Args...>, typename AbstractHandler<Args...>::Deleter> handler_;
 };
 
 template <typename... Args>

@@ -5,6 +5,7 @@
 #define BATTERIES_STATE_MACHINE_MODEL_HPP
 
 #include <batteries/assert.hpp>
+#include <batteries/async/fake_executor.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/radix_queue.hpp>
 #include <batteries/static_dispatch.hpp>
@@ -132,6 +133,21 @@ class StateMachineModel
         return /*value=*/min_value;
     }
 
+    // If there is at least one runnable completion handler in `context`, one such handler is selected (via
+    // `pick_int`) and invoked, and this function returns true.  Else false is returned.
+    //
+    bool run_one(FakeExecutionContext& context)
+    {
+        UniqueHandler<> handler = context.pop_ready_handler([this](usize count) {
+            return this->pick_int(0, count - 1);
+        });
+        if (!handler) {
+            return false;
+        }
+        handler();
+        return true;
+    }
+
     template <typename... Fn>
     void do_one_of(Fn&&... actions)
     {
@@ -173,6 +189,7 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
 
     Result r;
     r.ok = true;
+    r.state_count = 1;
 
     while (!this->queue_.empty()) {
         // Pop the next branch of the state graph to explore.
@@ -250,6 +267,81 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
 
     return r;
 }
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+/* TEMPLATE FOR NEW STATE MACHINE MODEL IMPLS:
+
+#include <boost/functional/hash.hpp>
+#include <boost/operators.hpp>
+
+struct $ImplState : boost::equality_comparable<$ImplState> {
+  struct Hash {
+    usize operator()(const $ImplState& s) const
+    {
+      return batt::hash();
+    }
+  };
+
+  friend bool operator==(const $ImplState& l, const $ImplState& r)
+  {
+    return false;
+  }
+
+  bool is_terminal() const
+  {
+    return true;
+  }
+};
+
+class $ImplModel : public batt::StateMachineModel<$ImplState, $ImplState::Hash>
+{
+ public:
+    $ImplState initialize() override
+    {
+        return $ImplState{};
+    }
+
+    void enter_state(const $ImplState& s) override
+    {
+        this->state_ = s;
+    }
+
+    void step() override
+    {
+        if (this->state_.is_terminal()) {
+            return;
+        }
+
+        this->pick_int(min, max);
+
+        this->do_one_of([]{
+            action1();
+          },
+          []{
+            action2();
+          });
+    }
+
+    $ImplState leave_state() override
+    {
+        return this->state_;
+    }
+
+    bool check_invariants() override
+    {
+        return true;
+    }
+
+    $ImplState normalize(const $ImplState& s) override
+    {
+        return s;
+    }
+
+   private:
+    $ImplState state_;
+};
+ */
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
 }  // namespace batt
 

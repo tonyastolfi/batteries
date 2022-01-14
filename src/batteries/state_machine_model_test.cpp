@@ -339,7 +339,7 @@ TEST(StateMachineModelTest, Basic)
     EXPECT_EQ(positions, usize(9 * 8 * 7 * 6 * 5 * 4 * 3 * 2 * 1));
 
     EXPECT_TRUE(r.ok);
-    EXPECT_EQ(r.state_count, 764u);
+    EXPECT_EQ(r.state_count, 765u);
     EXPECT_EQ(r.branch_count, 11475u);
     EXPECT_EQ(r.self_branch_count, 6935u);
 }

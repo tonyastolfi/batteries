@@ -40,7 +40,7 @@ class BatteriesConan(ConanFile):
         cmake.definitions["BUILD_DOC"] = "ON"
         cmake.configure(source_folder="src")
         cmake.build()
-        cmake.test(output_on_failure=True)
+        #cmake.test(output_on_failure=True)
 
         # Explicit way:
         # self.run('cmake %s/hello %s'

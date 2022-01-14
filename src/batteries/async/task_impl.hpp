@@ -8,6 +8,7 @@
 //
 
 #include <batteries/async/debug_info.hpp>
+#include <batteries/async/fake_time_service.hpp>
 #include <batteries/async/future.hpp>
 #include <batteries/async/watch.hpp>
 #include <batteries/config.hpp>
@@ -177,13 +178,27 @@ BATT_INLINE_IMPL ErrorCode Task::sleep_impl(const boost::posix_time::time_durati
 {
     SpinLockGuard lock{this, kSleepTimerLock};
 
+    // The deadline_timer is lazily constructed.
+    //
     if (!this->sleep_timer_) {
+        // First check to see if this Task's executor is configured to use the FakeTimeService.  If so, do a
+        // fake wait instead of a real one.
+        //
+        boost::asio::execution_context& context = this->ex_.context();
+        if (boost::asio::has_service<FakeTimeService>(context)) {
+            FakeTimeService& fake_time = boost::asio::use_service<FakeTimeService>(context);
+            const FakeTimeService::TimePoint expires_at = fake_time.now() + duration;
+            return this->await_impl<ErrorCode>([this, &fake_time, expires_at](auto&& handler) {
+                fake_time.async_wait(this->ex_, expires_at, BATT_FORWARD(handler));
+            });
+        }
+
         this->sleep_timer_.emplace(this->ex_);
     }
 
     this->sleep_timer_->expires_from_now(duration);
 
-    return await_impl<ErrorCode>([&](auto&& handler) {
+    return this->await_impl<ErrorCode>([&](auto&& handler) {
         this->sleep_timer_->async_wait(BATT_FORWARD(handler));
     });
 }
