@@ -14,7 +14,8 @@
 
 namespace batt {
 
-class FakeExecutor;
+template <typename OutstandingWorkP>
+class BasicFakeExecutor;
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 // A drop-in replacement for boost::asio::io_context, suitable for fake-testing in unit tests.
@@ -24,13 +25,15 @@ class FakeExecutor;
 class FakeExecutionContext : public boost::asio::execution_context
 {
    public:
-    friend class FakeExecutor;
+    template <typename OutstandingWorkP>
+    friend class BasicFakeExecutor;
 
-    using executor_type = FakeExecutor;
+    using executor_type = BasicFakeExecutor<boost::asio::execution::outstanding_work_t::untracked_t>;
 
+    FakeExecutionContext() = default;
     ~FakeExecutionContext() = default;
 
-    FakeExecutor get_executor();
+    executor_type get_executor();
 
     // The current work count.
     //

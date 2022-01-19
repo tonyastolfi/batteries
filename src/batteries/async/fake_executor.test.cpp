@@ -344,4 +344,22 @@ TEST(AsyncFakeExecutor, Execute)
     }
 }
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+TEST(AsyncFakeExecutor, AnyIoExecutor_WorkGuards)
+{
+    batt::FakeExecutionContext context;
+
+    boost::asio::any_io_executor ex{context.get_executor()};
+
+    std::vector<boost::asio::executor_work_guard<boost::asio::any_io_executor>> work;
+    for (i64 i = 0; i < 100; ++i) {
+        EXPECT_EQ(context.work_count().get_value(), i);
+        work.emplace_back(boost::asio::make_work_guard(ex));
+    }
+    for (i64 i = 100; i > 0; --i) {
+        EXPECT_EQ(context.work_count().get_value(), i);
+        work.pop_back();
+    }
+}
+
 }  // namespace

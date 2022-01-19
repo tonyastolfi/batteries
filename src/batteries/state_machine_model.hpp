@@ -27,6 +27,13 @@ namespace batt {
     std::cout
 #endif
 
+struct StateMachineResult {
+    bool ok = false;
+    usize branch_count = 0;
+    usize state_count = 0;
+    usize self_branch_count = 0;
+};
+
 template <typename StateT, typename StateHash = std::hash<StateT>,
           typename StateEqual = std::equal_to<StateT>>
 class StateMachineModel
@@ -39,12 +46,7 @@ class StateMachineModel
         RadixQueue<256> delta;
     };
 
-    struct Result {
-        bool ok = false;
-        usize branch_count = 0;
-        usize state_count = 0;
-        usize self_branch_count = 0;
-    };
+    using Result = StateMachineResult;
 
     Result check_model();
 
@@ -165,6 +167,15 @@ class StateMachineModel
     std::deque<Branch> queue_;
     std::unordered_map<state_type, Branch, StateHash, StateEqual> visited_;
 };
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+inline std::ostream& operator<<(std::ostream& out, const StateMachineResult& r)
+{
+    return out << "StateMachineResult{.ok=" << r.ok << ", .branch_count=" << r.branch_count
+               << ", .state_count=" << r.state_count << ", .self_branch_count=" << r.self_branch_count
+               << ",}";
+}
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 

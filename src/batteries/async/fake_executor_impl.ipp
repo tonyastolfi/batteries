@@ -9,8 +9,9 @@ namespace batt {
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
+template <typename OutstandingWorkP>
 template <typename Fn>
-inline void FakeExecutor::execute(Fn&& fn) const
+inline void BasicFakeExecutor<OutstandingWorkP>::execute(Fn&& fn) const
 {
     BATT_ASSERT_NOT_NULLPTR(this->context_);
     this->context_->push_ready_handler(UniqueHandler<>{BATT_FORWARD(fn)});
@@ -18,8 +19,9 @@ inline void FakeExecutor::execute(Fn&& fn) const
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
+template <typename OutstandingWorkP>
 template <typename OtherAllocator>
-inline constexpr std::allocator<void> FakeExecutor::query(
+inline constexpr std::allocator<void> BasicFakeExecutor<OutstandingWorkP>::query(
     boost::asio::execution::allocator_t<OtherAllocator>) const noexcept
 {
     return this->context_->allocator_;

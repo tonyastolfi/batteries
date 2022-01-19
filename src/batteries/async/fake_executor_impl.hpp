@@ -9,14 +9,17 @@ namespace batt {
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL FakeExecutionContext& FakeExecutor::query(boost::asio::execution::context_t) const noexcept
+template <typename OutstandingWorkP>
+BATT_INLINE_IMPL FakeExecutionContext& BasicFakeExecutor<OutstandingWorkP>::query(
+    boost::asio::execution::context_t) const noexcept
 {
     return *this->context_;
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL boost::asio::execution_context& FakeExecutor::query(
+template <typename OutstandingWorkP>
+BATT_INLINE_IMPL boost::asio::execution_context& BasicFakeExecutor<OutstandingWorkP>::query(
     boost::asio::execution::context_as_t<boost::asio::execution_context&>) const noexcept
 {
     return *this->context_;
@@ -24,7 +27,8 @@ BATT_INLINE_IMPL boost::asio::execution_context& FakeExecutor::query(
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL constexpr std::allocator<void> FakeExecutor::query(
+template <typename OutstandingWorkP>
+BATT_INLINE_IMPL constexpr std::allocator<void> BasicFakeExecutor<OutstandingWorkP>::query(
     boost::asio::execution::allocator_t<void>) const noexcept
 {
     return this->context_->allocator_;
@@ -32,31 +36,47 @@ BATT_INLINE_IMPL constexpr std::allocator<void> FakeExecutor::query(
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL void FakeExecutor::on_work_started() const
+template <typename OutstandingWorkP>
+BATT_INLINE_IMPL void BasicFakeExecutor<OutstandingWorkP>::on_work_started() const
 {
-    BATT_CHECK_NE(this->context_->work_count_.fetch_add(1) + 1u, 0u);
+    if (this->context_ != nullptr) {
+        BATT_CHECK_NE(this->context_->work_count_.fetch_add(1) + 1u, 0u);
+    }
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL void FakeExecutor::on_work_finished() const
+template <typename OutstandingWorkP>
+BATT_INLINE_IMPL void BasicFakeExecutor<OutstandingWorkP>::on_work_finished() const
 {
-    BATT_CHECK_GT(this->context_->work_count_.fetch_sub(1), 0u);
+    if (this->context_ != nullptr) {
+        BATT_CHECK_GT(this->context_->work_count_.fetch_sub(1), 0u);
+    }
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL constexpr bool operator==(const FakeExecutor& l, const FakeExecutor& r) noexcept
+template <typename OutstandingWorkP>
+BATT_INLINE_IMPL constexpr bool operator==(const BasicFakeExecutor<OutstandingWorkP>& l,
+                                           const BasicFakeExecutor<OutstandingWorkP>& r) noexcept
 {
-    return l.context_ == r.context_;
+    return &(l.context()) == &(r.context());
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL constexpr bool operator!=(const FakeExecutor& l, const FakeExecutor& r) noexcept
+template <typename OutstandingWorkP>
+BATT_INLINE_IMPL constexpr bool operator!=(const BasicFakeExecutor<OutstandingWorkP>& l,
+                                           const BasicFakeExecutor<OutstandingWorkP>& r) noexcept
 {
     return !(l == r);
 }
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// Explicit instantiations.
+//
+template class BasicFakeExecutor<boost::asio::execution::outstanding_work_t::tracked_t>;
+template class BasicFakeExecutor<boost::asio::execution::outstanding_work_t::untracked_t>;
 
 //#=##=##=#==#=#==#===#+==#+==========+==+=+=+=+=+=++=+++=+++++=-++++=-+++++++++++
 // Type requirement checks.
@@ -72,6 +92,7 @@ static_assert(
 static_assert(
     std::is_same_v<bool, decltype(std::declval<const FakeExecutor>() == std::declval<const FakeExecutor>())>,
     "");
+
 static_assert(
     std::is_same_v<bool, decltype(std::declval<const FakeExecutor>() != std::declval<const FakeExecutor>())>,
     "");

@@ -10,27 +10,83 @@
 
 namespace batt {
 
-class FakeExecutor;
 class FakeExecutionContext;
+
+template <typename OutstandingWorkP>
+class BasicFakeExecutor;
+
+using FakeExecutor = BasicFakeExecutor<boost::asio::execution::outstanding_work_t::untracked_t>;
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
-constexpr bool operator==(const FakeExecutor& l, const FakeExecutor& r) noexcept;
-constexpr bool operator!=(const FakeExecutor& l, const FakeExecutor& r) noexcept;
+template <typename OutstandingWorkP>
+constexpr bool operator==(const BasicFakeExecutor<OutstandingWorkP>& l,
+                          const BasicFakeExecutor<OutstandingWorkP>& r) noexcept;
+
+template <typename OutstandingWorkP>
+constexpr bool operator!=(const BasicFakeExecutor<OutstandingWorkP>& l,
+                          const BasicFakeExecutor<OutstandingWorkP>& r) noexcept;
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 //
-class FakeExecutor
+
+template <typename OutstandingWorkP>
+class BasicFakeExecutor
 {
    public:
-    friend constexpr bool operator==(const FakeExecutor& l, const FakeExecutor& r) noexcept;
+    using Self = BasicFakeExecutor;
 
-    using Self = FakeExecutor;
-
-    constexpr explicit FakeExecutor(FakeExecutionContext* context) noexcept : context_{context}
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    constexpr explicit BasicFakeExecutor() noexcept : context_{nullptr}
     {
     }
 
+    constexpr explicit BasicFakeExecutor(FakeExecutionContext* context) noexcept : context_{context}
+    {
+        if (std::is_same_v<OutstandingWorkP, boost::asio::execution::outstanding_work_t::tracked_t>) {
+            this->on_work_started();
+        }
+    }
+
+    constexpr BasicFakeExecutor(const Self& other) noexcept : Self{other.context_}
+    {
+    }
+
+    constexpr BasicFakeExecutor(Self&& other) noexcept : context_{other.context_}
+    {
+        other.context_ = nullptr;
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    Self& operator=(const Self& other) noexcept
+    {
+        Self tmp{other};
+        this->swap(tmp);
+        return *this;
+    }
+
+    Self& operator=(Self&& other) noexcept
+    {
+        Self tmp{std::move(other)};
+        this->swap(tmp);
+        return *this;
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    ~BasicFakeExecutor() noexcept
+    {
+        if (std::is_same_v<OutstandingWorkP, boost::asio::execution::outstanding_work_t::tracked_t>) {
+            this->on_work_finished();
+        }
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    void swap(Self& other)
+    {
+        std::swap(this->context_, other.context_);
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
     FakeExecutionContext& context() const
     {
         return *this->context_;
@@ -63,15 +119,15 @@ class FakeExecutor
     }
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
-    constexpr Self require(boost::asio::execution::outstanding_work_t::tracked_t) const
+    constexpr auto require(boost::asio::execution::outstanding_work_t::tracked_t) const
     {
-        return *this;
+        return BasicFakeExecutor<boost::asio::execution::outstanding_work_t::tracked_t>{this->context_};
     }
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
-    constexpr Self require(boost::asio::execution::outstanding_work_t::untracked_t) const
+    constexpr auto require(boost::asio::execution::outstanding_work_t::untracked_t) const
     {
-        return *this;
+        return BasicFakeExecutor<boost::asio::execution::outstanding_work_t::untracked_t>{this->context_};
     }
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -83,6 +139,55 @@ class FakeExecutor
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
     constexpr Self require(boost::asio::execution::allocator_t<void>) const
+    {
+        return *this;
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    constexpr Self prefer(boost::asio::execution::blocking_t::possibly_t) const
+    {
+        return *this;
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    constexpr Self prefer(boost::asio::execution::blocking_t::never_t) const
+    {
+        return *this;
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    constexpr Self prefer(boost::asio::execution::relationship_t::fork_t) const
+    {
+        return *this;
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    constexpr Self prefer(boost::asio::execution::relationship_t::continuation_t) const
+    {
+        return *this;
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    constexpr auto prefer(boost::asio::execution::outstanding_work_t::tracked_t) const
+    {
+        return BasicFakeExecutor<boost::asio::execution::outstanding_work_t::tracked_t>{this->context_};
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    constexpr auto prefer(boost::asio::execution::outstanding_work_t::untracked_t) const
+    {
+        return BasicFakeExecutor<boost::asio::execution::outstanding_work_t::untracked_t>{this->context_};
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    template <typename OtherAllocator>
+    constexpr Self prefer(boost::asio::execution::allocator_t<OtherAllocator>) const
+    {
+        return *this;
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    constexpr Self prefer(boost::asio::execution::allocator_t<void>) const
     {
         return *this;
     }
@@ -117,7 +222,11 @@ class FakeExecutor
     static constexpr boost::asio::execution::outstanding_work_t query(
         boost::asio::execution::outstanding_work_t) noexcept
     {
-        return boost::asio::execution::outstanding_work_t(boost::asio::execution::outstanding_work.tracked);
+        return (std::is_same_v<OutstandingWorkP, boost::asio::execution::outstanding_work_t::tracked_t>)
+                   ? boost::asio::execution::outstanding_work_t(
+                         boost::asio::execution::outstanding_work.tracked)
+                   : boost::asio::execution::outstanding_work_t(
+                         boost::asio::execution::outstanding_work.untracked);
     }
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
