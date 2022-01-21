@@ -749,7 +749,7 @@ TEST(AsyncWatchTest, AwaitModifyRaceSucceed)
     batt::Task await_modifier{io1.get_executor(), [&] {
                                   result1 = num.await_modify([&](i32 n) -> batt::Optional<i32> {
                                       num_attempts += 1;
-                                      if (n < 50) {
+                                      if (n < 1000) {
                                           return batt::None;
                                       }
                                       return n;
