@@ -21,6 +21,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#ifdef __linux__
+#include <sched.h>
+#endif  // __linux__
+
 namespace batt {
 
 #if 0
@@ -322,8 +326,9 @@ struct ParallelModelCheckState {
         if (this->stalled[src_i][dst_i].load()) {
             std::deque<Branch> to_send;
             std::swap(to_send, src_dst_send_queue);
-            this->queue_push_count.fetch_add(1);
-            this->recv_queues[dst_i]->push(std::move(to_send));
+            if (this->recv_queues[dst_i]->push(std::move(to_send))) {
+                this->queue_push_count.fetch_add(1);
+            }
         }
     }
 
@@ -340,8 +345,9 @@ struct ParallelModelCheckState {
             }
             std::deque<Branch> to_send;
             std::swap(to_send, src_dst_send_queue);
-            this->queue_push_count.fetch_add(1);
-            this->recv_queues[dst_i]->push(std::move(to_send));
+            if (this->recv_queues[dst_i]->push(std::move(to_send))) {
+                this->queue_push_count.fetch_add(1);
+            }
         }
     }
 
@@ -456,6 +462,7 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
     std::vector<std::unique_ptr<Latch<Result>>> shard_results(n_shards);
     std::vector<VisitedBranchMap> shard_visited(n_shards);
     std::vector<std::thread> threads;
+    const usize cpu_count = std::thread::hardware_concurrency();
 
     // IMPORTANT: all of the latches must be created before we launch any of the threads.
     //
@@ -468,7 +475,19 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
     // results of other shards.  These two stages are like Map and Reduce.
     //
     for (usize shard_i = 0; shard_i < n_shards; ++shard_i) {
-        threads.emplace_back([shard_i, &shard_results, &shard_visited, &mesh, /*&m,*/ this] {
+        threads.emplace_back([shard_i, &shard_results, &shard_visited, &mesh, /*&m,*/ this, cpu_count] {
+#ifdef __linux__
+            // Pin each thread to a different CPU to try to speed things up.
+            {
+                const usize cpu_i = shard_i % cpu_count;
+                cpu_set_t mask;
+                CPU_ZERO(&mask);
+                CPU_SET(cpu_i, &mask);
+                BATT_CHECK_EQ(0, sched_setaffinity(0, sizeof(mask), &mask))
+                    << BATT_INSPECT(cpu_i) << BATT_INSPECT(cpu_count);
+            }
+#endif  //__linux__
+
             // Each thread gets its own copy of the model object.
             //
             std::unique_ptr<StateMachineModel> shard_model = this->clone();

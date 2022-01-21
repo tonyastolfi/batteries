@@ -146,8 +146,7 @@ class Queue : public QueueBase
     usize drain()
     {
         usize count = 0;
-        while (!this->empty()) {
-            (void)this->pop_next_or_panic();
+        while (this->try_pop_next()) {
             ++count;
         }
         return count;
