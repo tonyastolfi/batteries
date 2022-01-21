@@ -57,8 +57,22 @@ class FakeExecutionContext : public boost::asio::execution_context
         return this->allocator_;
     }
 
+    // Shortcut to pop an arbitrary ready handler and run it.
+    //
+    bool poll_one();
+
+    // Shortcut to pop all ready handlers and run them.
+    //
+    usize poll();
+
+    // Shortcut to wait for ready handlers and run them, while work count is > 0.
+    //
+    usize run();
+
    private:
     Watch<i64> work_count_{0};
+    Watch<i64> push_ready_count_{0};
+    Watch<i64> pop_ready_count_{0};
     std::allocator<void> allocator_;
     std::mutex mutex_;
     std::vector<UniqueHandler<>> ready_to_run_;

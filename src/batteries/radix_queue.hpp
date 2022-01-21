@@ -59,8 +59,8 @@ class RadixQueue
             usize seed = r.queue_size();
             for (usize i = 0; i < r.queue_size(); ++i) {
                 usize j = (r.front_ + i) % kQueueSize;
-                boost::hash_combine(seed, r.queue[j].radix);
-                boost::hash_combine(seed, r.queue[j].value);
+                boost::hash_combine(seed, r.queue_[j].radix);
+                boost::hash_combine(seed, r.queue_[j].value);
             }
             return seed;
         }

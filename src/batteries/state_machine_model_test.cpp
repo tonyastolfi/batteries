@@ -4,13 +4,15 @@
 //
 #include <batteries/state_machine_model.hpp>
 
-#include <boost/functional/hash.hpp>
-#include <boost/operators.hpp>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <boost/asio/io_context.hpp>
+#include <boost/functional/hash.hpp>
+#include <boost/operators.hpp>
+
 #include <algorithm>
+#include <unordered_set>
 
 namespace {
 
@@ -209,6 +211,7 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
    public:
     bool prune_won_games = true;
     bool prune_symmetries = true;
+    usize n_threads = 1;
 
     GameState initialize() override
     {
@@ -301,15 +304,34 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
         return s_norm;
     }
 
+    void report_progress(const TicTacToeModel::Result& r) override
+    {
+        std::cerr << " ... " << r << std::endl;
+    }
+
+    usize max_concurrency() const override
+    {
+        return this->n_threads;
+    }
+
+    std::unique_ptr<StateMachineModel<GameState, GameState::Hash>> clone() const override
+    {
+        return std::make_unique<TicTacToeModel>(*this);
+    }
+
    private:
     GameState state_;
 };
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 TEST(StateMachineModelTest, Basic)
 {
     TicTacToeModel t;
+    t.n_threads = 1;
 
     TicTacToeModel::Result r = t.check_model();
+
+    std::cerr << "DONE with check_model; result=" << r << std::endl;
 
     std::vector<std::pair<int, int>> coords;
     for (int i = 0; i < 3; ++i) {
@@ -342,6 +364,126 @@ TEST(StateMachineModelTest, Basic)
     EXPECT_EQ(r.state_count, 765u);
     EXPECT_EQ(r.branch_count, 11475u);
     EXPECT_EQ(r.self_branch_count, 6935u);
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+TEST(StateMachineModelTest, MultiThreaded)
+{
+    std::unordered_set<GameState, GameState::Hash> expected_states;
+    {
+        TicTacToeModel t;
+        std::vector<std::pair<int, int>> coords;
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                coords.emplace_back(i, j);
+            }
+        }
+        EXPECT_EQ(coords.size(), 9u);
+        usize positions = 0;
+        do {
+            GameState g;
+            for (const auto& p : coords) {
+                g.board[p.first][p.second] = square_from_player(g.to_move);
+                g.to_move = flip_player(g.to_move);
+                expected_states.insert(t.normalize(g));
+                if (t.prune_won_games && get_winner(g) != Square::Empty) {
+                    break;
+                }
+            }
+            positions += 1;
+        } while (std::next_permutation(coords.begin(), coords.end()));
+
+        EXPECT_EQ(positions, usize(9 * 8 * 7 * 6 * 5 * 4 * 3 * 2 * 1));
+    }
+
+    for (usize n_iterations = 0; n_iterations < 3; ++n_iterations) {
+        std::cerr << BATT_INSPECT(n_iterations) << std::endl;
+        for (usize n_threads = 1; n_threads <= 32; n_threads += 1) {
+            TicTacToeModel t;
+            t.n_threads = n_threads;
+
+            TicTacToeModel::Result result = t.check_model();
+
+            EXPECT_TRUE(result.ok);
+            EXPECT_GE(result.state_count, 765u);
+            EXPECT_GE(result.branch_count, 11475u);
+            EXPECT_GE(result.self_branch_count, 6935u);
+
+            for (const GameState& s : expected_states) {
+                ASSERT_TRUE(t.state_visited(s));
+            }
+        }
+    }
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+TEST(StateMachineModelTest, ParallelModelCheckStateSendRecv)
+{
+    using batt::StatusOr;
+    using batt::detail::ParallelModelCheckState;
+
+    ParallelModelCheckState<std::string> state{3};
+
+    EXPECT_EQ(state.shard_count, 3u);
+
+    std::array<std::deque<std::string>, 3> local_inbox;
+
+    boost::asio::io_context io;
+
+    batt::Task task1{io.get_executor(), [&] {
+                         StatusOr<usize> n_recv = state.recv(1, local_inbox[1]);
+                         BATT_CHECK_OK(n_recv);
+                         BATT_CHECK_EQ(*n_recv, 1u);
+                     }};
+
+    io.poll();
+    io.reset();
+
+    EXPECT_TRUE(state.stalled[0][1]);
+    EXPECT_TRUE(state.stalled[1][1]);
+    EXPECT_TRUE(state.stalled[2][1]);
+
+    state.send(0, 1, "hello 1 from 0");
+
+    EXPECT_TRUE(state.stalled[0][1]);
+    EXPECT_TRUE(state.stalled[1][1]);
+    EXPECT_TRUE(state.stalled[2][1]);
+
+    io.poll();
+    io.reset();
+
+    EXPECT_FALSE(state.stalled[0][1]);
+    EXPECT_FALSE(state.stalled[1][1]);
+    EXPECT_FALSE(state.stalled[2][1]);
+
+    task1.join();
+
+    EXPECT_THAT(local_inbox[1], ::testing::ElementsAre("hello 1 from 0"));
+
+    state.send(2, 1, "hello 1 from 2");
+    state.send(0, 1, "goodbye 1 from 0");
+
+    state.flush_all(0);
+    state.flush_all(2);
+
+    EXPECT_FALSE(state.stalled[0][1]);
+    EXPECT_FALSE(state.stalled[1][1]);
+    EXPECT_FALSE(state.stalled[2][1]);
+    {
+        StatusOr<usize> n_recv = state.recv(1, local_inbox[1]);
+
+        ASSERT_TRUE(n_recv.ok());
+        EXPECT_EQ(*n_recv, 1u);
+        EXPECT_THAT(local_inbox[1], ::testing::ElementsAre("hello 1 from 0", "goodbye 1 from 0"));
+    }
+    {
+        StatusOr<usize> n_recv = state.recv(1, local_inbox[1]);
+
+        ASSERT_TRUE(n_recv.ok());
+        EXPECT_EQ(*n_recv, 1u);
+        EXPECT_THAT(local_inbox[1],
+                    ::testing::ElementsAre("hello 1 from 0", "goodbye 1 from 0", "hello 1 from 2"));
+    }
 }
 
 }  // namespace

@@ -345,7 +345,7 @@ TEST(AsyncFakeExecutor, Execute)
 }
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
-TEST(AsyncFakeExecutor, AnyIoExecutor_WorkGuards)
+TEST(AsyncFakeExecutor, AnyIoExecutorWorkGuard)
 {
     batt::FakeExecutionContext context;
 

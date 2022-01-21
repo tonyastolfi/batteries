@@ -9,6 +9,8 @@
 
 #include <boost/functional/hash.hpp>
 
+#include <type_traits>
+
 namespace batt {
 
 inline usize hash()
@@ -20,6 +22,13 @@ template <typename T>
 usize hash(T&& obj)
 {
     return boost::hash<T>{}(BATT_FORWARD(obj));
+}
+
+template <typename T, typename HashT = typename std::decay_t<T>::Hash>
+usize hash_value(T&& obj)
+{
+    static const HashT hash_impl;
+    return hash_impl(obj);
 }
 
 template <typename First, typename... Rest>

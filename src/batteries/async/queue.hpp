@@ -143,6 +143,16 @@ class Queue : public QueueBase
         return std::forward<T>(locked->front());
     }
 
+    usize drain()
+    {
+        usize count = 0;
+        while (!this->empty()) {
+            (void)this->pop_next_or_panic();
+            ++count;
+        }
+        return count;
+    }
+
    private:
     Mutex<std::deque<T>> pending_items_;
 };

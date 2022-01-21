@@ -43,6 +43,8 @@ class Future
     template <typename U>
     friend Future<U> get_future(const Promise<U>& promise);
 
+    bool is_ready() const;
+
    private:
     explicit Future(std::shared_ptr<detail::FutureImpl<T>>&& impl) noexcept;
 

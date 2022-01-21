@@ -66,6 +66,14 @@ BATT_INLINE_IMPL Future<T> get_future(const Promise<T>& promise)
     return Future<T>{make_copy(promise.impl_)};
 }
 
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+template <typename T>
+BATT_INLINE_IMPL bool Future<T>::is_ready() const
+{
+    return this->impl_->is_ready();
+}
+
 }  // namespace batt
 
 #endif  // BATTERIES_ASYNC_FUTURE_IMPL_HPP

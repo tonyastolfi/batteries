@@ -212,6 +212,17 @@ BATT_INLINE_IMPL void Task::join()
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
+BATT_INLINE_IMPL bool Task::try_join()
+{
+    if (!get_future(this->promise_).is_ready()) {
+        return false;
+    }
+    this->join();
+    return true;
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
 BATT_INLINE_IMPL bool Task::wake()
 {
     SpinLockGuard lock{this, kSleepTimerLock};

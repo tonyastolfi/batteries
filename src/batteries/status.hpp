@@ -762,10 +762,15 @@ inline decltype(auto) to_status(T&& s)
     lvalue_expr = std::move(*BOOST_PP_CAT(BATTERIES_temp_StatusOr_result_, __LINE__))
 
 #define BATT_OK_RESULT_OR_PANIC(expr)                                                                        \
-    [&](auto&& status_or) {                                                                                  \
-        BATT_CHECK(status_or.ok()) << BATT_INSPECT(status_or.status());                                      \
-        return std::move(*BATT_FORWARD(status_or));                                                          \
+    [&](auto&& expr_value) {                                                                                 \
+        BATT_CHECK(::batt::is_ok_status(expr_value))                                                         \
+            << BOOST_PP_STRINGIZE(expr) << ".status == " << BATT_INSPECT(::batt::to_status(expr_value));     \
+        return std::move(*BATT_FORWARD(expr_value));                                                         \
     }(expr)
+
+#define BATT_CHECK_OK(expr)                                                                                  \
+    BATT_CHECK(::batt::is_ok_status(expr))                                                                   \
+        << BOOST_PP_STRINGIZE(expr) << ".status == " << BATT_INSPECT(::batt::to_status(expr)) << "; "
 
 inline Status status_from_errno(int code)
 {

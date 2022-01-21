@@ -394,6 +394,8 @@ class Task
 
     void join();
 
+    bool try_join();
+
     bool wake();
 
     executor_type get_executor() const
