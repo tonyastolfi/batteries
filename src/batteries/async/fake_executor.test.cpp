@@ -155,7 +155,7 @@ TEST(AsyncFakeExecutor, MutexSimulation)
     MutexSimulationModel::Result result = sim.check_model();
 
     EXPECT_TRUE(result.ok);
-    EXPECT_EQ(result.branch_count, 49u);
+    EXPECT_EQ(result.branch_pop_count, 49u);
     EXPECT_EQ(result.state_count, 2u);
 }
 

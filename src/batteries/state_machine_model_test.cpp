@@ -21,6 +21,8 @@ using namespace batt::int_types;
 enum struct Player { X, O };
 enum struct Square { Empty, X, O };
 
+constexpr bool kVerboseTestOutput = false;
+
 inline std::ostream& operator<<(std::ostream& out, const Square& t)
 {
     switch (t) {
@@ -306,7 +308,12 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
 
     void report_progress(const TicTacToeModel::Result& r) override
     {
-        std::cerr << " ... " << r << std::endl;
+        static std::mutex mutex_;
+
+        if (kVerboseTestOutput) {
+            std::unique_lock<std::mutex> lock{mutex_};
+            std::cerr << " ... " << r << std::endl;
+        }
     }
 
     usize max_concurrency() const override
@@ -322,6 +329,10 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
    private:
     GameState state_;
 };
+
+constexpr usize kExpectedStateCount = 765u;
+constexpr usize kExpectedBranchCount = 11475u;
+constexpr usize kExpectedSelfBranchCount = 6935u;
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 TEST(StateMachineModelTest, Basic)
@@ -361,9 +372,10 @@ TEST(StateMachineModelTest, Basic)
     EXPECT_EQ(positions, usize(9 * 8 * 7 * 6 * 5 * 4 * 3 * 2 * 1));
 
     EXPECT_TRUE(r.ok);
-    EXPECT_EQ(r.state_count, 765u);
-    EXPECT_EQ(r.branch_count, 11475u);
-    EXPECT_EQ(r.self_branch_count, 6935u);
+    EXPECT_EQ(r.state_count, kExpectedStateCount);
+    EXPECT_EQ(r.branch_push_count, kExpectedBranchCount);
+    EXPECT_EQ(r.branch_pop_count, kExpectedBranchCount);
+    EXPECT_EQ(r.self_branch_count, kExpectedSelfBranchCount);
 }
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
@@ -396,18 +408,24 @@ TEST(StateMachineModelTest, MultiThreaded)
         EXPECT_EQ(positions, usize(9 * 8 * 7 * 6 * 5 * 4 * 3 * 2 * 1));
     }
 
-    for (usize n_iterations = 0; n_iterations < 3; ++n_iterations) {
-        std::cerr << BATT_INSPECT(n_iterations) << std::endl;
-        for (usize n_threads = 1; n_threads <= 32; n_threads += 1) {
+    for (usize n_threads = 1; n_threads <= 32; n_threads += 1) {
+        for (usize n_iterations = 0; n_iterations < 3; ++n_iterations) {
+            if (kVerboseTestOutput) {
+                std::cerr
+                    << "=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------"
+                    << std::endl
+                    << BATT_INSPECT(n_threads) << BATT_INSPECT(n_iterations) << std::endl;
+            }
             TicTacToeModel t;
             t.n_threads = n_threads;
 
             TicTacToeModel::Result result = t.check_model();
 
             EXPECT_TRUE(result.ok);
-            EXPECT_GE(result.state_count, 765u);
-            EXPECT_GE(result.branch_count, 11475u);
-            EXPECT_GE(result.self_branch_count, 6935u);
+            EXPECT_EQ(result.state_count, kExpectedStateCount);
+            EXPECT_EQ(result.branch_push_count, kExpectedBranchCount);
+            EXPECT_EQ(result.branch_pop_count, kExpectedBranchCount);
+            EXPECT_EQ(result.self_branch_count, kExpectedSelfBranchCount);
 
             for (const GameState& s : expected_states) {
                 ASSERT_TRUE(t.state_visited(s));

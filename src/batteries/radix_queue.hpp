@@ -8,6 +8,7 @@
 #include <batteries/int_types.hpp>
 
 #include <boost/functional/hash.hpp>
+#include <boost/operators.hpp>
 
 #include <array>
 #include <limits>
@@ -25,7 +26,7 @@ std::ostream& operator<<(std::ostream& out, const RadixQueue<N_>& t);
 // of events.
 //
 template <usize kCapacityInBits>
-class RadixQueue
+class RadixQueue : public boost::equality_comparable<RadixQueue<kCapacityInBits>>
 {
    public:
     static constexpr usize kQueueSize = kCapacityInBits / 64;
@@ -56,15 +57,33 @@ class RadixQueue
 
         usize operator()(const RadixQueue& r) const
         {
-            usize seed = r.queue_size();
-            for (usize i = 0; i < r.queue_size(); ++i) {
-                usize j = (r.front_ + i) % kQueueSize;
+            const usize size = r.queue_size();
+            usize seed = size;
+            for (usize i = 0; i < size; ++i) {
+                const usize j = (r.front_ + i) % kQueueSize;
                 boost::hash_combine(seed, r.queue_[j].radix);
                 boost::hash_combine(seed, r.queue_[j].value);
             }
             return seed;
         }
     };
+
+    bool operator==(const RadixQueue& other) const
+    {
+        const usize size = this->queue_size();
+        if (size != other.queue_size()) {
+            return false;
+        }
+        for (usize i = 0; i < size; ++i) {
+            const usize this_j = (this->front_ + i) % kQueueSize;
+            const usize other_j = (other.front_ + i) % kQueueSize;
+            if (this->queue_[this_j].radix != other.queue_[other_j].radix ||
+                this->queue_[this_j].value != other.queue_[other_j].value) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 

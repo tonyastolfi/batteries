@@ -2,6 +2,7 @@
 //
 #pragma once
 
+#include <batteries/finally.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/suppress.hpp>
 #include <batteries/type_traits.hpp>
@@ -343,6 +344,11 @@ inline std::ostream& dump_item(std::ostream& out, const std::pair<FirstT, Second
 
 }  // namespace detail
 
+inline auto pretty_print_indent()
+{
+    return std::string(detail::range_dump_depth() * 2, ' ');
+}
+
 template <typename T>
 class RangeDumper
 {
@@ -369,8 +375,13 @@ class RangeDumper
         }();
         detail::range_dump_pretty() = pretty ? Pretty::True : Pretty::False;
 
-        std::string indent(detail::range_dump_depth() * 2, ' ');
+        std::string indent = pretty_print_indent();
         ++detail::range_dump_depth();
+        const auto leave_indent_level = finally([&] {
+            --detail::range_dump_depth();
+            detail::range_dump_pretty() = save_pretty;
+        });
+
         out << "{ ";
         if (pretty && std::begin(t.value_) != std::end(t.value_)) {
             out << std::endl << indent;
@@ -384,9 +395,6 @@ class RangeDumper
                 out << std::endl << indent;
             }
         }
-
-        --detail::range_dump_depth();
-        detail::range_dump_pretty() = save_pretty;
 
         return out << "}";
     }
