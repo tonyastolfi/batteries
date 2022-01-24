@@ -138,7 +138,6 @@ struct StateMachineModelCheckAdvancedOptions {
     bool pin_shard_to_cpu;
     usize max_loop_iterations_between_flush;
     usize max_loop_iterations_between_update;
-    usize min_shard_local_branch_queue_size;
 
     static Self with_default_values()
     {
@@ -146,7 +145,6 @@ struct StateMachineModelCheckAdvancedOptions {
             .pin_shard_to_cpu = true,
             .max_loop_iterations_between_flush = 64,
             .max_loop_iterations_between_update = 4096,
-            .min_shard_local_branch_queue_size = 0,
         };
     }
 };
@@ -351,19 +349,16 @@ struct ModelCheckShardMetrics {
     i64 flush_count = 0;
     i64 send_count = 0;
     i64 recv_count = 0;
-    i64 steal_count = 0;
 };
 
 inline std::ostream& operator<<(std::ostream& out, const ModelCheckShardMetrics& t)
 {
-    return out << "ShardMetrics{"                                                                           //
-               << ".stall=" << t.stall_count                                                                //
-               << ", .flush=" << t.flush_count                                                              //
-               << ", .send=" << t.send_count                                                                //
-               << ", .recv=" << t.recv_count                                                                //
-               << ", .steal=" << t.steal_count                                                              //
-               << ", .stall_rate=" << double(t.stall_count + 1) / double(t.recv_count + 1)                  //
-               << ", .steal_rate=" << double(t.steal_count + 1) / double(t.send_count + t.steal_count + 1)  //
+    return out << "ShardMetrics{"                                                           //
+               << ".stall=" << t.stall_count                                                //
+               << ", .flush=" << t.flush_count                                              //
+               << ", .send=" << t.send_count                                                //
+               << ", .recv=" << t.recv_count                                                //
+               << ", .stall_rate=" << double(t.stall_count + 1) / double(t.recv_count + 1)  //
                << ",}";
 }
 
@@ -710,12 +705,9 @@ inline void StateMachineModel<StateT, StateHash, StateEqual>::Checker::explore(B
 {
     const usize dst_i = this->mesh_.find_shard(branch);
 
-    if (dst_i == this->shard_i_ || this->queue_.size() < this->options_.min_shard_local_branch_queue_size) {
+    if (dst_i == this->shard_i_) {
         this->queue_.emplace_back(std::move(branch));
         this->result_.branch_push_count += 1;
-        if (dst_i != this->shard_i_) {
-            this->mesh_.metrics(this->shard_i_).steal_count += 1;
-        }
     } else {
         this->result_.branch_miss_count += 1;
         this->mesh_.send(/*src_i=*/this->shard_i_, /*dst_i=*/dst_i, std::move(branch));
@@ -792,7 +784,6 @@ bool StateMachineModel<StateT, StateHash, StateEqual>::Checker::pop_next()
         auto& next_branch = this->queue_.front();
         const usize branch_shard_i = this->mesh_.find_shard(next_branch);
         BATT_CHECK_EQ(branch_shard_i, this->shard_i_);
-#if 0
 
         // Pop the next branch of the state graph to explore.
         //
