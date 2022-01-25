@@ -9,6 +9,7 @@
 #include <batteries/async/future_decl.hpp>
 #include <batteries/async/handler.hpp>
 #include <batteries/async/latch.hpp>
+#include <batteries/shared_ptr.hpp>
 #include <batteries/utility.hpp>
 
 namespace batt {
@@ -29,7 +30,7 @@ class FutureImpl : public Latch<T>
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
 template <typename T>
-BATT_INLINE_IMPL Promise<T>::Promise() : impl_{std::make_shared<detail::FutureImpl<T>>()}
+BATT_INLINE_IMPL Promise<T>::Promise() : impl_{batt::make_shared<detail::FutureImpl<T>>()}
 {
 }
 
@@ -38,8 +39,11 @@ BATT_INLINE_IMPL Promise<T>::Promise() : impl_{std::make_shared<detail::FutureIm
 template <typename T>
 BATT_INLINE_IMPL void Promise<T>::set_value(T&& value)
 {
-    impl_->set_value(BATT_FORWARD(value));
+    this->impl_->set_value(BATT_FORWARD(value));
 }
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
@@ -53,7 +57,7 @@ BATT_INLINE_IMPL void Future<T>::async_wait(Handler&& handler) const
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
 template <typename T>
-BATT_INLINE_IMPL Future<T>::Future(std::shared_ptr<detail::FutureImpl<T>>&& impl) noexcept
+BATT_INLINE_IMPL Future<T>::Future(boost::intrusive_ptr<detail::FutureImpl<T>>&& impl) noexcept
     : impl_{std::move(impl)}
 {
 }

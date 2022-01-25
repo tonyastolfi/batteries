@@ -1,8 +1,11 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
 // Copyright 2021 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_ASYNC_FUTURE_DECL_HPP
 #define BATTERIES_ASYNC_FUTURE_DECL_HPP
+
+#include <batteries/shared_ptr.hpp>
 
 #include <memory>
 
@@ -13,7 +16,7 @@ namespace detail {
 template <typename T>
 class FutureImpl;
 
-}
+}  // namespace detail
 
 template <typename T>
 class Future;
@@ -30,7 +33,7 @@ class Promise
     friend Future<U> get_future(const Promise<U>& promise);
 
    private:
-    std::shared_ptr<detail::FutureImpl<T>> impl_;
+    boost::intrusive_ptr<detail::FutureImpl<T>> impl_;
 };
 
 template <typename T>
@@ -40,15 +43,19 @@ class Future
     template <typename Handler>
     void async_wait(Handler&& handler) const;
 
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    // To retrieve the value of the future, use `StatusOr<T> result = Task::await(future);`
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
     template <typename U>
     friend Future<U> get_future(const Promise<U>& promise);
 
     bool is_ready() const;
 
    private:
-    explicit Future(std::shared_ptr<detail::FutureImpl<T>>&& impl) noexcept;
+    explicit Future(boost::intrusive_ptr<detail::FutureImpl<T>>&& impl) noexcept;
 
-    std::shared_ptr<detail::FutureImpl<T>> impl_;
+    boost::intrusive_ptr<detail::FutureImpl<T>> impl_;
 };
 
 template <typename T>

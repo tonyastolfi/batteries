@@ -1,3 +1,4 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
 // Copyright 2021 Anthony Paul Astolfi
 //
 #pragma once
@@ -8,17 +9,21 @@
 #include <batteries/async/handler.hpp>
 #include <batteries/async/watch_decl.hpp>
 #include <batteries/optional.hpp>
+#include <batteries/shared_ptr.hpp>
 #include <batteries/status.hpp>
 #include <batteries/utility.hpp>
 
 namespace batt {
+
+template <typename T>
+class Latch;
 
 // A write-once, single-value synchronized container.
 //
 // Similar to a Future/Promise pair, but Latch has no defined copy/move semantics.
 //
 template <typename T>
-class Latch
+class Latch : public RefCounted<Latch<T>>
 {
    public:
     enum State : u32 {

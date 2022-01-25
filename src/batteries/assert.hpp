@@ -1,3 +1,4 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
 // Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
@@ -75,7 +76,7 @@ std::string make_printable(T&& obj)
 
 BATT_NORETURN inline void fail_check_exit()
 {
-    BATT_FAIL_CHECK_OUT << std::endl << std::endl;  // << boost::stacktrace::stacktrace{} << std::endl;
+    BATT_FAIL_CHECK_OUT << std::endl << std::endl;
     std::abort();
     BATT_UNREACHABLE();
 }
