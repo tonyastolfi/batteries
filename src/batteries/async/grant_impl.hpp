@@ -186,11 +186,14 @@ BATT_INLINE_IMPL u64 Grant::spend_all()
 //
 BATT_INLINE_IMPL Grant& Grant::subsume(Grant&& that)
 {
-    BATT_CHECK_EQ(this->issuer_, that.issuer_);
+    if (!this->issuer_) {
+        *this = std::move(that);
+    } else {
+        BATT_CHECK_EQ(this->issuer_, that.issuer_);
 
-    const u64 count = that.size_.set_value(0);
-    this->size_.fetch_add(count);
-
+        const u64 count = that.size_.set_value(0);
+        this->size_.fetch_add(count);
+    }
     return *this;
 }
 

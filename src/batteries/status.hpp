@@ -735,13 +735,17 @@ inline Status to_status(const std::error_code& ec)
     return Status{StatusCode::kInternal};
 }
 
-template <typename T, typename = std::enable_if_t<IsStatusOr<T>{}>>
+template <typename T,
+          typename = std::enable_if_t<IsStatusOr<T>{} && !std::is_same_v<std::decay_t<T>, StatusOr<Status>>>>
 inline decltype(auto) to_status(T&& v)
 {
     return BATT_FORWARD(v).status();
 }
 
-template <typename T, typename = std::enable_if_t<std::is_same_v<std::decay_t<T>, Status>>, typename = void>
+template <typename T,
+          typename = std::enable_if_t<std::is_same_v<std::decay_t<T>, Status> ||
+                                      std::is_same_v<std::decay_t<T>, StatusOr<Status>>>,
+          typename = void>
 inline decltype(auto) to_status(T&& s)
 {
     return BATT_FORWARD(s);
