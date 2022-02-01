@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_ASYNC_HANDLER_HPP
@@ -6,6 +7,7 @@
 
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/static_assert.hpp>
 #include <batteries/stream_util.hpp>
 #include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
@@ -19,6 +21,7 @@
 
 namespace batt {
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 // A type-erased async completion handler with linked list pointers.
 //
 template <typename... Args>
@@ -59,6 +62,8 @@ class AbstractHandler : public boost::intrusive::list_base_hook<>
     virtual ~AbstractHandler() = default;
 };
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+//
 template <typename HandlerFn, typename... Args>
 class HandlerImpl : public AbstractHandler<Args...>
 {
@@ -95,21 +100,14 @@ class HandlerImpl : public AbstractHandler<Args...>
 
     void notify(Args... args) override
     {
-        allocator_type local_allocator = std::move(boost::asio::get_associated_allocator(this->fn_));
-        HandlerFn local_fn = std::move(this->fn_);
-        this->~HandlerImpl();
-        local_allocator.deallocate(this, 1);
-
-        std::move(local_fn)(BATT_FORWARD(args)...);
+        this->consume_impl([&](auto&& local_fn) {
+            std::move(local_fn)(BATT_FORWARD(args)...);
+        });
     }
 
     void destroy() override
     {
-        allocator_type local_allocator = std::move(boost::asio::get_associated_allocator(this->fn_));
-        HandlerFn local_fn = std::move(this->fn_);
-        this->~HandlerImpl();
-        local_allocator.deallocate(this, 1);
-        (void)local_fn;
+        this->consume_impl([](auto&& /*local_fn*/) { /* do nothing */ });
     }
 
     void dump(std::ostream& out) override
@@ -123,9 +121,22 @@ class HandlerImpl : public AbstractHandler<Args...>
     }
 
    private:
+    template <typename FnAction>
+    void consume_impl(FnAction&& fn_action)
+    {
+        allocator_type local_allocator = std::move(boost::asio::get_associated_allocator(this->fn_));
+        HandlerFn local_fn = std::move(this->fn_);
+        this->~HandlerImpl();
+        local_allocator.deallocate(this, 1);
+
+        BATT_FORWARD(fn_action)(BATT_FORWARD(local_fn));
+    }
+
     HandlerFn fn_;
 };
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+//
 template <typename... Args>
 class UniqueHandler
 {
@@ -176,6 +187,10 @@ class UniqueHandler
     std::unique_ptr<AbstractHandler<Args...>, typename AbstractHandler<Args...>::Deleter> handler_;
 };
 
+BATT_STATIC_ASSERT_EQ(sizeof(UniqueHandler<>), sizeof(void*));
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+//
 template <typename... Args>
 using HandlerList = boost::intrusive::list<AbstractHandler<Args...>>;
 
@@ -195,7 +210,7 @@ inline void invoke_all_handlers(HandlerList<Params...>* handlers, Args&&... args
     }
 }
 
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 //
 template <typename InnerFn, typename OuterFn>
 class HandlerBinder

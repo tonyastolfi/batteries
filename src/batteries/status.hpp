@@ -120,8 +120,9 @@ class Status : private StatusBase
 
             const auto& all_groups = registered_groups();
 
-            BATT_ASSERT_LT(index_of_group, all_groups.size());
-            BATT_ASSERT_LT(index_within_group, all_groups[index_of_group]->entries.size());
+            BATT_CHECK_LT(index_of_group, all_groups.size());
+            BATT_CHECK_LT(index_within_group, all_groups[index_of_group]->entries.size())
+                << BATT_INSPECT(index_of_group) << BATT_INSPECT(value);
 
             return all_groups[index_of_group]->entries[index_within_group].message;
         }
@@ -147,13 +148,15 @@ class Status : private StatusBase
     /*implicit*/ Status(EnumT enum_value) noexcept
     {
         const CodeGroup& group = code_group_for_type<EnumT>();
-        BATT_ASSERT_GE(static_cast<int>(enum_value), group.min_enum_value);
+        BATT_CHECK_GE(static_cast<int>(enum_value), group.min_enum_value);
 
         const int index_within_enum = static_cast<int>(enum_value) - group.min_enum_value;
-        BATT_ASSERT_LT(index_within_enum, static_cast<int>(group.enum_value_to_code.size()))
+        BATT_CHECK_LT(index_within_enum, static_cast<int>(group.enum_value_to_code.size()))
             << BATT_INSPECT(group.index) << BATT_INSPECT(group.enum_type_index.name());
 
         this->value_ = group.enum_value_to_code[index_within_enum];
+
+        BATT_CHECK_NOT_NULLPTR(message_from_code(this->value_).data());
 
 #ifdef BATT_STATUS_CUSTOM_MESSSAGES
         const usize index_within_group = get_index_within_group(this->value_);
@@ -848,6 +851,8 @@ inline StatusBase::StatusBase() noexcept
             const char* msg = std::strerror(code);
             if (msg) {
                 errno_codes.emplace_back(static_cast<ErrnoValue>(code), std::string(msg));
+            } else {
+                errno_codes.emplace_back(static_cast<ErrnoValue>(code), std::string("(unknown)"));
             }
         }
         return Status::register_codes_internal<ErrnoValue>(errno_codes);
