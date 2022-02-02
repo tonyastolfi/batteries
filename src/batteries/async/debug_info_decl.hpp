@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_ASYNC_DEBUG_INFO_DECL_HPP
@@ -29,6 +30,10 @@ void print_debug_info(DebugInfoFrame* p, std::ostream& out);
 // Print DebugInfoFrame stacks for all (non-Task) threads.
 //
 void print_all_threads_debug_info(std::ostream& out);
+
+// Shortens the passed source code file name by applying heuristics.
+//
+const char* shortened_source_file(const char* raw);
 
 // A stack-local linked list node that captures diagnostic information.  This class should most often not be
 // used directly; see `BATT_DEBUG_INFO` below.
@@ -93,8 +98,9 @@ class DebugInfoFrame
     ::batt::DebugInfoFrame BOOST_PP_CAT(debug_info_BATTERIES_, __LINE__)                                     \
     {                                                                                                        \
         [&](std::ostream& out) {                                                                             \
-            out << "[" << __FILE__ << ":" << __LINE__ << "] in " << __PRETTY_FUNCTION__ << ": " << expr      \
-                << std::endl;                                                                                \
+            out << " " << expr << std::endl                                                                  \
+                << "    at " << ::batt::shortened_source_file(__FILE__) << ":" << __LINE__ << std::endl      \
+                << "    in " << __PRETTY_FUNCTION__ << ": " << expr << std::endl;                            \
         }                                                                                                    \
     }
 

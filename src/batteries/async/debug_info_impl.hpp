@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_ASYNC_DEBUG_INFO_IMPL_HPP
@@ -12,6 +13,7 @@
 #include <batteries/segv.hpp>
 
 #include <array>
+#include <cstring>
 
 namespace batt {
 
@@ -55,9 +57,12 @@ BATT_INLINE_IMPL DebugInfoFrame::~DebugInfoFrame() noexcept
 //
 BATT_INLINE_IMPL void print_debug_info(DebugInfoFrame* p, std::ostream& out)
 {
+    usize depth = 0;
     while (p) {
+        out << " " << depth << ".";
         p->print_info_(out);
         p = p->prev_;
+        depth += 1;
     }
 }
 
@@ -72,6 +77,36 @@ BATT_INLINE_IMPL void print_all_threads_debug_info(std::ostream& out)
             print_debug_info(a[i], out);
         }
     }
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL const char* shortened_source_file(const char* raw)
+{
+    static const std::string kIncludeDir = "/include/";
+    static const std::string kSrcDir = "/src/";
+    static const std::string kSourceDir = "/source/";
+
+    if (!raw) {
+        return "";
+    }
+
+    for (;;) {
+        bool found = false;
+        for (const std::string& pattern : {kIncludeDir, kSrcDir, kSourceDir}) {
+            const char* pos = std::strstr(raw, pattern.c_str());
+            if (pos) {
+                raw = pos + pattern.length();
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            break;
+        }
+    }
+
+    return raw;
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

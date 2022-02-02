@@ -1,9 +1,10 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #include <batteries/config.hpp>
 
-#include "future_decl.hpp"
+#include <batteries/async/future_decl.hpp>
 
 #if BATT_HEADER_ONLY
-#include "future_impl.hpp"
+#include <batteries/async/future_impl.hpp>
 #endif
