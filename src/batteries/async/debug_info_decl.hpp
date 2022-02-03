@@ -100,7 +100,7 @@ class DebugInfoFrame
         [&](std::ostream& out) {                                                                             \
             out << " " << expr << std::endl                                                                  \
                 << "    at " << ::batt::shortened_source_file(__FILE__) << ":" << __LINE__ << std::endl      \
-                << "    in " << __PRETTY_FUNCTION__ << ": " << expr << std::endl;                            \
+                << "    in " << __PRETTY_FUNCTION__ << std::endl;                                            \
         }                                                                                                    \
     }
 

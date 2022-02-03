@@ -189,7 +189,8 @@ BATT_INLINE_IMPL Grant& Grant::subsume(Grant&& that)
     if (!this->issuer_) {
         *this = std::move(that);
     } else {
-        BATT_CHECK_EQ(this->issuer_, that.issuer_);
+        BATT_CHECK_EQ(this->issuer_, that.issuer_)
+            << BATT_INSPECT(that.size_.get_value()) << BATT_INSPECT(this->size_.get_value());
 
         const u64 count = that.size_.set_value(0);
         this->size_.fetch_add(count);
