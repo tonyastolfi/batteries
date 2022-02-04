@@ -91,6 +91,28 @@ BATT_INLINE_IMPL void Task::yield()
     std::this_thread::yield();
 }
 
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL /*static*/ Optional<usize> Task::current_stack_pos()
+{
+    Task* current_task = Task::current_ptr();
+    if (current_task) {
+        return current_task->stack_pos();
+    }
+    return None;
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL /*static*/ Optional<usize> Task::current_stack_pos_of(const volatile void* ptr)
+{
+    Task* current_task = Task::current_ptr();
+    if (current_task) {
+        return current_task->stack_pos_of(ptr);
+    }
+    return None;
+}
+
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 // Task instance methods.
 
@@ -201,6 +223,26 @@ BATT_INLINE_IMPL ErrorCode Task::sleep_impl(const boost::posix_time::time_durati
     return this->await_impl<ErrorCode>([&](auto&& handler) {
         this->sleep_timer_->async_wait(BATT_FORWARD(handler));
     });
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL usize Task::stack_pos() const
+{
+    volatile u8 pos = 0;
+    return this->stack_pos_of(&pos);
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL usize Task::stack_pos_of(const volatile void* ptr) const
+{
+    const u8* pos = (const u8*)ptr;
+    if (pos < this->stack_base_) {
+        return this->stack_base_ - pos;
+    } else {
+        return pos - this->stack_base_;
+    }
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

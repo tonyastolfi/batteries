@@ -75,7 +75,7 @@ class DebugInfoFrame
    private:
     // The diagnostic information emitter function passed in at construction time.
     //
-    std::function<void(std::ostream&)> print_info_;
+    std::function<void(std::ostream&, const void*)> print_info_;
 
     // The previous top-of-stack, when this object was created.
     //
@@ -97,10 +97,11 @@ class DebugInfoFrame
 #define BATT_DEBUG_INFO(expr)                                                                                \
     ::batt::DebugInfoFrame BOOST_PP_CAT(debug_info_BATTERIES_, __LINE__)                                     \
     {                                                                                                        \
-        [&](std::ostream& out) {                                                                             \
+        [&](std::ostream& out, const void* frame) {                                                          \
             out << " " << expr << std::endl                                                                  \
                 << "    at " << ::batt::shortened_source_file(__FILE__) << ":" << __LINE__ << std::endl      \
-                << "    in " << __PRETTY_FUNCTION__ << std::endl;                                            \
+                << "    in " << __PRETTY_FUNCTION__ << std::endl                                             \
+                << "    stack offset: " << ::batt::Task::current_stack_pos_of(frame) << std::endl;           \
         }                                                                                                    \
     }
 

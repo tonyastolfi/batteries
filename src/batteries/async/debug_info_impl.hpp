@@ -16,7 +16,6 @@
 #include <cstring>
 
 namespace batt {
-
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
 BATT_INLINE_IMPL Slice<DebugInfoFrame*> DebugInfoFrame::all_threads()
@@ -60,7 +59,7 @@ BATT_INLINE_IMPL void print_debug_info(DebugInfoFrame* p, std::ostream& out)
     usize depth = 0;
     while (p) {
         out << " " << depth << ".";
-        p->print_info_(out);
+        p->print_info_(out, p);
         p = p->prev_;
         depth += 1;
     }

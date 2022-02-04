@@ -202,6 +202,14 @@ class Task
     //
     static Task& current();
 
+    // Returns the current stack position, if currently inside a task.
+    //
+    static Optional<usize> current_stack_pos();
+
+    // Returns the stack position of `ptr` relative to the current stack base, if currently inside a task.
+    //
+    static Optional<usize> current_stack_pos_of(const volatile void* ptr);
+
     // Dumps stack traces and debug info from all Tasks and threads to stderr.
     //
     static i32 backtrace_all(bool force);
@@ -381,16 +389,9 @@ class Task
         this->priority_.store(new_priority);
     }
 
-    usize stack_pos() const
-    {
-        volatile u8 pos = 0;
+    usize stack_pos() const;
 
-        if (&pos < this->stack_base_) {
-            return this->stack_base_ - &pos;
-        } else {
-            return &pos - this->stack_base_;
-        }
-    }
+    usize stack_pos_of(const volatile void* ptr) const;
 
     void join();
 
