@@ -13,6 +13,7 @@
 #include <batteries/seq/boxed.hpp>
 #include <batteries/seq/cache_next.hpp>
 #include <batteries/seq/chain.hpp>
+#include <batteries/seq/collect_vec.hpp>
 #include <batteries/seq/consume.hpp>
 #include <batteries/seq/count.hpp>
 #include <batteries/seq/deref.hpp>
@@ -133,30 +134,6 @@ template <typename Seq, typename T>
         v.emplace_back(BATT_FORWARD(item));
     });
     return std::move(v);
-}
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-// collect_vec
-//
-struct CollectVec {
-};
-
-inline CollectVec collect_vec()
-{
-    return {};
-}
-
-template <typename Seq>
-[[nodiscard]] auto operator|(Seq&& seq, CollectVec)
-{
-    static_assert(std::is_same_v<Seq, std::decay_t<Seq>>,
-                  "(seq::collect_vec) Sequences may not be captured implicitly by reference.");
-
-    std::vector<SeqItem<Seq>> v;
-    BATT_FORWARD(seq) | for_each([&v](auto&& item) {
-        v.emplace_back(BATT_FORWARD(item));
-    });
-    return v;
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

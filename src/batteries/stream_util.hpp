@@ -10,6 +10,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/io/ios_state.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include <atomic>
 #include <iomanip>
@@ -405,5 +406,15 @@ RangeDumper<const T&> dump_range(const T& value, Pretty pretty)
 {
     return RangeDumper<const T&>{value, pretty};
 }
+
+#define BATT_PRINT_OBJECT_FIELD(r, obj, fieldname)                                                           \
+    << " ." << BOOST_PP_STRINGIZE(fieldname) << "=" << ::batt::make_printable(obj.fieldname) << ","
+
+#define BATT_PRINT_OBJECT_IMPL(type, fields_seq)                                                             \
+    std::ostream& operator<<(std::ostream& out, const type& t)                                               \
+    {                                                                                                        \
+        return out << ::batt::name_of<type>()                                                                \
+                   << "{" BOOST_PP_SEQ_FOR_EACH(BATT_PRINT_OBJECT_FIELD, (t), fields_seq) << "}";            \
+    }
 
 }  // namespace batt

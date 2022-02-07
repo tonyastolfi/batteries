@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_SEQ_STATUS_OK_HPP
