@@ -75,10 +75,13 @@ class BoxedSeq
 
     BoxedSeq() = default;
 
-    template <typename T, typename = batt::EnableIfNoShadow<BoxedSeq, T&&>,
+    template <typename T,                                        //
+              typename = batt::EnableIfNoShadow<BoxedSeq, T&&>,  //
+              typename = decltype(std::declval<T>().next()),     //
+              typename = decltype(std::declval<T>().peek()),     //
               typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Status> &&
                                           !std::is_same_v<std::decay_t<T>, StatusCode>>>
-    BoxedSeq(T&& seq) : impl_(std::make_unique<SeqImpl<T>>(BATT_FORWARD(seq)))
+    explicit BoxedSeq(T&& seq) : impl_(std::make_unique<SeqImpl<T>>(BATT_FORWARD(seq)))
     {
         static_assert(std::is_same<T, std::decay_t<T>>{}, "BoxedSeq may not be used to capture a reference");
     }

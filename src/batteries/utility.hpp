@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 
@@ -94,5 +95,18 @@ T sink(const T& value)
 #define BATT_MAYBE_UNUSED __attribute__((unused))
 #pragma GCC diagnostic ignored "-Wattributes"
 #endif
+
+/// Return a default-constructed instance of type `T`.
+///
+template <typename T, typename = std::enable_if_t<!std::is_same_v<T, void>>>
+T make_default()
+{
+    return T{};
+}
+
+template <typename T, typename = std::enable_if_t<std::is_same_v<T, void>>, typename = void>
+void make_default()
+{
+}
 
 }  // namespace batt

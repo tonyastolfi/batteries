@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_STATUS_HPP
@@ -62,6 +63,7 @@ enum class StatusCode : int {
     // ...
     kClosed = 100,
     kGrantUnavailable = 101,
+    kLoopBreak = 102,
 };
 
 enum ErrnoValue {};
@@ -342,7 +344,7 @@ class StatusOr
         new (&this->storage_) T(obj);
     }
 
-    /*implicit*/ StatusOr(T&& obj) noexcept(noexcept(T(std::declval<T&&>()))) : status_{OkStatus()}
+    /*implicit*/ StatusOr(T&& obj) noexcept(noexcept(T(std::declval<T>()))) : status_{OkStatus()}
     {
         new (&this->storage_) T(std::move(obj));
     }
@@ -844,6 +846,7 @@ inline StatusBase::StatusBase() noexcept
             {StatusCode::kUnauthenticated, "Unauthenticated"},
             {StatusCode::kClosed, "Closed"},
             {StatusCode::kGrantUnavailable, "The requested grant count exceeds available count"},
+            {StatusCode::kLoopBreak, "Loop break"},
         });
 
         std::vector<std::pair<ErrnoValue, std::string>> errno_codes;
