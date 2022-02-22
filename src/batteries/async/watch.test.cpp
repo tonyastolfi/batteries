@@ -842,11 +842,11 @@ TEST(AsyncWatchTest, ModifyIfRaceSucceed)
 
     boost::asio::io_context io1, io2;
 
-    i32 num_attempts = 0;
+    std::atomic<i32> num_attempts{0};
 
     batt::Task await_modifier{io1.get_executor(), [&] {
                                   num.await_modify([&](i32 n) -> batt::Optional<i32> {
-                                         num_attempts += 1;
+                                         num_attempts.fetch_add(1);
                                          if (n < 50) {
                                              return batt::None;
                                          }
@@ -871,6 +871,9 @@ TEST(AsyncWatchTest, ModifyIfRaceSucceed)
                               }};
 
     batt::Task adder{io2.get_executor(), [&] {
+                         while (num_attempts.load() < 1) {
+                             std::this_thread::yield();
+                         }
                          for (i32 i = 0; i < 200000; ++i) {
                              (void)num.modify_if([&](i32 n) -> batt::Optional<i32> {
                                  if (i % 2) {
