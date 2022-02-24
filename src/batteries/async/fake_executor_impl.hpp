@@ -102,10 +102,6 @@ static_assert(std::is_nothrow_destructible<FakeExecutor>::value, "");
 static_assert(boost::asio::traits::equality_comparable<FakeExecutor>::is_valid, "");
 static_assert(boost::asio::traits::equality_comparable<FakeExecutor>::is_noexcept, "");
 
-static_assert(boost::asio::execution::detail::is_executor_of_impl_base<
-                  FakeExecutor, boost::asio::execution::invocable_archetype>::value,
-              "");
-
 static_assert(boost::asio::execution::is_executor_v<FakeExecutor>, "");
 
 static_assert(boost::asio::execution::context_as_t<boost::asio::execution_context&>::is_applicable_property_v<
@@ -126,11 +122,6 @@ static_assert(boost::asio::execution::detail::supportable_properties<
                   0, void(boost::asio::execution::context_as_t<boost::asio::execution_context&>)>::
                       template is_valid_target<FakeExecutor>::value ||
                   true,
-              "");
-
-static_assert(asio_query_fn::call_traits<FakeExecutor, void(boost::asio::execution::context_as_t<
-                                                            boost::asio::execution_context&>)>::overload ==
-                  asio_query_fn::call_member,
               "");
 
 static_assert(

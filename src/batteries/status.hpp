@@ -12,6 +12,7 @@
 #include <batteries/utility.hpp>
 
 #include <boost/preprocessor/cat.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <atomic>
 #include <cstring>
@@ -733,13 +734,6 @@ class NotOkStatusWrapper
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
-inline Status to_status(const std::error_code& ec)
-{
-    // TODO [tastolfi 2021-10-13] support these so we don't lose information.
-    (void)ec;
-    return Status{StatusCode::kInternal};
-}
-
 template <typename T,
           typename = std::enable_if_t<IsStatusOr<T>{} && !std::is_same_v<std::decay_t<T>, StatusOr<Status>>>>
 inline decltype(auto) to_status(T&& v)
@@ -754,6 +748,19 @@ template <typename T,
 inline decltype(auto) to_status(T&& s)
 {
     return BATT_FORWARD(s);
+}
+
+template <typename T,
+          typename = std::enable_if_t<std::is_same_v<std::decay_t<T>, boost::system::error_code> ||
+                                      std::is_same_v<std::decay_t<T>, std::error_code>>,
+          typename = void, typename = void>
+inline Status to_status(const T& ec)
+{
+    // TODO [tastolfi 2021-10-13] support these so we don't lose information.
+    if (!ec) {
+        return OkStatus();
+    }
+    return Status{StatusCode::kInternal};
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

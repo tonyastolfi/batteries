@@ -16,7 +16,7 @@ class BatteriesConan(ConanFile):
     build_policy = "missing"
     requires = [
         "gtest/cci.20210126",
-        "boost/1.74.0",
+        "boost/1.77.0",
     ]
     exports_sources = [
         "src/CMakeLists.txt",

@@ -1,8 +1,12 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_ASYNC_IO_RESULT_HPP
 #define BATTERIES_ASYNC_IO_RESULT_HPP
+
+#include <batteries/status.hpp>
+#include <batteries/utility.hpp>
 
 #include <boost/system/error_code.hpp>
 
@@ -70,6 +74,12 @@ class IOResult
     ErrorCode ec_;
     value_type value_;
 };
+
+template <typename... Ts>
+Status to_status(const IOResult<Ts...>& io_result)
+{
+    return to_status(io_result.error());
+}
 
 }  // namespace batt
 
