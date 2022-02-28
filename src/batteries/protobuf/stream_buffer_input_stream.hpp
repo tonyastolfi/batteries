@@ -7,7 +7,9 @@
 
 #include <batteries/config.hpp>
 
-#ifdef BATT_PROTOBUF_AVAILABLE
+#ifndef BATT_PROTOBUF_AVAILABLE
+#error This header may only be included if BATT_PROTOBUF_AVAILABLE is defined
+#else
 
 #include <google/protobuf/io/zero_copy_stream.h>
 
@@ -112,7 +114,7 @@ class StreamBufferInputStream : public google::protobuf::io::ZeroCopyInputStream
     {
         this->consume_data();
 
-        StatusOr<SmallVec<ConstBuffer, 2>> fetched = this->buffer_.fetch_at_least(1);
+        StatusOr<SmallVec<ConstBuffer, 2> > fetched = this->buffer_.fetch_at_least(1);
 
         if (!fetched.ok()) {
             return None;
