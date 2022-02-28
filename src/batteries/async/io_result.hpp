@@ -22,7 +22,7 @@ class IOResult
 {
    public:
     using value_type = std::tuple_element_t<
-        0, std::conditional_t<(sizeof...(Ts) > 1), std::tuple<std::tuple<Ts...>>, std::tuple<Ts...>>>;
+        0, std::conditional_t<(sizeof...(Ts) == 1), std::tuple<Ts...>, std::tuple<std::tuple<Ts...>>>>;
 
     template <typename... Args>
     explicit IOResult(const ErrorCode& ec, Args&&... args) noexcept : ec_{ec}
@@ -74,6 +74,17 @@ class IOResult
     ErrorCode ec_;
     value_type value_;
 };
+
+template <typename... Ts>
+bool is_ok_status(const IOResult<Ts...>& io_result)
+{
+    return !io_result.error();
+}
+
+inline bool is_ok_status(const ErrorCode& ec)
+{
+    return !ec;
+}
 
 template <typename... Ts>
 Status to_status(const IOResult<Ts...>& io_result)

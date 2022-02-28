@@ -202,6 +202,17 @@ class Task
     //
     static Task& current();
 
+    // Returns the current task name, or "" if there is no current task.
+    //
+    static std::string_view current_name()
+    {
+        auto ptr = Task::current_ptr();
+        if (ptr) {
+            return ptr->name();
+        }
+        return "";
+    }
+
     // Returns the current stack position, if currently inside a task.
     //
     static Optional<usize> current_stack_pos();

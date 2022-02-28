@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_CONFIG_HPP
@@ -21,6 +22,10 @@ namespace batt {
 // Define this preprocessor symbol to enable optional support for Google Log (GLOG).
 //
 //#define BATT_GLOG_AVAILABLE
+
+// Define this preprocessor symbol to enable optional support for Google Protocol Buffers (protobuf).
+//
+//#define BATT_PROTOBUF_AVAILABLE
 
 }  // namespace batt
 
