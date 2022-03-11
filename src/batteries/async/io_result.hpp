@@ -24,7 +24,7 @@ class IOResult
     using value_type = std::tuple_element_t<
         0, std::conditional_t<(sizeof...(Ts) == 1), std::tuple<Ts...>, std::tuple<std::tuple<Ts...>>>>;
 
-    template <typename... Args>
+    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<value_type, Args&&...>>>
     explicit IOResult(const ErrorCode& ec, Args&&... args) noexcept : ec_{ec}
                                                                     , value_{BATT_FORWARD(args)...}
     {

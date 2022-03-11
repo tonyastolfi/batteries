@@ -233,7 +233,7 @@ class WatchAtomic
         return old_value;
     }
 
-    template <typename Fn>
+    template <typename Fn = T(T)>
     T modify(Fn&& fn)
     {
         T old_value = this->value_.load();
@@ -263,14 +263,14 @@ class WatchAtomic
     // `fn` should have the signature (T) -> Optional<T>.  Returning None indicates `fn` should not be called
     // again until a new value is available.
     //
-    template <typename Fn>
+    template <typename Fn = Optional<T>(T)>
     StatusOr<T> await_modify(Fn&& fn);
 
     // Fn: (T) -> Optional<T>
     //
     // Keeps retrying using CAS until success or `fn` returns None.  Returns the final return value of `fn`.
     //
-    template <typename Fn>
+    template <typename Fn = Optional<T>(T)>
     Optional<T> modify_if(Fn&& fn)
     {
         T old_value = this->value_.load();

@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_ASYNC_TASK_HPP
@@ -231,7 +232,7 @@ class Task
 
     // Put the current Task/thread to sleep for the specified duration.
     //
-    template <typename Duration>
+    template <typename Duration = boost::posix_time::ptime>
     static ErrorCode sleep(const Duration& duration)
     {
         Task* current_task = Task::current_ptr();
@@ -333,13 +334,13 @@ class Task
     Task(const Task&) = delete;
     Task& operator=(const Task&) = delete;
 
-    template <typename BodyFn>
+    template <typename BodyFn = void()>
     explicit Task(const boost::asio::any_io_executor& ex, StackSize stack_size, BodyFn&& body_fn) noexcept
         : Task{ex, BATT_FORWARD(body_fn), /*name=*/default_name(), stack_size}
     {
     }
 
-    template <typename BodyFn>
+    template <typename BodyFn = void()>
     explicit Task(const boost::asio::any_io_executor& ex, BodyFn&& body_fn,
                   std::string&& name = default_name(), StackSize stack_size = StackSize{512 * 1024},
                   StackType stack_type = StackType::kFixedSize, Optional<Priority> priority = None) noexcept
@@ -415,7 +416,7 @@ class Task
         return this->ex_;
     }
 
-    template <typename F>
+    template <typename F = void()>
     void call_when_done(F&& handler)
     {
         if (this->state_.load() & kTerminated) {
@@ -526,11 +527,14 @@ class Task
         BATT_CHECK_NE((prior_state & kHaveSignal), kHaveSignal) << "prior_state=" << StateBitset{prior_state};
 
         BATT_FORWARD(fn)
-        (/*callback handler=*/make_custom_alloc_handler(handler_memory, [this, &result](auto&&... args) {
-            result.emplace(BATT_FORWARD(args)...);
+        (/*callback handler=*/make_custom_alloc_handler(
+            handler_memory,
+            [this,
+             &result](auto&&... args) -> std::enable_if_t<std::is_constructible_v<R, decltype(args)&&...>> {
+                result.emplace(BATT_FORWARD(args)...);
 
-            this->handle_event(kHaveSignal);
-        }));
+                this->handle_event(kHaveSignal);
+            }));
 
         // Suspend this Task.  It will not be in a ready state until the kHaveSignal event has been handled.
         //
