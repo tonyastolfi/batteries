@@ -33,11 +33,15 @@ namespace batt {
 #error This feature is not ready yet!
 #endif
 
+namespace detail {
+
 class StatusBase
 {
    public:
     StatusBase() noexcept;
 };
+
+}  // namespace detail
 
 // Intentionally value-compatible with Abseil's StatusCode.
 //
@@ -71,19 +75,16 @@ enum ErrnoValue {};
 
 class BATT_WARN_UNUSED_RESULT Status;
 
-class Status : private StatusBase
+class Status : private detail::StatusBase
 {
    public:
-    BATT_STRONG_TYPEDEF(usize, PinGroup);
-
     using value_type = i32;
 
-    static constexpr i32 kMaxCodeNumericRange = 0xffff;
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
     static constexpr i32 kGroupSizeBits = 12 /*-> 4096*/;
     static constexpr i32 kGroupSize = i32{1} << kGroupSizeBits;
-    static constexpr i32 kLocalMask = (i32{1} << kGroupSizeBits) - 1;
-    static constexpr i32 kGroupMask = ~kLocalMask;
     static constexpr i32 kMaxGroups = 0x7fffff00l - kGroupSize;
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
 
     struct CodeEntry {
         value_type code;
@@ -99,16 +100,18 @@ class Status : private StatusBase
         std::vector<CodeEntry> entries;
     };
 
-    static const std::string& unknown_enum_value_message()
-    {
-        static const std::string s = "(Unknown enum value; not registered via batt::Status::register_codes)";
-        return s;
-    }
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
 
     template <typename EnumT>
     static const CodeGroup& code_group_for_type()
     {
         return code_group_for_type_internal<EnumT>();
+    }
+
+    static const std::string& unknown_enum_value_message()
+    {
+        static const std::string s = "(Unknown enum value; not registered via batt::Status::register_codes)";
+        return s;
     }
 
     template <typename EnumT>
@@ -131,7 +134,7 @@ class Status : private StatusBase
         }
     }
 
-    //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
 
     // Construct a no-error status object.
     //
@@ -223,7 +226,14 @@ class Status : private StatusBase
     }
 
    private:
-    friend class StatusBase;
+    //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+    friend class detail::StatusBase;
+
+    static constexpr i32 kMaxCodeNumericRange = 0xffff;
+    static constexpr i32 kLocalMask = (i32{1} << kGroupSizeBits) - 1;
+    static constexpr i32 kGroupMask = ~kLocalMask;
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
 
     static usize next_group_index()
     {
@@ -263,6 +273,10 @@ class Status : private StatusBase
     template <typename EnumT>
     static bool register_codes_internal(const std::vector<std::pair<EnumT, std::string>>& codes);
 
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
+    // Unique error code;
+    //
     value_type value_;
 #ifdef BATT_STATUS_CUSTOM_MESSSAGES
     std::string_view message_;
@@ -273,25 +287,18 @@ static_assert(sizeof(Status) <= sizeof(void*), "");
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
-inline std::ostream& operator<<(std::ostream& out, const Status& t)
-{
-    return out << t.code() << ":" << t.message();
-}
+// Print human-friendly representation of a Status.
+//
+std::ostream& operator<<(std::ostream& out, const Status& t);
 
-inline bool operator==(const Status& l, const Status& r)
-{
-    return l.code() == r.code() || (l.ok() && r.ok());
-}
+// Equality comparison of `Status` values.
+//
+bool operator==(const Status& l, const Status& r);
+bool operator!=(const Status& l, const Status& r);
 
-inline bool operator!=(const Status& l, const Status& r)
-{
-    return !(l == r);
-}
-
-inline Status OkStatus()
-{
-    return Status{};
-}
+// Returns a Status value `s` for which `s.ok() == true`.
+//
+Status OkStatus();
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
@@ -611,16 +618,20 @@ inline bool operator!=(const StatusOr<T>& l, const StatusOr<U>& r)
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
+namespace detail {
+
 template <typename T>
-struct IsStatusOr_Impl : std::false_type {
+struct IsStatusOrImpl : std::false_type {
 };
 
 template <typename T>
-struct IsStatusOr_Impl<StatusOr<T>> : std::true_type {
+struct IsStatusOrImpl<StatusOr<T>> : std::true_type {
 };
 
+}  // namespace detail
+
 template <typename T>
-using IsStatusOr = IsStatusOr_Impl<std::decay_t<T>>;
+using IsStatusOr = detail::IsStatusOrImpl<std::decay_t<T>>;
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
@@ -648,6 +659,8 @@ bool is_ok_status(const T& val)
 }
 
 enum struct LogLevel { kFatal, kError, kWarning, kInfo, kDebug, kVerbose };
+
+namespace detail {
 
 class NotOkStatusWrapper
 {
@@ -732,6 +745,8 @@ class NotOkStatusWrapper
     std::ostringstream output_;
 };
 
+}  // namespace detail
+
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
 template <typename T,
@@ -767,7 +782,7 @@ inline Status to_status(const T& ec)
 
 #define BATT_REQUIRE_OK(expr)                                                                                \
     if (!::batt::is_ok_status(expr))                                                                         \
-        return ::batt::NotOkStatusWrapper                                                                    \
+        return ::batt::detail::NotOkStatusWrapper                                                            \
         {                                                                                                    \
             __FILE__, __LINE__, ::batt::to_status(BATT_FORWARD(expr))                                        \
         }
@@ -780,13 +795,13 @@ inline Status to_status(const T& ec)
 #define BATT_OK_RESULT_OR_PANIC(expr)                                                                        \
     [&](auto&& expr_value) {                                                                                 \
         BATT_CHECK(::batt::is_ok_status(expr_value))                                                         \
-            << BOOST_PP_STRINGIZE(expr) << ".status == " << BATT_INSPECT(::batt::to_status(expr_value));     \
+            << BOOST_PP_STRINGIZE(expr) << ".status == " << ::batt::to_status(expr_value);                   \
         return std::move(*BATT_FORWARD(expr_value));                                                         \
     }(expr)
 
 #define BATT_CHECK_OK(expr)                                                                                  \
     BATT_CHECK(::batt::is_ok_status(expr))                                                                   \
-        << BOOST_PP_STRINGIZE(expr) << ".status == " << BATT_INSPECT(::batt::to_status(expr)) << "; "
+        << BOOST_PP_STRINGIZE(expr) << ".status == " << ::batt::to_status(expr) << "; "
 
 inline Status status_from_errno(int code)
 {
@@ -830,50 +845,10 @@ inline bool status_is_retryable(const Status& s)
 
 //#=##=##=#==#=#==#===#+==#+==========+==+=+=+=+=+=++=+++=+++++=-++++=-+++++++++++
 
-inline StatusBase::StatusBase() noexcept
-{
-    static bool initialized = [] {
-        Status::register_codes_internal<StatusCode>({
-            {StatusCode::kOk, "Ok"},
-            {StatusCode::kCancelled, "Cancelled"},
-            {StatusCode::kUnknown, "Unknown"},
-            {StatusCode::kInvalidArgument, "Invalid Argument"},
-            {StatusCode::kDeadlineExceeded, "Deadline Exceeded"},
-            {StatusCode::kNotFound, "Not Found"},
-            {StatusCode::kAlreadyExists, "Already Exists"},
-            {StatusCode::kPermissionDenied, "Permission Denied"},
-            {StatusCode::kResourceExhausted, "Resource Exhausted"},
-            {StatusCode::kFailedPrecondition, "Failed Precondition"},
-            {StatusCode::kAborted, "Aborted"},
-            {StatusCode::kOutOfRange, "Out of Range"},
-            {StatusCode::kUnimplemented, "Unimplemented"},
-            {StatusCode::kInternal, "Internal"},
-            {StatusCode::kUnavailable, "Unavailable"},
-            {StatusCode::kDataLoss, "Data Loss"},
-            {StatusCode::kUnauthenticated, "Unauthenticated"},
-            {StatusCode::kClosed, "Closed"},
-            {StatusCode::kGrantUnavailable, "The requested grant count exceeds available count"},
-            {StatusCode::kLoopBreak, "Loop break"},
-        });
-
-        std::vector<std::pair<ErrnoValue, std::string>> errno_codes;
-        for (int code = 0; code < Status::kGroupSize; ++code) {
-            const char* msg = std::strerror(code);
-            if (msg) {
-                errno_codes.emplace_back(static_cast<ErrnoValue>(code), std::string(msg));
-            } else {
-                errno_codes.emplace_back(static_cast<ErrnoValue>(code), std::string("(unknown)"));
-            }
-        }
-        return Status::register_codes_internal<ErrnoValue>(errno_codes);
-    }();
-    BATT_ASSERT(initialized);
-}
-
 template <typename EnumT>
 inline bool Status::register_codes(const std::vector<std::pair<EnumT, std::string>>& codes)
 {
-    static StatusBase base;
+    static detail::StatusBase base;
 
     return register_codes_internal<EnumT>(codes);
 }
@@ -956,3 +931,7 @@ inline bool Status::register_codes_internal(const std::vector<std::pair<EnumT, s
 }  // namespace batt
 
 #endif  // BATTERIES_STATUS_HPP
+
+#if BATT_HEADER_ONLY
+#include <batteries/status_impl.hpp>
+#endif  // BATT_HEADER_ONLY
