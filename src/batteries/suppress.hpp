@@ -51,3 +51,29 @@
 #else
 #define BATT_NO_OPTIMIZE __attribute__((optimize("O0")))
 #endif
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+#if BATT_COMPILER_IS_GCC
+
+#define BATT_SUPPRESS_IF_GCC(warn_id) BATT_SUPPRESS(warn_id)
+#define BATT_UNSUPPRESS_IF_GCC() BATT_UNSUPPRESS()
+
+#else  // BATT_COMPILER_IS_GCC
+
+#define BATT_SUPPRESS_IF_GCC(warn_id)
+#define BATT_UNSUPPRESS_IF_GCC()
+
+#endif  // BATT_COMPILER_IS_GCC
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+#if BATT_COMPILER_IS_CLANG
+
+#define BATT_SUPPRESS_IF_CLANG(warn_id) BATT_SUPPRESS(warn_id)
+#define BATT_UNSUPPRESS_IF_CLANG() BATT_UNSUPPRESS()
+
+#else  // BATT_COMPILER_IS_CLANG
+
+#define BATT_SUPPRESS_IF_CLANG(warn_id)
+#define BATT_UNSUPPRESS_IF_CLANG()
+
+#endif  // BATT_COMPILER_IS_CLANG

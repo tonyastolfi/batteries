@@ -30,14 +30,18 @@ namespace batt {
 }  // namespace batt
 
 #if defined(__GNUC__) && !defined(__clang__)
+#define BATT_COMPILER_IS_GCC 1
 #define BATT_IF_GCC(expr) expr
 #else
+#define BATT_COMPILER_IS_GCC 0
 #define BATT_IF_GCC(expr)
 #endif
 
 #if defined(__clang__)
+#define BATT_COMPILER_IS_CLANG 1
 #define BATT_IF_CLANG(expr) expr
 #else
+#define BATT_COMPILER_IS_CLANG 0
 #define BATT_IF_CLANG(expr)
 #endif
 

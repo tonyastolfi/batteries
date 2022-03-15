@@ -6,7 +6,15 @@
 #define BATTERIES_SMALL_VEC_HPP
 
 #include <batteries/int_types.hpp>
+#include <batteries/suppress.hpp>
 
+//+++++++++++-+-+--+----- --- -- -  -  -   -
+BATT_SUPPRESS_IF_GCC("-Wmaybe-uninitialized")
+//
+#include <boost/container/detail/advanced_insert_int.hpp>
+//
+BATT_UNSUPPRESS_IF_GCC()
+//+++++++++++-+-+--+----- --- -- -  -  -   -
 #include <boost/container/small_vector.hpp>
 
 namespace batt {
