@@ -174,7 +174,7 @@ using DecayRValueRef = typename DecayRValueRefImpl<T>::type;
 //
 namespace detail {
 
-template <typename T, typename U, typename = decltype(std::declval<const T&>() == std::declval<const U>())>
+template <typename T, typename U, typename = decltype(std::declval<const T&>() == std::declval<const U&>())>
 std::true_type can_be_eq_compared_helper(const T*, const U*)
 {
     return {};

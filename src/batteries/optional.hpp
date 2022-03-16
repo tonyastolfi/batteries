@@ -93,6 +93,13 @@ class Optional
         valid_ = true;
     }
 
+    Optional(std::optional<T>&& init) noexcept : valid_{!!init}
+    {
+        if (this->valid_) {
+            new (&this->storage_) T(std::move(*init));
+        }
+    }
+
     /*
   template <typename U,
             typename = std::enable_if_t<!std::is_constructible_v<T, U&&> && std::is_convertible_v<U, T> >,

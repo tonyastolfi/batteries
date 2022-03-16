@@ -598,7 +598,7 @@ static_assert(sizeof(StatusOr<StatusOr<int>>) == sizeof(StatusOr<int>), "");
 template <typename T, typename U, typename = std::enable_if_t<CanBeEqCompared<T, U>{}>>
 inline bool operator==(const StatusOr<T>& l, const StatusOr<U>& r)
 {
-    return (l.ok() && r.ok() && *l == *r) || (l.status() == r.status());
+    return (l.ok() && r.ok() && l.value() == r.value()) || (!l.ok() && !r.ok() && l.status() == r.status());
 }
 
 // If `T` (and `U`) can't be equality-compared, then we define StatusOr<T> to be equal iff the non-ok status
