@@ -67,6 +67,13 @@ struct Request {
      * kParseFailed if failed
      */
     int parse(const char* buf, usize len, usize last_len = 0);
+
+    // Convenience.
+    //
+    int parse(const batt::ConstBuffer& buf)
+    {
+        return this->parse(static_cast<const char*>(buf.data()), buf.size());
+    }
 };
 
 struct Response {
@@ -80,6 +87,13 @@ struct Response {
      * kParseFailed if failed
      */
     int parse(const char* buf, usize len, usize last_len = 0);
+
+    // Convenience.
+    //
+    int parse(const batt::ConstBuffer& buf)
+    {
+        return this->parse(static_cast<const char*>(buf.data()), buf.size());
+    }
 };
 
 /* returns number of bytes consumed if successful, kParseIncomplete if request is partial,

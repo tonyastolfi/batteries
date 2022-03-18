@@ -34,9 +34,15 @@ class QueueBase
         return this->size() == 0;
     }
 
+    template <typename Predicate = bool(i64)>
+    StatusOr<i64> await_size_is_truly(Predicate&& predicate)
+    {
+        return this->pending_count_.await_true(BATT_FORWARD(predicate));
+    }
+
     StatusOr<i64> await_empty()
     {
-        return this->pending_count_.await_true([](i64 count) {
+        return this->await_size_is_truly([](i64 count) {
             BATT_ASSERT_GE(count, 0);
             return count == 0;
         });
