@@ -6,6 +6,7 @@
 #define BATTERIES_BUFFER_HPP
 
 #include <batteries/int_types.hpp>
+#include <batteries/shared_ptr.hpp>
 #include <batteries/utility.hpp>
 
 #include <boost/asio/buffer.hpp>
@@ -47,12 +48,14 @@ inline MutableBuffer resize_buffer(const MutableBuffer& b, usize s)
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
-class BufferView;
-class CBufferView;
+class MutableBufferView;
+class ConstBufferView;
 
-class SharedBuffer : public RefCounted<SharedBuffer>
+class ManagedBuffer : public RefCounted<ManagedBuffer>
 {
    public:
+    static constexpr usize kCapacity = 4096;
+
     char* data()
     {
         return this->storage_.data();
@@ -69,20 +72,22 @@ class SharedBuffer : public RefCounted<SharedBuffer>
     }
 
    private:
-    std::array<char, 4096> storage_;
+    std::array<char, ManagedBuffer::kCapacity> storage_;
 };
 
-class BufferView
+class BufferViewImpl
 {
    public:
-    explicit BufferView(SharedPtr<SharedBuffer>&& buffer, usize offset = 0) noexcept
+    using Self = BufferViewImpl;
+
+    explicit BufferViewImpl(SharedPtr<ManagedBuffer>&& buffer, usize offset = 0) noexcept
         : buffer_{std::move(buffer)}
         , offset_{offset}
         , length_{this->buffer_->size() - this->offset_}
     {
     }
 
-    explicit BufferView(SharedPtr<SharedBuffer>&& buffer, usize offset, usize length) noexcept
+    explicit BufferViewImpl(SharedPtr<ManagedBuffer>&& buffer, usize offset, usize length) noexcept
         : buffer_{std::move(buffer)}
         , offset_{offset}
         , length_{length}
@@ -99,7 +104,7 @@ class BufferView
         return this->length_;
     }
 
-    BufferView& operator+=(usize delta)
+    Self& operator+=(usize delta)
     {
         delta = std::min(delta, this->length_);
         this->offset_ += delta;
@@ -107,7 +112,7 @@ class BufferView
         return *this;
     }
 
-    bool append(BufferView&& next)
+    bool append(Self&& next)
     {
         if (this->buffer_ == next.buffer_ && this->offset_ + this->length_ == next.offset_) {
             this->length_ += next.length_;
@@ -117,7 +122,7 @@ class BufferView
     }
 
    private:
-    SharedPtr<SharedBuffer> buffer_;
+    SharedPtr<ManagedBuffer> buffer_;
     usize offset_;
     usize length_;
 };
@@ -125,38 +130,30 @@ class BufferView
 class ConstBufferView
 {
    public:
+    friend class MutableBufferView;
+
     ConstBufferView(const ConstBufferView&) = default;
     ConstBufferView& operator=(const ConstBufferView&) = default;
 
-    ConstBufferView(const MutableBufferView& other) noexcept : impl_{other.impl_}
-    {
-    }
-
-    ConstBufferView(MutableBufferView&& other) noexcept : impl_{std::move(other.impl_)}
-    {
-    }
-
-    explicit ConstBufferView(SharedPtr<SharedBuffer>&& buffer, usize offset = 0) noexcept
+    explicit ConstBufferView(SharedPtr<ManagedBuffer>&& buffer, usize offset = 0) noexcept
         : impl_{std::move(buffer), offset}
     {
     }
 
-    explicit ConstBufferView(SharedPtr<SharedBuffer>&& buffer, usize offset, usize length) noexcept
+    explicit ConstBufferView(SharedPtr<ManagedBuffer>&& buffer, usize offset, usize length) noexcept
         : impl_{std::move(buffer), offset, length}
     {
     }
 
-    ConstBufferView& operator=(const MutableBufferView& other)
-    {
-        this->impl_ = other.impl_;
-        return *this;
-    }
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
 
-    ConstBufferView& operator=(MutableBufferView&& other)
-    {
-        this->impl_ = std::move(other.impl_);
-        return *this;
-    }
+    ConstBufferView(const MutableBufferView& other) noexcept;
+    ConstBufferView(MutableBufferView&& other) noexcept;
+
+    ConstBufferView& operator=(const MutableBufferView& other);
+    ConstBufferView& operator=(MutableBufferView&& other);
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
 
     operator ConstBuffer() const
     {
@@ -184,27 +181,26 @@ class ConstBufferView
         return this->impl_.append(std::move(next.impl_));
     }
 
-    bool append(MutableBufferView&& next)
-    {
-        return this->impl_.append(std::move(next.impl_));
-    }
+    bool append(MutableBufferView&& next);
 
    private:
-    BufferView impl_;
+    BufferViewImpl impl_;
 };
 
 class MutableBufferView
 {
    public:
+    friend class ConstBufferView;
+
     MutableBufferView(const MutableBufferView&) = default;
     MutableBufferView& operator=(const MutableBufferView&) = default;
 
-    explicit MutableBufferView(SharedPtr<SharedBuffer>&& buffer, usize offset = 0) noexcept
+    explicit MutableBufferView(SharedPtr<ManagedBuffer>&& buffer, usize offset = 0) noexcept
         : impl_{std::move(buffer), offset}
     {
     }
 
-    explicit MutableBufferView(SharedPtr<SharedBuffer>&& buffer, usize offset, usize length) noexcept
+    explicit MutableBufferView(SharedPtr<ManagedBuffer>&& buffer, usize offset, usize length) noexcept
         : impl_{std::move(buffer), offset, length}
     {
     }
@@ -212,6 +208,11 @@ class MutableBufferView
     operator MutableBuffer() const
     {
         return MutableBuffer{this->data(), this->size()};
+    }
+
+    operator ConstBuffer() const
+    {
+        return ConstBuffer{this->data(), this->size()};
     }
 
     MutableBufferView& operator+=(usize delta)
@@ -241,18 +242,45 @@ class MutableBufferView
     }
 
    private:
-    BufferView impl_;
+    BufferViewImpl impl_;
 };
 
-static_assert(sizeof(MutableBufferView) == sizeof(ConstBufferView), "No slicing of objects, please!");
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
-class BufferQueue
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+inline ConstBufferView::ConstBufferView(const MutableBufferView& other) noexcept : impl_{other.impl_}
 {
-   public:
-    push(BufferView);
-    fetch(usize min_bytes, usize max_bytes);
+}
 
-}:
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+inline ConstBufferView::ConstBufferView(MutableBufferView&& other) noexcept : impl_{std::move(other.impl_)}
+{
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+inline ConstBufferView& ConstBufferView::operator=(const MutableBufferView& other)
+{
+    this->impl_ = other.impl_;
+    return *this;
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+inline ConstBufferView& ConstBufferView::operator=(MutableBufferView&& other)
+{
+    this->impl_ = std::move(other.impl_);
+    return *this;
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+inline bool ConstBufferView::append(MutableBufferView&& next)
+{
+    return this->impl_.append(std::move(next.impl_));
+}
 
 }  // namespace batt
 

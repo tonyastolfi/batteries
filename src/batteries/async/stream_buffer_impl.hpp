@@ -111,7 +111,7 @@ BATT_INLINE_IMPL void StreamBuffer::close_for_write()
 //
 BATT_INLINE_IMPL StatusOr<SmallVec<ConstBuffer, 2>> StreamBuffer::fetch_at_least(i64 min_count)
 {
-    return this->pre_transfer(
+    StatusOr<SmallVec<ConstBuffer, 2>> buffers = this->pre_transfer(
         /*min_count=*/min_count,
         /*fixed_pos=*/this->consume_pos_,
         /*moving_pos=*/this->commit_pos_,
@@ -120,6 +120,29 @@ BATT_INLINE_IMPL StatusOr<SmallVec<ConstBuffer, 2>> StreamBuffer::fetch_at_least
             return BATT_CHECKED_CAST(i64, this->size());
         },
         StaticType<ConstBuffer>{});
+
+    BATT_REQUIRE_OK(buffers);
+
+    // Guarantee that the first buffer contains at least `min_count` bytes.  This is done so that retry-style
+    // parsers don't have to implement this themselves.
+    //
+    if (buffers->size() > 1 && buffers->front().size() < min_count) {
+        this->tmp_buffer_.reserve(min_count);
+
+        const usize n_copied =
+            boost::asio::buffer_copy(MutableBuffer{this->tmp_buffer_.data(), min_count}, *buffers);
+        BATT_CHECK_EQ(n_copied, min_count);
+
+        BATT_CHECK_EQ(buffers->size(), 2u);
+        buffers->back() += min_count - buffers->front().size();
+        if (buffers->back().size() == 0) {
+            buffers->pop_back();
+        }
+
+        buffers->front() = ConstBuffer{this->tmp_buffer_.data(), n_copied};
+    }
+
+    return buffers;
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

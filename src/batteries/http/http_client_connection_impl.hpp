@@ -1,50 +1,34 @@
 #pragma once
-#ifndef BATTERIES_HTTP_CLIENT_IMPL_HPP
-#define BATTERIES_HTTP_CLIENT_IMPL_HPP
+#ifndef BATTERIES_HTTP_HTTP_CLIENT_CONNECTION_IMPL_HPP
+#define BATTERIES_HTTP_HTTP_CLIENT_CONNECTION_IMPL_HPP
+
+#include <batteries/http/http_client_connection.hpp>
+#include <batteries/http/http_client_host_context.hpp>
 
 namespace batt {
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL void HttpClient::HostContext::submit_request(HttpClientRequest* request)
+BATT_INLINE_IMPL /*explicit*/ HttpClientConnection::HttpClientConnection(
+    HttpClientHostContext& context) noexcept
+    : context_{context}
+    , socket_{this->context_.client_.io_}
 {
-    this->request_queue_.push(request);
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL void HttpClient::HostContext::host_task_main()
+BATT_INLINE_IMPL boost::asio::io_context& HttpClientConnection::get_io_context()
 {
-    Status status = [&]() -> Status {
-        for (;;) {
-            usize queue_depth = this->request_queue_.size();
-            if (queue_depth > 0 && this->can_grow()) {
-                this->create_connection();
-            }
-        }
-    }();
-
-    status.IgnoreError();  // TODO [tastolfi 2022-03-17] do something better!
-}
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-//
-BATT_INLINE_IMPL void HttpClient::HostContext::create_connection()
-{
-    auto connection_task = std::make_unique<Task>(this->client_.io_.get_executor(),
-                                                  [this, index = this->connection_tasks_.size()] {
-                                                      this->connection_task_main(index);
-                                                  });
-
-    this->connection_tasks_.emplace_back(std::move(connection_task));
+    return this->context_.get_io_context();
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
 BATT_INLINE_IMPL void HttpClientConnection::start()
 {
-    this->task_.emplace([this] {
-        auto& executor = Task::current().get_executor();
+    this->task_.emplace(this->get_io_context().get_executor(), [this] {
+        auto executor = Task::current().get_executor();
 
         Status status = this->open_connection();
         if (!status.ok()) {
@@ -63,7 +47,7 @@ BATT_INLINE_IMPL void HttpClientConnection::start()
                                         this->process_responses().IgnoreError();
                                     }};
 
-        process_request_queue_task.join();
+        process_requests_task.join();
         fill_input_buffer_task.join();
         process_responses_task.join();
     });
@@ -73,21 +57,23 @@ BATT_INLINE_IMPL void HttpClientConnection::start()
 //
 BATT_INLINE_IMPL Status HttpClientConnection::open_connection()
 {
-    boost::asio::ip::tcp::resolver resolver{this->io_};
+    boost::asio::ip::tcp::resolver resolver{this->get_io_context()};
+
+    const HostAddress& host_address = this->context_.host_address();
 
     auto hosts = Task::await<IOResult<boost::asio::ip::tcp::resolver::results_type>>([&](auto&& handler) {
-        resolver.async_resolve(url_parse->host, url_parse->scheme, BATT_FORWARD(handler));
+        resolver.async_resolve(host_address.hostname, host_address.scheme, BATT_FORWARD(handler));
     });
     BATT_REQUIRE_OK(hosts);
 
     for (const auto& result : *hosts) {
         auto endpoint = result.endpoint();
-        if (url_parse->port) {
-            endpoint.port(*url_parse->port);
+        if (host_address.port) {
+            endpoint.port(*host_address.port);
         }
 
         auto ec = Task::await<boost::system::error_code>([&](auto&& handler) {
-            socket.async_connect(endpoint, BATT_FORWARD(handler));
+            this->socket_.async_connect(endpoint, BATT_FORWARD(handler));
         });
         if (!ec) {
             return OkStatus();
@@ -102,19 +88,29 @@ BATT_INLINE_IMPL Status HttpClientConnection::open_connection()
 BATT_INLINE_IMPL Status HttpClientConnection::process_requests()
 {
     auto on_exit = finally([this] {
+        boost::system::error_code ec;
         this->socket_.shutdown(boost::asio::socket_base::shutdown_send, ec);
-        this->waiting_for_response_.close();
+        this->response_queue_.close();
     });
 
     for (;;) {
-        BATT_ASSIGN_OK_RESULT(HttpClientRequest* const next_request, this->request_queue_.await_next());
+        using RequestTuple = std::tuple<HttpRequest*, HttpResponse*>;
+        BATT_ASSIGN_OK_RESULT(RequestTuple next, this->context_.request_queue_.await_next());
 
-        BATT_CHECK_NOT_NULLPTR(next_request);
-        BATT_CHECK_NOT_NULLPTR(next_request->response_);
+        HttpRequest* request = nullptr;
+        HttpResponse* response = nullptr;
+        std::tie(request, response) = next;
 
-        this->response_queue_.push(next_request->response_);
+        BATT_CHECK_NOT_NULLPTR(request);
+        BATT_CHECK_NOT_NULLPTR(response);
 
-        Status status = next_request->serialize(this->socket_);
+        auto on_scope_exit = batt::finally([&] {
+            request->state().set_value(HttpRequest::kConsumed);
+        });
+
+        this->response_queue_.push(response);
+
+        Status status = request->serialize(this->socket_);
         BATT_REQUIRE_OK(status);
     }
 }
@@ -158,11 +154,11 @@ BATT_INLINE_IMPL Status HttpClientConnection::process_responses()
 
     isize min_to_fetch = 1;
     for (;;) {
-        BATT_ASSIGN_OK_RESULT(HttpClientResponse* const response, this->response_queue_.await_next());
+        BATT_ASSIGN_OK_RESULT(HttpResponse* const response, this->response_queue_.await_next());
         BATT_CHECK_NOT_NULLPTR(response);
 
-        auto release_guard = finally([&] {
-            response->state_.set_value(kReleased);
+        auto on_scope_exit = batt::finally([&] {
+            response->state().set_value(HttpResponse::kConsumed);
         });
 
         StatusOr<ResponseInfo> response_info = this->read_next_response(*response);
@@ -170,8 +166,9 @@ BATT_INLINE_IMPL Status HttpClientConnection::process_responses()
 
         // Pass control over to the consumer and wait for it to signal it is done reading the message headers.
         //
-        response->state_.set_value(HttpClientResponse::kReceived);
-        StatusOr<i32> next_state = response->state_.await_not_equal(HttpClientResponse::kReceived);
+        response->state().set_value(HttpResponse::kInitialized);
+        Status message_consumed = response->await_set_message(response_info->message);
+        BATT_REQUIRE_OK(message_consumed);
 
         // The consume is done with the message; consume it and move on to the body.
         //
@@ -185,10 +182,10 @@ BATT_INLINE_IMPL Status HttpClientConnection::process_responses()
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL auto HttpClientConnection::read_next_response(HttpClientResponse& response)
+BATT_INLINE_IMPL auto HttpClientConnection::read_next_response(HttpResponse& response)
     -> StatusOr<ResponseInfo>
 {
-    pico_http::Response& msg = response.message_;
+    ResponseInfo response;
 
     usize min_to_fetch = 1;
     for (;;) {
@@ -199,59 +196,49 @@ BATT_INLINE_IMPL auto HttpClientConnection::read_next_response(HttpClientRespons
         const usize n_bytes_fetched = boost::asio::buffer_size(buffers);
 
         BATT_CHECK(!buffers.empty());
+        response.message_length = msg.parse(buffers.front());
 
-        int parse_result = msg.parse(buffers.front());
-
-        if (parse_result == pico_http::kParseIncomplete && buffers.size() > 1) {
-            MutableBuffer tmp_buffer = response_.alloc_tmp_buffer(n_bytes_fetched);
-            boost::asio::buffer_copy(tmp_buffer, buffers);
-            parse_result = msg.parse(tmp_buffer);
+        if (response.message_length == pico_http::kParseIncomplete) {
+            min_to_fetch = std::max(min_to_fetch + 1, n_bytes_fetched);
+            continue;
         }
 
-        if (parse_result == pico_http::kParseIncomplete) {
-            min_to_fetch = n_bytes_fetched + 1;
-            continue;
-        } else if (parse_result == pico_http::kParseFailed) {
+        if (response.message_length == pico_http::kParseFailed) {
             return {StatusCode::kInternal};
         }
 
-        BATT_CHECK_GT(parse_result, 0);
-
-        return ResponseInfo::from(parse_result, msg);
+        BATT_CHECK_GT(response.message_length, 0);
+        break;
     }
-}
 
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-//
-BATT_INLINE_IMPL auto HttpClientConnection::ResponseInfo::from(usize message_length,
-                                                               const HttpClientResponse& response)
-    -> StatusOr<ResponseInfo>
-{
-    auto info = ResponseInfo{
-        .message_length = message_length,
+    response.content_length =  //
+        (response.message)     //
+            .find_header("Content-Length")
+            .flat_map([](std::string_view s) {
+                return from_string<usize>(std::string(s));
+            });
 
-        .content_length = response.find_header("Content-Length").flat_map([](std::string_view s) {
-            return from_string<usize>(std::string(s));
-        }),
+    response.keep_alive =   //
+        (response.message)  //
+            .find_header("Connection")
+            .map([](std::string_view s) {
+                return s == "keep-alive";
+            })
+            .value_or(response.major_version() == 1 && response.minor_version() >= 1);
 
-        .keep_alive = response.find_header("Connection")
-                          .map([](std::string_view s) {
-                              return s == "keep-alive";
-                          })
-                          .value_or(response.major_version() == 1 && response.minor_version() >= 1),
+    response.chunked_encoding =  //
+        (response.message)       //
+            .find_header("Transfer-Encoding")
+            .map([](std::string_view s) {
+                return s == "chunked";
+            })
+            .value_or(false);
 
-        chunked_encoding = response.find_header("Transfer-Encoding")
-                               .map([](std::string_view s) {
-                                   return s == "chunked";
-                               })
-                               .value_or(false),
-    };
-
-    if (!info.content_length && !info.chunked_encoding && info.keep_alive) {
+    if (!response.content_length && !response.chunked_encoding && response.keep_alive) {
         return {StatusCode::kInvalidArgument};
     }
 
-    return info;
+    return response;
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -332,4 +319,4 @@ BATT_INLINE_IMPL void HttpClientConnection::join()
 
 }  // namespace batt
 
-#endif  // BATTERIES_HTTP_CLIENT_IMPL_HPP
+#endif  // BATTERIES_HTTP_HTTP_CLIENT_CONNECTION_IMPL_HPP

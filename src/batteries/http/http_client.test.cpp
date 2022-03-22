@@ -1,6 +1,6 @@
-#include <batteries/http_client.hpp>
+#include <batteries/http/http_client.hpp>
 //
-#include <batteries/http_client.hpp>
+#include <batteries/http/http_client.hpp>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

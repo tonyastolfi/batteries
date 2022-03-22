@@ -26,6 +26,8 @@ namespace batt {
 class StreamBuffer
 {
    public:
+    static constexpr usize kTempBufferSize = 512;
+
     // Creates a new stream buffer large enough to hold `capacity` bytes of data.
     //
     explicit StreamBuffer(usize capacity) noexcept;
@@ -150,6 +152,10 @@ class StreamBuffer
     // Points to the buffer for this object.
     //
     std::unique_ptr<u8[]> buffer_;
+
+    // A temporary buffer so that we can make sure the first buffer always holds at least the min_count.
+    //
+    SmallVec<u8, kTempBufferSize> tmp_buffer_;
 
     // The offset from the beginning of the stream that represents the upper bound of read data.  This value
     // increases monotonically beyond `this->capacity_`; the implementation must find the true consume

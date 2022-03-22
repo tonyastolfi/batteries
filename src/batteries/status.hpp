@@ -305,6 +305,77 @@ Status OkStatus();
 template <typename T>
 class BATT_WARN_UNUSED_RESULT StatusOr;
 
+namespace detail {
+
+template <typename T>
+class StatusOrValueContainer
+{
+   public:
+    template <typename... Args>
+    void construct(Args&&... args)
+    {
+        new (&this->storage_) T(BATT_FORWARD(args)...);
+    }
+
+    T* pointer() noexcept
+    {
+        return reinterpret_cast<T*>(&this->storage_);
+    }
+
+    const T* pointer() const noexcept
+    {
+        return reinterpret_cast<const T*>(&this->storage_);
+    }
+
+    T& reference() noexcept
+    {
+        return *this->pointer();
+    }
+
+    const T& reference() const noexcept
+    {
+        return *this->pointer();
+    }
+
+    void destroy()
+    {
+        this->reference().~T();
+    }
+
+   private:
+    std::aligned_storage_t<sizeof(T), alignof(T)> storage_;
+};
+
+template <typename T>
+class StatusOrValueContainer<T&>
+{
+   public:
+    void construct(T& obj)
+    {
+        this->ptr_ = &obj;
+    }
+
+    T* pointer() const noexcept
+    {
+        return this->ptr_;
+    }
+
+    T& reference() const noexcept
+    {
+        return *this->pointer();
+    }
+
+    void destroy() noexcept
+    {
+        this->ptr_ = nullptr;
+    }
+
+   private:
+    T* ptr_ = nullptr;
+};
+
+}  // namespace detail
+
 template <typename T>
 class StatusOr
 {
@@ -330,10 +401,10 @@ class StatusOr
     StatusOr(StatusOr&& that) : status_{StatusCode::kUnknown}
     {
         if (that.ok()) {
-            new (&this->storage_) T(std::move(that.value()));
+            this->value_.construct(std::move(that.value()));
             this->status_ = OkStatus();
 
-            that.value().~T();
+            that.value_.destroy();
             that.status_ = StatusCode::kUnknown;
         } else {
             this->status_ = std::move(that.status_);
@@ -343,18 +414,27 @@ class StatusOr
     StatusOr(const StatusOr& that) : status_{that.status_}
     {
         if (this->ok()) {
-            new (&this->storage_) T(that.value());
+            this->value_.construct(that.value());
         }
     }
 
-    /*implicit*/ StatusOr(const T& obj) noexcept(noexcept(T(std::declval<const T&>()))) : status_{OkStatus()}
+    /*implicit*/ StatusOr(const std::decay_t<T>& obj) noexcept(
+        noexcept(T(std::declval<const std::decay_t<T>&>())))
+        : status_{OkStatus()}
     {
-        new (&this->storage_) T(obj);
+        this->value_.construct(obj);
     }
 
-    /*implicit*/ StatusOr(T&& obj) noexcept(noexcept(T(std::declval<T>()))) : status_{OkStatus()}
+    /*implicit*/ StatusOr(std::decay_t<T>& obj) noexcept(noexcept(T(std::declval<std::decay_t<T>&>())))
+        : status_{OkStatus()}
     {
-        new (&this->storage_) T(std::move(obj));
+        this->value_.construct(obj);
+    }
+
+    /*implicit*/ StatusOr(std::decay_t<T>&& obj) noexcept(noexcept(T(std::declval<std::decay_t<T>&&>())))
+        : status_{OkStatus()}
+    {
+        this->value_.construct(std::move(obj));
     }
 
     template <
@@ -363,7 +443,7 @@ class StatusOr
         typename = void>
     /*implicit*/ StatusOr(U&& obj) noexcept(noexcept(T(std::declval<U&&>()))) : status_{OkStatus()}
     {
-        new (&this->storage_) T(BATT_FORWARD(obj));
+        this->value_.construct(BATT_FORWARD(obj));
     }
 
     template <typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<U>, T> &&
@@ -372,10 +452,10 @@ class StatusOr
         : status_{StatusCode::kUnknown}
     {
         if (that.status_.ok()) {
-            new (&this->storage_) T(std::move(that.value()));
+            this->value_.construct(std::move(that.value()));
             this->status_ = OkStatus();
 
-            that.value().~U();
+            that.value_.destroy();
             that.status_ = StatusCode::kUnknown;
         } else {
             this->status_ = std::move(that).status();
@@ -401,20 +481,21 @@ class StatusOr
     ~StatusOr()
     {
         if (this->ok()) {
-            this->value().~T();
+            this->value_.destroy();
         }
     }
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
     // Assignment operator overloads
 
-    StatusOr& operator=(T&& obj)
+    StatusOr& operator=(std::decay_t<T>&& obj)
     {
+        static_assert(std::is_same_v<T, std::decay_t<T>>, "");
         if (this->ok()) {
-            this->value().~T();
+            this->value_.destroy();
         }
         this->status_ = OkStatus();
-        new (&this->storage_) T(std::move(obj));
+        this->value_.construct(std::move(obj));
 
         return *this;
     }
@@ -422,10 +503,10 @@ class StatusOr
     StatusOr& operator=(const T& obj)
     {
         if (this->ok()) {
-            this->value().~T();
+            this->value_.destroy();
         }
         this->status_ = OkStatus();
-        new (&this->storage_) T(obj);
+        this->value_.construct(obj);
 
         return *this;
     }
@@ -435,10 +516,10 @@ class StatusOr
     StatusOr& operator=(U&& obj) noexcept(noexcept(T(std::declval<U&&>())))
     {
         if (this->ok()) {
-            this->value().~T();
+            this->value_.destroy();
         }
         this->status_ = OkStatus();
-        new (&this->storage_) T(BATT_FORWARD(obj));
+        this->value_.construct(BATT_FORWARD(obj));
 
         return *this;
     }
@@ -451,11 +532,11 @@ class StatusOr
                 if (that.ok()) {
                     this->value() = that.value();
                 } else {
-                    this->value().~T();
+                    this->value_.destroy();
                 }
             } else {
                 if (that.ok()) {
-                    new (&this->storage_) T(that.value());
+                    this->value_.construct(that.value());
                 }
             }
             this->status_ = that.status_;
@@ -471,11 +552,11 @@ class StatusOr
                 if (that.ok()) {
                     this->value() = std::move(that.value());
                 } else {
-                    this->value().~T();
+                    this->value_.destroy();
                 }
             } else {
                 if (that.ok()) {
-                    new (&this->storage_) T(std::move(that.value()));
+                    this->value_.construct(std::move(that.value()));
                 }
             }
             this->status_ = that.status_;
@@ -487,7 +568,7 @@ class StatusOr
     {
         BATT_CHECK(!new_status.ok()) << "StatusOr must not be constructed with an Ok Status value.";
         if (this->ok()) {
-            this->value().~T();
+            this->value_.destroy();
         }
         this->status_ = new_status;
 
@@ -514,13 +595,13 @@ class StatusOr
     T& value() noexcept
     {
         BATT_ASSERT(this->status_.ok()) << BATT_INSPECT(this->status_);
-        return *reinterpret_cast<T*>(&this->storage_);
+        return this->value_.reference();
     }
 
     const T& value() const noexcept
     {
         BATT_ASSERT(this->status_.ok()) << BATT_INSPECT(this->status_);
-        return *reinterpret_cast<const T*>(&this->storage_);
+        return this->value_.reference();
     }
 
     T& operator*() & noexcept
@@ -538,19 +619,19 @@ class StatusOr
         return std::move(this->value());
     }
 
-    const T* operator->() const noexcept
+    const std::decay_t<T>* operator->() const noexcept
     {
         return &(this->value());
     }
 
-    T* operator->() noexcept
+    std::decay_t<T>* operator->() noexcept
     {
         return &(this->value());
     }
 
    private:
     Status status_;
-    std::aligned_storage_t<sizeof(T), alignof(T)> storage_;
+    detail::StatusOrValueContainer<T> value_;
 };
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------

@@ -2,6 +2,8 @@
 #ifndef BATTERIES_ASYNC_CHANNEL_HPP
 #define BATTERIES_ASYNC_CHANNEL_HPP
 
+#include <batteries/async/watch.hpp>
+
 #include <batteries/optional.hpp>
 #include <batteries/status.hpp>
 
@@ -21,54 +23,122 @@ class Channel
     Channel(const Channel&) = delete;
     Channel& operator=(const Channel&) = delete;
 
+    ~Channel()
+    {
+        this->close_for_write();
+        this->read_count_.await_equal(this->write_count_.get_value()).IgnoreError();
+    }
+
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
-    StatusOr<T> read();
+    bool is_active() const;
 
-    template <typename... Args>
-    Status write(Args&&... args);
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
+    StatusOr<T&> read();
+
+    void consume();
 
     void close_for_read();
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
+    template <typename Handler = void(Status)>
+    void async_write(T& value, Handler&& handler);
+
+    Status write(T& value);
+
     void close_for_write();
 
    private:
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
-    Watch<i64> read_count_{0};
-    Watch<i64> write_count_{0};
-    Optional<T> value_;
+    Watch<i32> read_count_{0};
+    Watch<i32> write_count_{0};
+    T* value_ = nullptr;
 };
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-
 template <typename T>
-inline StatusOr<T> Channel<T>::read()
+template <typename Handler>
+void Channel<T>::async_write(T& value, Handler&& handler)
 {
-    StatusOr<i64> result = this->write_count_.await_not_equal(this->read_count_.get_value());
-    BATT_REQUIRE_OK(result);
+    BATT_CHECK(!this->is_active());
 
-    auto on_return = finally([&] {
-        this->value_ = None;
-        this->read_count_.fetch_add(1);
-    });
+    if (this->write_count_.is_closed()) {
+        handler({StatusCode::kClosed});
+        return;
+    }
 
-    return std::move(*this->value_);
+    this->value_ = &value;
+
+    const i32 last_seen = this->read_count_.get_value();
+    const i32 target = this->write_count_.fetch_add(1) + 1;
+
+    BATT_CHECK_EQ(last_seen + 1, target);
+
+    this->write_count_.async_wait(
+        last_seen,
+        bind_handler(BATT_FORWARD(handler), [this, target](auto&& handler, StatusOr<i32> observed) {
+            this->value_ = nullptr;
+            if (observed.ok()) {
+                BATT_CHECK_EQ(target, *observed);
+            }
+            handler(observed.status());
+        }));
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
 template <typename T>
-template <typename... Args>
-inline Status Channel<T>::write(Args&&... args)
+inline bool Channel<T>::is_active() const
 {
-    StatusOr<i64> result = this->read_count_.await_equal(this->write_count_.get_value());
+    return (this->write_count_.get_value() - this->read_count_.get_value()) > 0;
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+template <typename T>
+inline StatusOr<T&> Channel<T>::read()
+{
+    StatusOr<i64> result = this->write_count_.await_not_equal(this->read_count_.get_value());
     BATT_REQUIRE_OK(result);
 
-    this->value_.emplace(BATT_FORWARD(args)...);
-    this->write_count_.fetch_add(1);
+    return *this->value_;
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+template <typename T>
+inline void Channel<T>::consume()
+{
+    BATT_CHECK(this->is_active());
+    this->read_count_.fetch_add(1);
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+template <typename T>
+inline Status Channel<T>::write(T& value)
+{
+    BATT_CHECK(!this->is_active());
+
+    if (this->write_count_.is_closed()) {
+        return {StatusCode::kClosed};
+    }
+
+    this->value_ = &value;
+    auto on_scope_exit = finally([&] {
+        this->value_ = nullptr;
+    });
+
+    const i32 target = this->write_count_.fetch_add(1) + 1;
+
+    StatusOr<i32> consumed = this->read_count_.await_equal(target);
+    BATT_REQUIRE_OK(consumed);
 
     return OkStatus();
 }
