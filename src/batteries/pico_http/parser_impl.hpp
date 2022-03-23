@@ -611,7 +611,7 @@ BATT_INLINE_IMPL int decode_hex(int ch)
     } else if ('a' <= ch && ch <= 'f') {
         return ch - 'a' + 0xa;
     } else {
-        return -1;
+        return kParseFailed;
     }
 }
 
@@ -621,30 +621,36 @@ BATT_INLINE_IMPL int decode_hex(int ch)
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL batt::isize pico_http::decode_chunked(pico_http::ChunkedDecoder* decoder, char* buf,
-                                                       usize* _bufsz)
+BATT_INLINE_IMPL batt::StatusOr<pico_http::DecodeResult> pico_http::decode_chunked(
+    pico_http::ChunkedDecoder* decoder, const batt::ConstBuffer& input,
+    batt::SmallVecBase<batt::ConstBuffer>* output)
 {
-    usize dst = 0, src = 0, bufsz = *_bufsz;
-    isize ret = -2; /* incomplete */
+    const char* const buf = static_cast<const char*>(input.data());
+    const usize bufsz = input.size();
 
-    while (1) {
+    DecodeResult result;
+
+    result.done = false;
+    result.bytes_consumed = 0;
+
+    usize& src = result.bytes_consumed;
+
+    for (;;) {
         switch (decoder->state_) {
         case ::pico_http::detail::CHUNKED_IN_CHUNK_SIZE:
             for (;; ++src) {
                 int v;
                 if (src == bufsz) {
-                    goto Exit;
+                    return result;
                 }
-                if ((v = ::pico_http::detail::decode_hex(buf[src])) == -1) {
+                if ((v = ::pico_http::detail::decode_hex(buf[src])) == kParseFailed) {
                     if (decoder->hex_count_ == 0) {
-                        ret = -1;
-                        goto Exit;
+                        return {batt::StatusCode::kInvalidArgument};
                     }
                     break;
                 }
                 if (decoder->hex_count_ == sizeof(usize) * 2) {
-                    ret = -1;
-                    goto Exit;
+                    return {batt::StatusCode::kInvalidArgument};
                 }
                 decoder->bytes_left_in_chunk = decoder->bytes_left_in_chunk * 16 + v;
                 ++decoder->hex_count_;
@@ -656,7 +662,7 @@ BATT_INLINE_IMPL batt::isize pico_http::decode_chunked(pico_http::ChunkedDecoder
             /* RFC 7230 A.2 "Line folding in chunk extensions is disallowed" */
             for (;; ++src) {
                 if (src == bufsz) {
-                    goto Exit;
+                    return result;
                 }
                 if (buf[src] == '\012') {
                     break;
@@ -668,27 +674,24 @@ BATT_INLINE_IMPL batt::isize pico_http::decode_chunked(pico_http::ChunkedDecoder
                     decoder->state_ = ::pico_http::detail::CHUNKED_IN_TRAILERS_LINE_HEAD;
                     break;
                 } else {
-                    goto Complete;
+                    result.done = true;
+                    return result;
                 }
             }
             decoder->state_ = ::pico_http::detail::CHUNKED_IN_CHUNK_DATA;
         /* fallthru */
         case ::pico_http::detail::CHUNKED_IN_CHUNK_DATA: {
-            usize avail = bufsz - src;
+            const usize avail = bufsz - src;
             if (avail < decoder->bytes_left_in_chunk) {
-                if (dst != src) {
-                    memmove(buf + dst, buf + src, avail);
+                if (avail > 0) {
+                    output->emplace_back(batt::ConstBuffer{buf + src, avail});
                 }
                 src += avail;
-                dst += avail;
                 decoder->bytes_left_in_chunk -= avail;
-                goto Exit;
+                return result;
             }
-            if (dst != src) {
-                memmove(buf + dst, buf + src, decoder->bytes_left_in_chunk);
-            }
+            output->emplace_back(batt::ConstBuffer{buf + src, decoder->bytes_left_in_chunk});
             src += decoder->bytes_left_in_chunk;
-            dst += decoder->bytes_left_in_chunk;
             decoder->bytes_left_in_chunk = 0;
             decoder->state_ = ::pico_http::detail::CHUNKED_IN_CHUNK_CRLF;
         }
@@ -696,15 +699,14 @@ BATT_INLINE_IMPL batt::isize pico_http::decode_chunked(pico_http::ChunkedDecoder
         case ::pico_http::detail::CHUNKED_IN_CHUNK_CRLF:
             for (;; ++src) {
                 if (src == bufsz) {
-                    goto Exit;
+                    return result;
                 }
                 if (buf[src] != '\015') {
                     break;
                 }
             }
             if (buf[src] != '\012') {
-                ret = -1;
-                goto Exit;
+                return {batt::StatusCode::kInvalidArgument};
             }
             ++src;
             decoder->state_ = ::pico_http::detail::CHUNKED_IN_CHUNK_SIZE;
@@ -712,21 +714,22 @@ BATT_INLINE_IMPL batt::isize pico_http::decode_chunked(pico_http::ChunkedDecoder
         case ::pico_http::detail::CHUNKED_IN_TRAILERS_LINE_HEAD:
             for (;; ++src) {
                 if (src == bufsz) {
-                    goto Exit;
+                    return result;
                 }
                 if (buf[src] != '\015') {
                     break;
                 }
             }
             if (buf[src++] == '\012') {
-                goto Complete;
+                result.done = true;
+                return result;
             }
             decoder->state_ = ::pico_http::detail::CHUNKED_IN_TRAILERS_LINE_MIDDLE;
         /* fallthru */
         case ::pico_http::detail::CHUNKED_IN_TRAILERS_LINE_MIDDLE:
             for (;; ++src) {
                 if (src == bufsz) {
-                    goto Exit;
+                    return result;
                 }
                 if (buf[src] == '\012') {
                     break;
@@ -736,18 +739,9 @@ BATT_INLINE_IMPL batt::isize pico_http::decode_chunked(pico_http::ChunkedDecoder
             decoder->state_ = ::pico_http::detail::CHUNKED_IN_TRAILERS_LINE_HEAD;
             break;
         default:
-            assert(!"decoder is corrupt");
+            BATT_PANIC() << "decoder is corrupt";
         }
     }
-
-Complete:
-    ret = bufsz - src;
-Exit:
-    if (dst != src) {
-        memmove(buf + dst, buf + src, bufsz - src);
-    }
-    *_bufsz = dst;
-    return ret;
 }
 
 BATT_INLINE_IMPL int pico_http::decode_chunked_is_in_data(pico_http::ChunkedDecoder* decoder)

@@ -19,8 +19,7 @@ class HttpClientConnection
 {
    public:
     struct ResponseInfo {
-        pico_http::Response message;
-        int message_length;
+        explicit ResponseInfo(const pico_http::Response& response);
 
         bool is_valid() const
         {

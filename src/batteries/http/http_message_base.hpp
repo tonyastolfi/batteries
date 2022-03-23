@@ -51,11 +51,9 @@ class HttpMessageBase
         });
     }
 
-    void await_set_message(T& message)
+    Status await_set_message(T& message)
     {
-        this->message_.async_write(message, [](Status status) {
-            status.IgnoreError();
-        });
+        return this->message_.write(message);
     }
 
     StatusOr<T&> await_message()
@@ -84,8 +82,9 @@ class HttpMessageBase
         });
     }
 
-    void await_set_data(HttpData& data)
+    Status await_set_data(HttpData& data)
     {
+        return this->data_.write(data);
     }
 
     StatusOr<HttpData&> await_data()

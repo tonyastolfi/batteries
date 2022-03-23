@@ -21,7 +21,7 @@ class HttpRequest : public HttpMessageBase<pico_http::Request>
     template <typename AsyncWriteStream>
     Status serialize(AsyncWriteStream& stream)
     {
-        const std::string msg = [&] {
+        const StatusOr<std::string> msg = [&]() -> StatusOr<std::string> {
             StatusOr<pico_http::Request&> message = this->await_message();
             BATT_REQUIRE_OK(message);
 
@@ -43,11 +43,12 @@ class HttpRequest : public HttpMessageBase<pico_http::Request>
             oss << "\r\n";
             return std::move(oss).str();
         }();
+        BATT_REQUIRE_OK(msg);
 
-        usize n_unsent_msg = msg.size();
+        usize n_unsent_msg = msg->size();
 
         SmallVec<ConstBuffer, 3> buffer;
-        buffer.emplace_back(ConstBuffer{msg.data(), msg.size()});
+        buffer.emplace_back(ConstBuffer{msg->data(), msg->size()});
 
         StatusOr<HttpData&> data = this->await_data();
         //----- --- -- -  -  -   -

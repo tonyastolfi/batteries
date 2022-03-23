@@ -152,7 +152,6 @@ BATT_INLINE_IMPL Status HttpClientConnection::process_responses()
         this->input_buffer_.close_for_read();
     });
 
-    isize min_to_fetch = 1;
     for (;;) {
         BATT_ASSIGN_OK_RESULT(HttpResponse* const response, this->response_queue_.await_next());
         BATT_CHECK_NOT_NULLPTR(response);
@@ -161,32 +160,32 @@ BATT_INLINE_IMPL Status HttpClientConnection::process_responses()
             response->state().set_value(HttpResponse::kConsumed);
         });
 
-        StatusOr<ResponseInfo> response_info = this->read_next_response(*response);
-        BATT_REQUIRE_OK(response_info);
+        pico_http::Response response_message;
+        StatusOr<i32> message_length = this->read_next_response(response_message);
+        BATT_REQUIRE_OK(message_length);
 
         // Pass control over to the consumer and wait for it to signal it is done reading the message headers.
         //
         response->state().set_value(HttpResponse::kInitialized);
-        Status message_consumed = response->await_set_message(response_info->message);
+        Status message_consumed = response->await_set_message(response_message);
         BATT_REQUIRE_OK(message_consumed);
 
         // The consume is done with the message; consume it and move on to the body.
         //
-        this->input_buffer_.consume(response_info->message_length);
+        this->input_buffer_.consume(*message_length);
 
-        Status data_read = this->read_response_data(next_state, *response_info);
-        BATT_REQUIRE_OK(data_read);
+        //        Status data_read = this->read_response_data(next_state, *response_info);
+        //        BATT_REQUIRE_OK(data_read);
+        BATT_PANIC() << "TODO [tastolfi 2022-03-23] implement reading response data!";
     }
     return OkStatus();
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL auto HttpClientConnection::read_next_response(HttpResponse& response)
-    -> StatusOr<ResponseInfo>
+BATT_INLINE_IMPL StatusOr<i32> HttpClientConnection::read_next_response(pico_http::Response& response)
 {
-    ResponseInfo response;
-
+    i32 result = 0;
     usize min_to_fetch = 1;
     for (;;) {
         StatusOr<SmallVec<ConstBuffer, 2>> fetched = this->input_buffer_.fetch_at_least(min_to_fetch);
@@ -196,51 +195,43 @@ BATT_INLINE_IMPL auto HttpClientConnection::read_next_response(HttpResponse& res
         const usize n_bytes_fetched = boost::asio::buffer_size(buffers);
 
         BATT_CHECK(!buffers.empty());
-        response.message_length = msg.parse(buffers.front());
+        result = response.parse(buffers.front());
 
-        if (response.message_length == pico_http::kParseIncomplete) {
+        if (result == pico_http::kParseIncomplete) {
             min_to_fetch = std::max(min_to_fetch + 1, n_bytes_fetched);
             continue;
         }
 
-        if (response.message_length == pico_http::kParseFailed) {
+        if (result == pico_http::kParseFailed) {
             return {StatusCode::kInternal};
         }
 
-        BATT_CHECK_GT(response.message_length, 0);
-        break;
+        BATT_CHECK_GT(result, 0);
+        return result;
     }
-
-    response.content_length =  //
-        (response.message)     //
-            .find_header("Content-Length")
-            .flat_map([](std::string_view s) {
-                return from_string<usize>(std::string(s));
-            });
-
-    response.keep_alive =   //
-        (response.message)  //
-            .find_header("Connection")
-            .map([](std::string_view s) {
-                return s == "keep-alive";
-            })
-            .value_or(response.major_version() == 1 && response.minor_version() >= 1);
-
-    response.chunked_encoding =  //
-        (response.message)       //
-            .find_header("Transfer-Encoding")
-            .map([](std::string_view s) {
-                return s == "chunked";
-            })
-            .value_or(false);
-
-    if (!response.content_length && !response.chunked_encoding && response.keep_alive) {
-        return {StatusCode::kInvalidArgument};
-    }
-
-    return response;
 }
 
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+HttpClientConnection::ResponseInfo::ResponseInfo(const pico_http::Response& response)
+    : content_length{find_header(response.headers, "Content-Length").flat_map([](std::string_view s) {
+        return Optional{from_string<usize>(std::string(s))};
+    })}
+    , keep_alive{find_header(response.headers, "Connection")
+                     .map([](std::string_view s) {
+                         return s == "keep-alive";
+                     })
+                     .value_or(response.major_version == 1 && response.minor_version >= 1)}
+    , chunked_encoding{find_header(response.headers, "Transfer-Encoding")
+                           .map([](std::string_view s) {
+                               return s == "chunked";
+                           })
+                           .value_or(false)}
+
+{
+}
+
+#if 0
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
 BATT_INLINE_IMPL Status HttpClientConnection::read_response_data(StatusOr<i32> next_state,
@@ -306,6 +297,7 @@ BATT_INLINE_IMPL Status HttpClientConnection::read_response_data(StatusOr<i32> n
         }
     }
 }
+#endif
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //

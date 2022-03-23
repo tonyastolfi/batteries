@@ -30,6 +30,7 @@
 #include <batteries/buffer.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/small_vec.hpp>
+#include <batteries/status.hpp>
 
 #include <string_view>
 
@@ -109,6 +110,11 @@ struct ChunkedDecoder {
     char state_;
 };
 
+struct DecodeResult {
+    bool done;
+    usize bytes_consumed;
+};
+
 /* the function rewrites the buffer given as (buf, bufsz) removing the chunked-
  * encoding headers.  When the function returns without an error, bufsz is
  * updated to the length of the decoded data available.  Applications should
@@ -118,7 +124,8 @@ struct ChunkedDecoder {
  * octets left undecoded, that starts from the offset returned by `*bufsz`.
  * Returns kParseFailed on error.
  */
-isize decode_chunked(ChunkedDecoder* decoder, char* buf, usize* bufsz);
+batt::StatusOr<DecodeResult> decode_chunked(ChunkedDecoder* decoder, const batt::ConstBuffer& input,
+                                            batt::SmallVecBase<batt::ConstBuffer>* output);
 
 /* returns if the chunked decoder is in middle of chunked data */
 int decode_chunked_is_in_data(ChunkedDecoder* decoder);

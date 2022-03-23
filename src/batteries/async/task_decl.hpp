@@ -315,6 +315,56 @@ class Task
         });
     }
 
+    template <typename AsyncStream, typename BufferSequence>
+    static IOResult<usize> await_read_some(AsyncStream& s, BufferSequence&& buffers)
+    {
+        return Task::await<IOResult<usize>>([&](auto&& handler) {
+            s.async_read_some(BATT_FORWARD(buffers), BATT_FORWARD(handler));
+        });
+    }
+
+    template <typename AsyncStream, typename BufferSequence>
+    static IOResult<usize> await_read(AsyncStream& s, BufferSequence&& buffers)
+    {
+        return Task::await<IOResult<usize>>([&](auto&& handler) {
+            boost::asio::read(s, BATT_FORWARD(buffers), BATT_FORWARD(handler));
+        });
+    }
+
+    template <typename AsyncStream, typename BufferSequence>
+    static IOResult<usize> await_write_some(AsyncStream& s, BufferSequence&& buffers)
+    {
+        return Task::await<IOResult<usize>>([&](auto&& handler) {
+            s.async_write_some(BATT_FORWARD(buffers), BATT_FORWARD(handler));
+        });
+    }
+
+    template <typename AsyncStream, typename BufferSequence>
+    static IOResult<usize> await_write(AsyncStream& s, BufferSequence&& buffers)
+    {
+        return Task::await<IOResult<usize>>([&](auto&& handler) {
+            boost::asio::write(s, BATT_FORWARD(buffers), BATT_FORWARD(handler));
+        });
+    }
+
+    template <typename AsyncStream, typename Endpoint>
+    static ErrorCode await_connect(AsyncStream& s, const Endpoint& endpoint)
+    {
+        return Task::await<ErrorCode>([&](auto&& handler) {
+            s.async_connect(BATT_FORWARD(endpoint), BATT_FORWARD(handler));
+        });
+    }
+
+    template <typename AsyncAcceptor,                                      //
+              typename ProtocolT = typename AsyncAcceptor::protocol_type,  //
+              typename StreamT = typename ProtocolT::socket>
+    static IOResult<StreamT> await_accept(AsyncAcceptor& a)
+    {
+        return Task::await<IOResult<StreamT>>([&](auto&& handler) {
+            a.async_accept(BATT_FORWARD(handler));
+        });
+    }
+
     static std::string default_name()
     {
         return "(anonymous)";

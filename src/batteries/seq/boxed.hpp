@@ -6,6 +6,7 @@
 
 #include <batteries/hint.hpp>
 #include <batteries/optional.hpp>
+#include <batteries/seq/requirements.hpp>
 #include <batteries/seq/seq_item.hpp>
 #include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
@@ -145,7 +146,9 @@ inline BoxedBinder boxed()
     return {};
 }
 
-template <typename Seq, typename Item = SeqItem<Seq>>
+template <typename Seq,
+          typename Item = std::conditional_t<has_seq_requirements<Seq>(), SeqItem_Impl<Seq>, void>,
+          typename = std::enable_if_t<has_seq_requirements<Seq>()>>
 [[nodiscard]] inline BoxedSeq<Item> operator|(Seq&& seq, BoxedBinder)
 {
     static_assert(std::is_same_v<Seq, std::decay_t<Seq>>,

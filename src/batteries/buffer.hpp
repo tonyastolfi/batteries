@@ -5,6 +5,7 @@
 #ifndef BATTERIES_BUFFER_HPP
 #define BATTERIES_BUFFER_HPP
 
+#include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/shared_ptr.hpp>
 #include <batteries/utility.hpp>
@@ -44,6 +45,30 @@ inline ConstBuffer resize_buffer(const ConstBuffer& b, usize s)
 inline MutableBuffer resize_buffer(const MutableBuffer& b, usize s)
 {
     return MutableBuffer{b.data(), std::min(s, b.size())};
+}
+
+template <typename VecT>
+inline void consume_buffers(VecT& buffers, usize count)
+{
+    while (count > 0) {
+        BATT_CHECK(!buffers.empty());
+
+        if (buffers.front().size() > count) {
+            buffers.front() += count;
+            break;
+        }
+
+        count -= buffers.front().size();
+        buffers.erase(buffers.begin());
+    }
+}
+
+template <typename VecT>
+inline VecT consume_buffers_copy(const VecT& buffers, usize count)
+{
+    VecT copy = buffers;
+    consume_buffers(copy, count);
+    return copy;
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

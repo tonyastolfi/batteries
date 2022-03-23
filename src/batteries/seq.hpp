@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 
 // Utilities for dealing with sequences.
@@ -32,8 +33,10 @@
 #include <batteries/seq/printable.hpp>
 #include <batteries/seq/reduce.hpp>
 #include <batteries/seq/seq_item.hpp>
+#include <batteries/seq/skip_n.hpp>
 #include <batteries/seq/status_ok.hpp>
 #include <batteries/seq/sub_range_seq.hpp>
+#include <batteries/seq/take_n.hpp>
 #include <batteries/seq/take_while.hpp>
 #include <batteries/small_vec.hpp>
 #include <batteries/stream_util.hpp>
@@ -661,105 +664,6 @@ template <typename Seq, typename Fn>
 [[nodiscard]] MapAdjacent<Seq, Fn> operator|(Seq&& seq, MapAdjacentBinder<Fn>&& binder)
 {
     return MapAdjacent<Seq, Fn>{BATT_FORWARD(seq), BATT_FORWARD(binder.fn)};
-}
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-// take(n)
-//
-struct TakeNBinder {
-    std::size_t n;
-};
-
-inline TakeNBinder take_n(std::size_t n)
-{
-    return {n};
-}
-
-template <typename Seq>
-class TakeN
-{
-   public:
-    using Item = SeqItem<Seq>;
-
-    explicit TakeN(Seq&& seq, std::size_t n) noexcept : seq_(BATT_FORWARD(seq)), n_{n}
-    {
-    }
-
-    Optional<Item> peek()
-    {
-        if (n_ == 0) {
-            return None;
-        }
-        return seq_.peek();
-    }
-    Optional<Item> next()
-    {
-        if (n_ == 0) {
-            return None;
-        }
-        --n_;
-        return seq_.next();
-    }
-
-   private:
-    Seq seq_;
-    std::size_t n_;
-};
-
-template <typename Seq>
-[[nodiscard]] TakeN<Seq> operator|(Seq&& seq, const TakeNBinder& binder)
-{
-    return TakeN<Seq>{BATT_FORWARD(seq), binder.n};
-}
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-// skip(n)
-//
-struct SkipNBinder {
-    std::size_t n;
-};
-
-inline SkipNBinder skip_n(std::size_t n)
-{
-    return {n};
-}
-
-template <typename Seq>
-class SkipN
-{
-   public:
-    using Item = SeqItem<Seq>;
-
-    explicit SkipN(Seq&& seq, std::size_t n) noexcept : seq_(BATT_FORWARD(seq)), n_{n}
-    {
-    }
-
-    Optional<Item> peek()
-    {
-        if (n_ != 0) {
-            return None;
-        }
-        return seq_.peek();
-    }
-    Optional<Item> next()
-    {
-        if (n_ != 0) {
-            --n_;
-            (void)seq_.next();
-            return None;
-        }
-        return seq_.next();
-    }
-
-   private:
-    Seq seq_;
-    std::size_t n_;
-};
-
-template <typename Seq>
-[[nodiscard]] SkipN<Seq> operator|(Seq&& seq, const SkipNBinder& binder)
-{
-    return SkipN<Seq>{BATT_FORWARD(seq), binder.n};
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

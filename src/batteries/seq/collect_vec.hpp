@@ -1,6 +1,12 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_SEQ_COLLECT_VEC_HPP
 #define BATTERIES_SEQ_COLLECT_VEC_HPP
+
+#include <batteries/seq/requirements.hpp>
+#include <batteries/seq/seq_item.hpp>
 
 #include <type_traits>
 #include <vector>
@@ -19,7 +25,7 @@ inline CollectVec collect_vec()
     return {};
 }
 
-template <typename Seq>
+template <typename Seq, typename = EnableIfSeq<Seq>>
 [[nodiscard]] auto operator|(Seq&& seq, CollectVec)
 {
     static_assert(std::is_same_v<Seq, std::decay_t<Seq>>,
