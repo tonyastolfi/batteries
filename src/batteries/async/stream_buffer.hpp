@@ -5,8 +5,11 @@
 #ifndef BATTERIES_ASYNC_STREAM_BUFFER_HPP
 #define BATTERIES_ASYNC_STREAM_BUFFER_HPP
 
-#include <batteries/assert.hpp>
+#include <batteries/async/io_result.hpp>
+#include <batteries/async/types.hpp>
 #include <batteries/async/watch.hpp>
+
+#include <batteries/assert.hpp>
 #include <batteries/buffer.hpp>
 #include <batteries/checked_cast.hpp>
 #include <batteries/config.hpp>
@@ -15,6 +18,8 @@
 #include <batteries/small_vec.hpp>
 #include <batteries/status.hpp>
 #include <batteries/type_traits.hpp>
+
+#include <boost/asio/system_executor.hpp>
 
 #include <functional>
 #include <memory>
@@ -27,6 +32,8 @@ class StreamBuffer
 {
    public:
     static constexpr usize kTempBufferSize = 512;
+
+    using executor_type = boost::asio::any_io_executor;
 
     // Creates a new stream buffer large enough to hold `capacity` bytes of data.
     //
@@ -48,6 +55,13 @@ class StreamBuffer
     //
     usize space() const;
 
+    // The executor associated with this stream buffer.
+    //
+    executor_type get_executor() const
+    {
+        return this->executor_;
+    }
+
     // Returns a MutableBufferSequence that is exactly `exact_count` bytes large.
     //
     // This method may block the current task if buffer space is not available to satisfy the request.  It
@@ -64,6 +78,12 @@ class StreamBuffer
     //
     StatusOr<SmallVec<MutableBuffer, 2>> prepare_at_least(i64 min_count);
 
+    // Invokes the passed handler with a MutableBufferSequence as soon as at least `min_count` free bytes can
+    // be allocated within the buffer.
+    //
+    template <typename Handler = void(const ErrorCode& ec, SmallVec<MutableBuffer, 2>)>
+    void async_prepare_at_least(i64 min_count, Handler&& handler);
+
     // Logically transfer `count` bytes of data from the "prepared" region of the buffer to the "committed"
     // region, by advancing the commit offset pointer.  This method does not literally copy data.  Behavior is
     // undefined if `count > this->space()`.
@@ -76,6 +96,12 @@ class StreamBuffer
     //
     template <typename T>
     Status write_type(StaticType<T>, const T& value);
+
+    // Copy at least 1 byte of the passed data to the buffer and then invoke the handler with the number of
+    // bytes written.
+    //
+    template <typename ConstBuffers, typename Handler = void(const ErrorCode& ec, usize n_bytes_written)>
+    void async_write_some(ConstBuffers&& buffers, Handler&& handler);
 
     // Convenience shortcut for `prepare_exactly`, copy the data, then `commit`.
     //
@@ -141,9 +167,13 @@ class StreamBuffer
     StatusOr<SmallVec<BufferType, 2>> pre_transfer(i64 min_count, Watch<i64>& fixed_pos,
                                                    Watch<i64>& moving_pos, i64 min_delta,
                                                    const GetMaxCount& get_max_count,
-                                                   StaticType<BufferType> buffer_type = {});
+                                                   WaitForResource wait_for_resource,
+                                                   StaticType<BufferType> buffer_type = {},
+                                                   i64* moving_pos_observed = nullptr);
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
+
+    executor_type executor_ = boost::asio::system_executor();
 
     // The size in bytes of the array pointed to by `buffer_`.
     //

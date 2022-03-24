@@ -15,10 +15,14 @@ template <typename Src>
 class HttpChunkDecoder
 {
    public:
-    explicit HttpChunkDecoder(Src&& src) noexcept : src_{BATT_FORWARD(src)}
+    explicit HttpChunkDecoder(Src&& src,
+                              IncludeHttpTrailer consume_trailer = IncludeHttpTrailer{false}) noexcept
+        : src_{BATT_FORWARD(src)}
     {
-        std::memset(&this->decoder_latest_, 0, sizeof(pico_http::ChunkedDecoder));
         std::memset(&this->decoder_checkpoint_, 0, sizeof(pico_http::ChunkedDecoder));
+        this->decoder_checkpoint_.consume_trailer = consume_trailer;
+
+        this->decoder_latest_ = this->decoder_checkpoint_;
     }
 
     // The current number of bytes available as consumable data.
@@ -28,22 +32,42 @@ class HttpChunkDecoder
         return this->output_available_ - this->output_consumed_;
     }
 
+    // The decoder has completed.
+    //
+    bool done() const
+    {
+        return this->done_;
+    }
+
     // Returns a ConstBufferSequence containing at least `min_count` bytes of data.
     //
     // This method may block the current task if there isn't enough data available to satisfy
     // the request (i.e., if `this->size() < min_count`).
     //
-    StatusOr<SmallVec<ConstBuffer, 2>> fetch_at_least(i64 min_count)
+    StatusOr<SmallVec<ConstBuffer, 2>> fetch_at_least(const i64 min_count_i)
     {
-        while (min_count > this->size()) {
+        const usize min_count = BATT_CHECKED_CAST(usize, min_count_i);
+
+        // Keep decoding chunks from the src stream until we have at least the minimum amount of bytes.
+        //
+        while (this->size() < min_count) {
             if (this->done_) {
-                if (min_count == 1) {
-                    return {StatusCode::kClosed};
-                } else {
-                    return {StatusCode::kIllegalArgument};
+                if (this->size() == 0) {
+                    this->release_decoded_chunks();
                 }
+                return {StatusCode::kEndOfStream};
             }
-            auto fetched = this->src_.fetch_at_least(min_count - this->size());
+
+            const i64 src_min_count = BATT_CHECKED_CAST(i64, this->decoded_src_size_) +
+                                      (min_count_i - BATT_CHECKED_CAST(i64, this->size()));
+
+            auto fetched = this->src_.fetch_at_least(src_min_count);
+            if (!fetched.ok() && fetched.status() == StatusCode::kEndOfStream && !this->done_) {
+                if (this->size() == 0) {
+                    this->release_decoded_chunks();
+                }
+                return {StatusCode::kClosedBeforeEndOfStream};
+            }
             BATT_REQUIRE_OK(fetched);
 
             this->decoded_src_size_ = 0;
@@ -130,7 +154,7 @@ class HttpChunkDecoder
     Src src_;
     pico_http::ChunkedDecoder decoder_checkpoint_;
     pico_http::ChunkedDecoder decoder_latest_;
-    bool done = false;
+    bool done_ = false;
     usize decoded_src_size_ = 0;
     usize output_available_ = 0;
     usize output_consumed_ = 0;

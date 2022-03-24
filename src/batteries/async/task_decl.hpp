@@ -39,6 +39,8 @@
 #include <boost/asio/executor.hpp>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/post.hpp>
+#include <boost/asio/read.hpp>
+#include <boost/asio/write.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/preprocessor/cat.hpp>
 
@@ -327,7 +329,7 @@ class Task
     static IOResult<usize> await_read(AsyncStream& s, BufferSequence&& buffers)
     {
         return Task::await<IOResult<usize>>([&](auto&& handler) {
-            boost::asio::read(s, BATT_FORWARD(buffers), BATT_FORWARD(handler));
+            boost::asio::async_read(s, BATT_FORWARD(buffers), BATT_FORWARD(handler));
         });
     }
 
@@ -343,7 +345,7 @@ class Task
     static IOResult<usize> await_write(AsyncStream& s, BufferSequence&& buffers)
     {
         return Task::await<IOResult<usize>>([&](auto&& handler) {
-            boost::asio::write(s, BATT_FORWARD(buffers), BATT_FORWARD(handler));
+            boost::asio::async_write(s, BATT_FORWARD(buffers), BATT_FORWARD(handler));
         });
     }
 

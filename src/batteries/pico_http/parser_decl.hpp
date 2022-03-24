@@ -105,9 +105,9 @@ int parse_headers(const char* buf, usize len, batt::SmallVecBase<MessageHeader>*
 /* should be zero-filled before start */
 struct ChunkedDecoder {
     usize bytes_left_in_chunk; /* number of bytes left in current chunk */
-    char consume_trailer;      /* if trailing headers should be consumed */
-    char hex_count_;
-    char state_;
+    bool consume_trailer;      /* if trailing headers should be consumed */
+    i8 hex_count_;
+    i8 state_;
 };
 
 struct DecodeResult {

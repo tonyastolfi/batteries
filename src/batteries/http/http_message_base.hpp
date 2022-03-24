@@ -44,6 +44,18 @@ class HttpMessageBase
         return this->state_;
     }
 
+    void update_status(Status status)
+    {
+        this->status_.Update(status);
+    }
+
+    Status get_status() const
+    {
+        return this->status_;
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
     void async_set_message(T& message)
     {
         this->message_.async_write(message, [](Status status) {
@@ -115,6 +127,8 @@ class HttpMessageBase
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
    protected:
+    Status status_{OkStatus()};
+
     Watch<i32> state_{kCreated};
 
     Channel<T> message_;

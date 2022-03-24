@@ -62,14 +62,20 @@ class DefaultHttpClient
    public:
     static HttpClient& get()
     {
-        static DefaultHttpClient default_client_;
-        return default_client_.client_;
+        static DefaultHttpClient* default_client_ = new DefaultHttpClient;
+        //
+        // This object is intentionally leaked!
+
+        return default_client_->client_;
     }
 
     boost::asio::io_context io_;
+
     Optional<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> work_guard_{
         this->io_.get_executor()};
+
     HttpClient client_{this->io_};
+
     std::thread io_thread_{[this] {
         this->io_.run();
     }};
@@ -251,6 +257,9 @@ StatusOr<std::unique_ptr<HttpResponse>> http_request(std::string_view method, st
     BATT_REQUIRE_OK(submitted);
 
     StatusOr<i32> request_consumed = context.request_.state().await_equal(HttpRequest::kConsumed);
+    if (!request_consumed.ok()) {
+        BATT_REQUIRE_OK(context.request_.get_status());
+    }
     BATT_REQUIRE_OK(request_consumed);
 
     StatusOr<i32> response_received = context.response_->state().await_equal(HttpResponse::kInitialized);

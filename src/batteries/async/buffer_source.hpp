@@ -258,7 +258,7 @@ inline StatusOr<std::vector<char>> operator|(Src&& src, seq::CollectVec)
 
     for (;;) {
         auto fetched = src.fetch_at_least(1);
-        if (fetched.status() == StatusCode::kClosed) {
+        if (fetched.status() == StatusCode::kEndOfStream) {
             break;
         }
         BATT_REQUIRE_OK(fetched);

@@ -69,6 +69,8 @@ enum class StatusCode : int {
     kClosed = 100,
     kGrantUnavailable = 101,
     kLoopBreak = 102,
+    kEndOfStream = 103,
+    kClosedBeforeEndOfStream = 104,
 };
 
 enum ErrnoValue {};

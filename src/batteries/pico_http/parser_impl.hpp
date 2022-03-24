@@ -619,6 +619,8 @@ BATT_INLINE_IMPL int decode_hex(int ch)
 }  // namespace detail
 }  // namespace pico_http
 
+#define BATT_PICO_HTTP_PARSER_DUMP_CHUNKS 0
+
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
 BATT_INLINE_IMPL batt::StatusOr<pico_http::DecodeResult> pico_http::decode_chunked(
@@ -627,6 +629,10 @@ BATT_INLINE_IMPL batt::StatusOr<pico_http::DecodeResult> pico_http::decode_chunk
 {
     const char* const buf = static_cast<const char*>(input.data());
     const usize bufsz = input.size();
+
+#if BATT_PICO_HTTP_PARSER_DUMP_CHUNKS
+    std::cerr << "decode_chunks(" << batt::c_str_literal(std::string_view{buf, bufsz}) << ")" << std::endl;
+#endif
 
     DecodeResult result;
 

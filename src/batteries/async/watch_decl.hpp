@@ -142,6 +142,8 @@ class WatchAtomic
     static constexpr u32 kLocked = 0x01;
     static constexpr u32 kOpen = 0x02;
     static constexpr u32 kWaiting = 0x04;
+    static constexpr u32 kClosedAtEnd = 0x08;
+    static constexpr u32 kClosedBeforeEnd = 0x10;
 
     WatchAtomic(const WatchAtomic&) = delete;
     WatchAtomic& operator=(const WatchAtomic&) = delete;
@@ -158,16 +160,39 @@ class WatchAtomic
         this->close();
     }
 
-    void close()
+    void close(StatusCode final_status_code = StatusCode::kClosed)
     {
         HandlerList<StatusOr<T>> local_observers;
         {
             const u32 prior_state = this->lock_observers();
             local_observers = std::move(this->observers_);
-            this->unlock_observers(prior_state & ~(kOpen | kWaiting));
+
+            const u32 desired_state = (prior_state & ~(kOpen | kWaiting)) | ([&]() -> u32 {
+                                          // If already closed, don't change the closed status.
+                                          //
+                                          if ((prior_state & kOpen) != kOpen) {
+                                              return 0;
+                                          }
+                                          switch (final_status_code) {
+                                          case StatusCode::kEndOfStream:
+                                              return WatchAtomic::kClosedAtEnd;
+
+                                          case StatusCode::kClosedBeforeEndOfStream:
+                                              return WatchAtomic::kClosedBeforeEnd;
+
+                                          case StatusCode::kClosed:  // fall-through
+                                          default:
+                                              // All other StatusCode values are ignored; set status
+                                              // StatusCode::kClosed.
+                                              //
+                                              return 0;
+                                          }
+                                      }());
+
+            this->unlock_observers(desired_state);
         }
 
-        invoke_all_handlers(&local_observers, Status{StatusCode::kClosed});
+        invoke_all_handlers(&local_observers, this->get_final_status());
     }
 
     bool is_closed() const
@@ -307,7 +332,7 @@ class WatchAtomic
 
             if (!(prior_state & kOpen)) {
                 this->unlock_observers(prior_state);
-                BATT_FORWARD(fn)(Status{StatusCode::kClosed});
+                BATT_FORWARD(fn)(this->get_final_status());
                 return;
             }
             auto unlock_guard = finally([&] {
@@ -356,6 +381,24 @@ class WatchAtomic
     }
 
    private:
+    Status get_final_status() const
+    {
+        constexpr u32 mask = WatchAtomic::kClosedAtEnd | WatchAtomic::kClosedBeforeEnd;
+
+        switch (this->spin_state_.load() & mask) {
+        case WatchAtomic::kClosedBeforeEnd:
+            return Status{StatusCode::kClosedBeforeEndOfStream};
+
+        case WatchAtomic::kClosedAtEnd:
+            return Status{StatusCode::kEndOfStream};
+
+        default:
+            break;
+        }
+
+        return Status{StatusCode::kClosed};
+    }
+
     u32 lock_observers() const
     {
         for (;;) {

@@ -8,6 +8,47 @@ namespace batt {
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
+template <typename Handler /*= void(const ErrorCode& ec, SmallVec<MutableBuffer, 2>)*/>
+inline void StreamBuffer::async_prepare_at_least(i64 min_count, Handler&& handler)
+{
+    i64 observed_consume_pos = -1;
+
+    StatusOr<SmallVec<MutableBuffer, 2>> prepared = this->pre_transfer(
+        /*min_count=*/min_count,
+        /*fixed_pos=*/this->commit_pos_,
+        /*moving_pos=*/this->consume_pos_,
+        /*min_delta=*/min_count - this->capacity(), /*get_max_count=*/
+        [this] {
+            return BATT_CHECKED_CAST(i64, this->space());
+        },
+        WaitForResource::kFalse,      //
+        StaticType<MutableBuffer>{},  //
+        &observed_consume_pos);
+
+    if (prepared.ok()) {
+        BATT_FORWARD(handler)(ErrorCode{}, std::move(*prepared));
+        return;
+    }
+
+    if (prepared.status() == StatusCode::kUnavailable) {
+        this->consume_pos_.async_wait(
+            observed_consume_pos,
+            bind_handler(BATT_FORWARD(handler), [min_count, this](Handler&& handler,
+                                                                  const StatusOr<i64>& new_consume_pos) {
+                if (!new_consume_pos.ok()) {
+                    BATT_FORWARD(handler)(boost::asio::error::broken_pipe, SmallVec<MutableBuffer, 2>{});
+                    return;
+                }
+                this->async_prepare_at_least(min_count, BATT_FORWARD(handler));
+            }));
+        return;
+    }
+
+    BATT_FORWARD(handler)(boost::asio::error::invalid_argument, SmallVec<MutableBuffer, 2>{});
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
 template <typename T>
 inline Status StreamBuffer::write_type(StaticType<T>, const T& value)
 {
@@ -56,6 +97,29 @@ inline StatusOr<T> StreamBuffer::read_type(StaticType<T> type)
     });
 
     return make_copy(fetched->get());
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+template <typename ConstBuffers, typename Handler /*= void(const ErrorCode& ec, usize n_bytes_written)*/>
+inline void StreamBuffer::async_write_some(ConstBuffers&& src_buffers, Handler&& handler)
+{
+    this->async_prepare_at_least(
+        /*min_count=*/1,
+        bind_handler(BATT_FORWARD(handler), [src_buffers = BATT_FORWARD(src_buffers), this](
+                                                Handler&& handler, const ErrorCode& ec, auto&& dst_buffers) {
+            if (ec) {
+                handler(ec, 0);
+                return;
+            }
+
+            const usize bytes_transferred = boost::asio::buffer_copy(dst_buffers, src_buffers);
+            BATT_CHECK_NE(bytes_transferred, 0u);
+
+            this->commit(bytes_transferred);
+
+            handler(ErrorCode{}, bytes_transferred);
+        }));
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

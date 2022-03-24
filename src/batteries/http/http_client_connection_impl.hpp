@@ -30,11 +30,6 @@ BATT_INLINE_IMPL void HttpClientConnection::start()
     this->task_.emplace(this->get_io_context().get_executor(), [this] {
         auto executor = Task::current().get_executor();
 
-        Status status = this->open_connection();
-        if (!status.ok()) {
-            return;
-        }
-
         Task process_requests_task{executor, [this] {
                                        this->process_requests().IgnoreError();
                                    }};
@@ -72,9 +67,7 @@ BATT_INLINE_IMPL Status HttpClientConnection::open_connection()
             endpoint.port(*host_address.port);
         }
 
-        auto ec = Task::await<boost::system::error_code>([&](auto&& handler) {
-            this->socket_.async_connect(endpoint, BATT_FORWARD(handler));
-        });
+        ErrorCode ec = Task::await_connect(this->socket_, endpoint);
         if (!ec) {
             return OkStatus();
         }
@@ -93,6 +86,8 @@ BATT_INLINE_IMPL Status HttpClientConnection::process_requests()
         this->response_queue_.close();
     });
 
+    bool connected = false;
+
     for (;;) {
         using RequestTuple = std::tuple<HttpRequest*, HttpResponse*>;
         BATT_ASSIGN_OK_RESULT(RequestTuple next, this->context_.request_queue_.await_next());
@@ -107,6 +102,16 @@ BATT_INLINE_IMPL Status HttpClientConnection::process_requests()
         auto on_scope_exit = batt::finally([&] {
             request->state().set_value(HttpRequest::kConsumed);
         });
+
+        if (!connected) {
+            Status status = this->open_connection();
+            if (!status.ok()) {
+                request->update_status(status);
+                request->state().close();
+            }
+            BATT_REQUIRE_OK(status);
+            connected = true;
+        }
 
         this->response_queue_.push(response);
 

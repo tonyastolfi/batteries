@@ -59,6 +59,7 @@ BATT_INLINE_IMPL StatusOr<SmallVec<MutableBuffer, 2>> StreamBuffer::prepare_exac
         [exact_count] {
             return exact_count;
         },
+        WaitForResource::kTrue,  //
         StaticType<MutableBuffer>{});
 }
 
@@ -74,6 +75,7 @@ BATT_INLINE_IMPL StatusOr<SmallVec<MutableBuffer, 2>> StreamBuffer::prepare_at_l
         [this] {
             return BATT_CHECKED_CAST(i64, this->space());
         },
+        WaitForResource::kTrue,  //
         StaticType<MutableBuffer>{});
 }
 
@@ -104,7 +106,7 @@ BATT_INLINE_IMPL Status StreamBuffer::write_all(ConstBuffer buffer)
 //
 BATT_INLINE_IMPL void StreamBuffer::close_for_write()
 {
-    this->commit_pos_.close();
+    this->commit_pos_.close(StatusCode::kEndOfStream);
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -121,6 +123,7 @@ BATT_INLINE_IMPL StatusOr<SmallVec<ConstBuffer, 2>> StreamBuffer::fetch_at_least
         [this] {
             return BATT_CHECKED_CAST(i64, this->size());
         },
+        WaitForResource::kTrue,  //
         StaticType<ConstBuffer>{});
 
     BATT_REQUIRE_OK(buffers);
@@ -202,18 +205,35 @@ template <typename BufferType, typename GetMaxCount>
 StatusOr<SmallVec<BufferType, 2>> StreamBuffer::pre_transfer(i64 min_count, Watch<i64>& fixed_pos,
                                                              Watch<i64>& moving_pos, i64 min_delta,
                                                              const GetMaxCount& get_max_count,
-                                                             StaticType<BufferType> buffer_type)
+                                                             WaitForResource wait_for_resource,
+                                                             StaticType<BufferType> buffer_type,
+                                                             i64* moving_pos_observed)
 {
     if (min_count > this->capacity_) {
         return {StatusCode::kInvalidArgument};
     }
 
     const i64 min_target = fixed_pos.get_value() + min_delta;
-    const StatusOr<i64> result = moving_pos.await_true([min_target](i64 observed) {  //
-        return observed >= min_target;
-    });
 
-    BATT_REQUIRE_OK(result);
+    if (wait_for_resource == WaitForResource::kFalse) {
+        i64 tmp = 0;
+        if (BATT_HINT_FALSE(moving_pos_observed == nullptr)) {
+            moving_pos_observed = &tmp;
+        }
+        *moving_pos_observed = moving_pos.get_value();
+        if (*moving_pos_observed < min_target) {
+            return {StatusCode::kUnavailable};
+        }
+    } else {
+        const StatusOr<i64> result = moving_pos.await_true([min_target](i64 observed) {  //
+            return observed >= min_target;
+        });
+        BATT_REQUIRE_OK(result);
+
+        if (BATT_HINT_FALSE(moving_pos_observed != nullptr)) {
+            *moving_pos_observed = *result;
+        }
+    }
 
     return this->get_buffers(fixed_pos.get_value(), get_max_count(), buffer_type);
 }
