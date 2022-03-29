@@ -1,11 +1,14 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_SEQ_FOR_EACH_HPP
 #define BATTERIES_SEQ_FOR_EACH_HPP
 
-#include <batteries/hint.hpp>
 #include <batteries/seq/loop_control.hpp>
+#include <batteries/seq/requirements.hpp>
+
+#include <batteries/hint.hpp>
 #include <batteries/utility.hpp>
 
 #include <type_traits>
@@ -27,7 +30,7 @@ ForEachBinder<Fn> for_each(Fn&& fn)
     return {BATT_FORWARD(fn)};
 }
 
-template <typename Seq, typename Fn>
+template <typename Seq, typename Fn, typename = EnableIfSeq<Seq>>
 LoopControl operator|(Seq&& seq, ForEachBinder<Fn>&& binder)
 {
     for (;;) {

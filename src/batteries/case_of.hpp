@@ -45,10 +45,10 @@ template <typename Visitor, typename Variant>
 struct VisitorResult;
 
 // This must be instantiated for each possible value category:
-///  std::variant<Ts...>&
-///  std::variant<Ts...> const&
-///  std::variant<Ts...>&&
-///  std::variant<Ts...> const&&
+//  std::variant<Ts...>&
+//  std::variant<Ts...> const&
+//  std::variant<Ts...>&&
+//  std::variant<Ts...> const&&
 //
 #define BATT_SPECIALIZE_VISITOR_RESULT(ref_qualifier)                                                        \
     template <typename Visitor, typename... Ts>                                                              \

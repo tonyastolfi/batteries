@@ -12,6 +12,7 @@
 #include <batteries/http/http_header.hpp>
 #include <batteries/http/http_request.hpp>
 #include <batteries/http/http_response.hpp>
+#include <batteries/http/http_version.hpp>
 
 #include <batteries/pico_http/parser.hpp>
 
@@ -50,7 +51,8 @@ class HttpClient
         return this->io_;
     }
 
-    Status submit_request(const HostAddress& host_address, HttpRequest* request, HttpResponse* response);
+    Status submit_request(const HostAddress& host_address, Pin<HttpRequest>&& request,
+                          Pin<HttpResponse>&& response);
 
     boost::asio::io_context& io_;
     Mutex<std::unordered_map<HostAddress, SharedPtr<HttpClientHostContext>, boost::hash<HostAddress>>>
@@ -88,6 +90,8 @@ class HttpClientRequestContext
    public:
     explicit HttpClientRequestContext()
     {
+        this->set_version(HttpVersion{1, 1}).IgnoreError();
+
         this->request_.async_set_message(this->message_);
         this->request_.async_set_data(this->data_);
     }
@@ -129,7 +133,23 @@ class HttpClientRequestContext
         return this->set_params(BATT_FORWARD(rest)...);
     }
 
+    template <typename... Rest>
+    Status set_params(const HttpVersion& version, Rest&&... rest)
+    {
+        Status result = this->set_version(version);
+        BATT_REQUIRE_OK(result);
+        return this->set_params(BATT_FORWARD(rest)...);
+    }
+
     //+++++++++++-+-+--+----- --- -- -  -  -   -
+
+    Status set_version(const HttpVersion& version)
+    {
+        this->message_.major_version = version.major_version;
+        this->message_.minor_version = version.minor_version;
+
+        return OkStatus();
+    }
 
     Status set_method(std::string_view method)
     {
@@ -142,6 +162,7 @@ class HttpClientRequestContext
         this->message_.path = path;
         return OkStatus();
     }
+
     Status set_url(const UrlParse& url)
     {
         this->host_address_.scheme = url.scheme;
@@ -179,29 +200,6 @@ class HttpClientRequestContext
 
     void set_data(HttpData&& data)
     {
-        // Set headers related to the data.
-        //
-        case_of(
-            data,
-            [&](NoneType) {
-                // Nothing to do.
-            },
-            [&](StreamBuffer*) {
-                this->set_header(HttpHeader{"Transfer-Encoding", "chunked"});
-            },
-            [&](const std::string_view& s) {
-                std::string len = to_string(s.size());
-                if (len == this->content_length_) {
-                    return;
-                }
-
-                BATT_CHECK(this->content_length_.empty())
-                    << "Content-Length can not be specified multiple times!";
-
-                this->content_length_ = std::move(len);
-                this->set_header(HttpHeader{"Content-Length", this->content_length_});
-            });
-
         this->data_ = std::move(data);
     }
 
@@ -211,8 +209,11 @@ class HttpClientRequestContext
     {
         BATT_CHECK_NOT_NULLPTR(this->client_);
 
+        // TODO [tastolfi 2022-03-29] Check headers and adjust `this->data_` accordingly.
+
         this->request_.state().set_value(HttpRequest::kInitialized);
-        return this->client_->submit_request(this->host_address_, &this->request_, this->response_);
+        return this->client_->submit_request(this->host_address_, make_pin(&this->request_),
+                                             make_pin(this->response_));
     }
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -256,13 +257,16 @@ StatusOr<std::unique_ptr<HttpResponse>> http_request(std::string_view method, st
     Status submitted = context.submit();
     BATT_REQUIRE_OK(submitted);
 
-    StatusOr<i32> request_consumed = context.request_.state().await_equal(HttpRequest::kConsumed);
+    Status request_consumed = context.request_.state().await_equal(HttpRequest::kConsumed);
     if (!request_consumed.ok()) {
         BATT_REQUIRE_OK(context.request_.get_status());
     }
     BATT_REQUIRE_OK(request_consumed);
 
-    StatusOr<i32> response_received = context.response_->state().await_equal(HttpResponse::kInitialized);
+    Status response_received = context.response_->state().await_equal(HttpResponse::kInitialized);
+    if (!response_received.ok()) {
+        BATT_REQUIRE_OK(context.response_->get_status());
+    }
     BATT_REQUIRE_OK(response_received);
 
     return response;

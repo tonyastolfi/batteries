@@ -1,4 +1,6 @@
-
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #include <batteries/config.hpp>
 
 #include <batteries/http/http_client_connection_decl.hpp>

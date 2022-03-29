@@ -1,3 +1,6 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_HTTP_CLIENT_IMPL_HPP
 #define BATTERIES_HTTP_CLIENT_IMPL_HPP
@@ -6,9 +9,12 @@ namespace batt {
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL Status HttpClient::submit_request(const HostAddress& host_address, HttpRequest* request,
-                                                   HttpResponse* response)
+BATT_INLINE_IMPL Status HttpClient::submit_request(const HostAddress& host_address,
+                                                   Pin<HttpRequest>&& request, Pin<HttpResponse>&& response)
 {
+    BATT_CHECK_NOT_NULLPTR(request);
+    BATT_CHECK_NOT_NULLPTR(response);
+
     SharedPtr<HttpClientHostContext> host_context = [&] {
         auto locked_contexts = this->host_contexts_.lock();
 
@@ -23,7 +29,7 @@ BATT_INLINE_IMPL Status HttpClient::submit_request(const HostAddress& host_addre
         return iter->second;
     }();
 
-    return host_context->submit_request(request, response);
+    return host_context->submit_request(std::move(request), std::move(response));
 }
 
 }  // namespace batt

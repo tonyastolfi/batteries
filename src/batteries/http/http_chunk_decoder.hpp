@@ -6,6 +6,7 @@
 #define BATTERIES_HTTP_HTTP_CHUNK_DECODER_HPP
 
 #include <batteries/async/buffer_source.hpp>
+#include <batteries/async/stream_buffer.hpp>
 
 #include <batteries/pico_http/parser.hpp>
 
@@ -160,6 +161,8 @@ class HttpChunkDecoder
     usize output_consumed_ = 0;
     SmallVec<ConstBuffer, 4> decoded_chunks_;
 };
+
+static_assert(has_buffer_source_requirements<HttpChunkDecoder<StreamBuffer&>>(), "");
 
 }  // namespace batt
 

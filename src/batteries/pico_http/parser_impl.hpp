@@ -760,4 +760,42 @@ BATT_INLINE_IMPL int pico_http::decode_chunked_is_in_data(pico_http::ChunkedDeco
 #undef BATT_PICO_HTTP_ADVANCE_TOKEN
 #undef BATT_PICO_HTTP_ALIGNED
 
+namespace pico_http {
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL std::ostream& operator<<(std::ostream& out, const MessageHeader& t)
+{
+    return out << t.name << ": " << t.value << "\r\n";
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL std::ostream& operator<<(std::ostream& out, const batt::SmallVecBase<MessageHeader>& t)
+{
+    for (const MessageHeader& hdr : t) {
+        out << hdr;
+    }
+    return out;
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL std::ostream& operator<<(std::ostream& out, const Request& t)
+{
+    return out << t.method << ' ' << t.path << " HTTP/" << t.major_version << '.' << t.minor_version << "\r\n"
+               << t.headers << "\r\n";
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL std::ostream& operator<<(std::ostream& out, const Response& t)
+{
+    return out << "HTTP/" << t.major_version << '.' << t.minor_version << ' ' << t.status << ' ' << t.message
+               << "\r\n"
+               << t.headers << "\r\n";
+}
+
+}  // namespace pico_http
+
 #endif  // BATTERIES_PICO_HTTP_PARSER_IMPL_HPP

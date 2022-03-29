@@ -5,15 +5,25 @@
 #ifndef BATTERIES_ASYNC_BUFFER_SOURCE_HPP
 #define BATTERIES_ASYNC_BUFFER_SOURCE_HPP
 
+#include <batteries/async/io_result.hpp>
+#include <batteries/async/task_decl.hpp>
+
 #include <batteries/seq/collect_vec.hpp>
+#include <batteries/seq/consume.hpp>
+#include <batteries/seq/for_each.hpp>
+#include <batteries/seq/prepend.hpp>
+#include <batteries/seq/print_out.hpp>
 #include <batteries/seq/skip_n.hpp>
 #include <batteries/seq/take_n.hpp>
 
 #include <batteries/buffer.hpp>
 #include <batteries/checked_cast.hpp>
+#include <batteries/cpu_align.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/small_vec.hpp>
 #include <batteries/status.hpp>
+#include <batteries/type_erasure.hpp>
+#include <batteries/utility.hpp>
 
 #include <boost/asio/buffer.hpp>
 
@@ -51,6 +61,9 @@ inline constexpr bool has_const_buffer_sequence_requirements(StaticType<T> = {})
 {
     return HasConstBufferSequenceRequirements<T>{};
 }
+
+template <typename T>
+using EnableIfConstBufferSequence = std::enable_if_t<has_const_buffer_sequence_requirements<T>()>;
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 namespace detail {
@@ -93,6 +106,17 @@ using EnableIfBufferSource = std::enable_if_t<has_buffer_source_requirements<T>(
 class BufferSource
 {
    public:
+    BufferSource() = default;
+
+    template <typename T, typename = EnableIfNoShadow<BufferSource, T&&>,
+              typename = EnableIfBufferSource<UnwrapRefType<T>>,
+              typename = std::enable_if_t<std::is_same_v<std::decay_t<T>, T>>>
+    /*implicit*/ BufferSource(T&& obj) noexcept;
+
+    explicit operator bool() const;
+
+    void clear();
+
     // The current number of bytes available as consumable data.
     //
     usize size() const;
@@ -115,7 +139,14 @@ class BufferSource
     void close_for_read();
 
    private:
-    // TODO [tastolfi 2022-03-22]
+    class AbstractBufferSource;
+
+    template <typename T>
+    class BufferSourceImpl;
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
+    TypeErasedStorage<AbstractBufferSource, BufferSourceImpl> impl_;
 };
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
@@ -226,6 +257,7 @@ template <typename Src, typename = EnableIfBufferSource<Src>>
 void operator|(Src&& src, SkipNBinder binder)
 {
     // TODO [tastolfi 2022-03-23]
+    BATT_PANIC() << "TODO [tastolfi 2022-03-28] implement me!";
 }
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
@@ -249,13 +281,11 @@ class MapBufferSource
 };
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
-// BufferSource | seq::collect_vec()
+// BufferSource | seq::for_each()
 //
-template <typename Src, typename = EnableIfBufferSource<Src>>
-inline StatusOr<std::vector<char>> operator|(Src&& src, seq::CollectVec)
+template <typename Src, typename Fn, typename = EnableIfBufferSource<Src>>
+inline StatusOr<seq::LoopControl> operator|(Src&& src, seq::ForEachBinder<Fn>&& binder)
 {
-    std::vector<char> bytes;
-
     for (;;) {
         auto fetched = src.fetch_at_least(1);
         if (fetched.status() == StatusCode::kEndOfStream) {
@@ -265,10 +295,10 @@ inline StatusOr<std::vector<char>> operator|(Src&& src, seq::CollectVec)
 
         usize n_to_consume = 0;
         for (const ConstBuffer& buffer : *fetched) {
-            const char* data_begin = static_cast<const char*>(buffer.data());
-            const char* data_end = data_begin + buffer.size();
             n_to_consume += buffer.size();
-            bytes.insert(bytes.end(), data_begin, data_end);
+            if (BATT_HINT_FALSE(seq::run_loop_fn(binder.fn, buffer) == seq::kBreak)) {
+                return seq::kBreak;
+            }
         }
         if (n_to_consume == 0) {
             break;
@@ -277,9 +307,196 @@ inline StatusOr<std::vector<char>> operator|(Src&& src, seq::CollectVec)
         src.consume(n_to_consume);
     }
 
+    return seq::kContinue;
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// BufferSource | seq::collect_vec()
+//
+template <typename Src, typename = EnableIfBufferSource<Src>>
+inline StatusOr<std::vector<char>> operator|(Src&& src, seq::CollectVec)
+{
+    std::vector<char> bytes;
+
+    StatusOr<seq::LoopControl> result =
+        BATT_FORWARD(src) | seq::for_each([&bytes](const ConstBuffer& buffer) {
+            const char* data_begin = static_cast<const char*>(buffer.data());
+            const char* data_end = data_begin + buffer.size();
+            bytes.insert(bytes.end(), data_begin, data_end);
+        });
+
+    BATT_REQUIRE_OK(result);
+
     return bytes;
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// BufferSource | seq::print_out(out)
+//
+template <typename Src, typename = EnableIfBufferSource<Src>>
+inline Status operator|(Src&& src, seq::PrintOut p)
+{
+    return (BATT_FORWARD(src) | seq::for_each([&](const ConstBuffer& buffer) {
+                p.out.write(static_cast<const char*>(buffer.data()), buffer.size());
+            }))
+        .status();
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// BufferSource | seq::consume()
+
+template <typename Src, typename = EnableIfBufferSource<Src>>
+inline Status operator|(Src&& src, seq::Consume)
+{
+    StatusOr<seq::LoopControl> result = BATT_FORWARD(src) | seq::for_each([](auto&&...) noexcept {
+                                            // nom, nom, nom...
+                                        });
+    BATT_REQUIRE_OK(result);
+    BATT_CHECK_EQ(*result, seq::kContinue);
+
+    return OkStatus();
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+namespace seq {
+
+template <typename AsyncWriteStream>
+struct WriteToBinder {
+    AsyncWriteStream dst;
+};
+
+template <typename AsyncWriteStream>
+inline auto write_to(AsyncWriteStream&& dst)
+{
+    return WriteToBinder<AsyncWriteStream>{BATT_FORWARD(dst)};
+}
+
+}  // namespace seq
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// BufferSource | seq::write_to(async_write_stream)
+//
+template <typename Src, typename AsyncWriteStream, typename = EnableIfBufferSource<Src>>
+StatusOr<usize> operator|(Src&& src, seq::WriteToBinder<AsyncWriteStream>&& binder)
+{
+    usize bytes_transferred = 0;
+
+    for (;;) {
+        auto fetched = src.fetch_at_least(1);
+        if (fetched.status() == StatusCode::kEndOfStream) {
+            break;
+        }
+        BATT_REQUIRE_OK(fetched);
+
+        IOResult<usize> bytes_written = Task::await_write_some(binder.dst, *fetched);
+        BATT_REQUIRE_OK(bytes_written);
+
+        bytes_transferred += *bytes_written;
+        src.consume(*bytes_written);
+    }
+
+    return bytes_transferred;
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// BufferSource | seq::prepend(buffers)
+//
+
+template <typename Src, typename ConstBufferSequence>
+class PrependBufferSource
+{
+   public:
+    using BufferIter =
+        std::decay_t<decltype(boost::asio::buffer_sequence_begin(std::declval<ConstBufferSequence>()))>;
+
+    explicit PrependBufferSource(ConstBufferSequence&& buffers, Src&& rest) noexcept
+        : first_{BATT_FORWARD(buffers)}
+        , first_begin_{boost::asio::buffer_sequence_begin(this->first_)}
+        , first_end_{boost::asio::buffer_sequence_end(this->first_)}
+        , first_offset_{0}
+        , first_size_{boost::asio::buffer_size(this->first_)}
+        , rest_{BATT_FORWARD(rest)}
+    {
+        if (this->first_size_ == 0) {
+            this->first_begin_ = this->first_end_;
+        }
+    }
+
+    usize size() const
+    {
+        return this->first_size_ + this->rest_.size();
+    }
+
+    StatusOr<SmallVec<ConstBuffer, 3>> fetch_at_least(i64 min_count_i)
+    {
+        const usize min_count_z = BATT_CHECKED_CAST(usize, min_count_i);
+
+        SmallVec<ConstBuffer, 3> buffer(this->first_begin_, this->first_end_);
+        if (!buffer.empty()) {
+            buffer.front() += first_offset_;
+        }
+
+        const usize rest_min_count = min_count_z - std::min(this->first_size_, min_count_z);
+
+        auto fetched_from_rest = this->rest_.fetch_at_least(rest_min_count);
+        if (buffer.empty() || fetched_from_rest.status() != StatusCode::kEndOfStream) {
+            BATT_REQUIRE_OK(fetched_from_rest);
+        }
+
+        if (fetched_from_rest.ok()) {
+            buffer.insert(buffer.end(),  //
+                          boost::asio::buffer_sequence_begin(*fetched_from_rest),
+                          boost::asio::buffer_sequence_end(*fetched_from_rest));
+        }
+
+        return buffer;
+    }
+
+    void consume(i64 count_i)
+    {
+        const usize count_z = BATT_CHECKED_CAST(usize, count_i);
+        const usize consume_from_first = std::min(this->first_size_, count_z);
+        const usize consume_from_rest = count_z - consume_from_first;
+
+        std::tie(this->first_begin_, this->first_offset_) = consume_buffers_iter(
+            std::make_pair(this->first_begin_, this->first_offset_), this->first_end_, consume_from_first);
+        this->first_size_ -= consume_from_first;
+        if (consume_from_rest > 0) {
+            this->rest_.consume(consume_from_rest);
+        }
+    }
+
+    void close_for_read()
+    {
+        this->first_begin_ = this->first_end_;
+        this->first_size_ = 0;
+        this->rest_.close_for_read();
+    }
+
+   private:
+    ConstBufferSequence first_;
+    BufferIter first_begin_;
+    BufferIter first_end_;
+    usize first_offset_;
+    usize first_size_;
+    Src rest_;
+};
+
+template <typename Src, typename ConstBufferSequence,  //
+          typename = EnableIfBufferSource<Src>,        //
+          typename = EnableIfConstBufferSequence<ConstBufferSequence>>
+inline auto operator|(Src&& src, seq::PrependBinder<ConstBufferSequence>&& binder)
+{
+    return PrependBufferSource<Src, ConstBufferSequence>{BATT_FORWARD(binder.item), BATT_FORWARD(src)};
 }
 
 }  // namespace batt
 
 #endif  // BATTERIES_ASYNC_BUFFER_SOURCE_HPP
+
+#include <batteries/config.hpp>
+
+#if BATT_HEADER_ONLY
+#include <batteries/async/buffer_source_impl.hpp>
+#endif  // BATT_HEADER_ONLY

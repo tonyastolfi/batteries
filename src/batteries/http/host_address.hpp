@@ -1,9 +1,13 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_HTTP_HOST_ADDRESS_HPP
 #define BATTERIES_HTTP_HOST_ADDRESS_HPP
 
 #include <batteries/int_types.hpp>
 #include <batteries/optional.hpp>
+#include <batteries/stream_util.hpp>
 
 #include <boost/functional/hash.hpp>
 
@@ -14,7 +18,7 @@ namespace batt {
 struct HostAddress {
     std::string scheme;
     std::string hostname;
-    Optional<i32> port;
+    Optional<i64> port;
 
     friend usize hash_value(const HostAddress& host_key);
 };
@@ -35,6 +39,12 @@ inline bool operator==(const HostAddress& l, const HostAddress& r)
 inline bool operator!=(const HostAddress& l, const HostAddress& r)
 {
     return !(l == r);
+}
+
+inline std::ostream& operator<<(std::ostream& out, const HostAddress& t)
+{
+    return out << "HostAddress{.scheme=" << batt::c_str_literal(t.scheme)
+               << ", .hostname=" << batt::c_str_literal(t.hostname) << ", .port=" << t.port << ",}";
 }
 
 }  // namespace batt

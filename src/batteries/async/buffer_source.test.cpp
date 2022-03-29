@@ -42,7 +42,7 @@ TEST(BufferSourceTest, TakePrefix)
                 sb.consume(offset);
             }
 
-            auto sb_prefix = sb | batt::seq::take_n(prefix_size);
+            batt::BufferSource sb_prefix = sb | batt::seq::take_n(prefix_size);
 
             ASSERT_TRUE(sb.write_all(batt::ConstBuffer{kTestData.data(), kTestData.size()}).ok());
 
@@ -60,6 +60,38 @@ TEST(BufferSourceTest, TakePrefix)
                         ::testing::StrEq(kTestData.substr(0, std::min(prefix_size, kTestData.size()))));
         }
     }
+}
+
+TEST(BufferSourceTest, PrependBuffers)
+{
+    batt::StreamBuffer rest{1024};
+
+    const std::string first_str = "A penny saved... ";
+    const std::string second_str = "is a penny earned.";
+
+    {
+        batt::Status s = rest.write_all(batt::ConstBuffer{second_str.data(), second_str.size()});
+        ASSERT_TRUE(s.ok()) << s;
+
+        rest.close_for_write();
+    }
+
+    batt::BufferSource src = rest | batt::seq::prepend(batt::ConstBuffer{first_str.data(), first_str.size()});
+    batt::StatusOr<std::vector<char>> bytes = src | batt::seq::collect_vec();
+
+    ASSERT_TRUE(bytes.ok()) << bytes.status();
+    EXPECT_THAT((std::string_view{bytes->data(), bytes->size()}), ::testing::StrEq(first_str + second_str));
+}
+
+TEST(BufferSourceTest, PrependBuffersEndOfStream)
+{
+    batt::StreamBuffer empty_stream{64};
+    empty_stream.close_for_write();
+
+    auto src = empty_stream | batt::seq::prepend(batt::ConstBuffer{});
+    auto fetched = src.fetch_at_least(1);
+
+    EXPECT_EQ(fetched.status(), batt::StatusCode::kEndOfStream);
 }
 
 }  // namespace

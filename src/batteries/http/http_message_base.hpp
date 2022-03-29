@@ -1,3 +1,6 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_HTTP_HTTP_MESSAGE_BASE_HPP
 #define BATTERIES_HTTP_HTTP_MESSAGE_BASE_HPP
@@ -6,6 +9,8 @@
 #include <batteries/http/http_header.hpp>
 
 #include <batteries/async/channel.hpp>
+#include <batteries/async/pin.hpp>
+#include <batteries/async/task.hpp>
 #include <batteries/async/watch.hpp>
 
 #include <batteries/optional.hpp>
@@ -17,9 +22,11 @@
 namespace batt {
 
 template <typename T>
-class HttpMessageBase
+class HttpMessageBase : public Pinnable
 {
    public:
+    using Message = T;
+
     enum State {
         kCreated = 0,
         kInitialized = 1,
@@ -56,26 +63,26 @@ class HttpMessageBase
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
-    void async_set_message(T& message)
+    void async_set_message(Message& message)
     {
         this->message_.async_write(message, [](Status status) {
             status.IgnoreError();
         });
     }
 
-    Status await_set_message(T& message)
+    Status await_set_message(Message& message)
     {
         return this->message_.write(message);
     }
 
-    StatusOr<T&> await_message()
+    StatusOr<Message&> await_message()
     {
         return this->message_.read();
     }
 
-    T& await_message_or_panic()
+    Message& await_message_or_panic()
     {
-        StatusOr<T&> msg = this->await_message();
+        StatusOr<Message&> msg = this->await_message();
         BATT_CHECK_OK(msg);
         return *msg;
     }
@@ -131,7 +138,7 @@ class HttpMessageBase
 
     Watch<i32> state_{kCreated};
 
-    Channel<T> message_;
+    Channel<Message> message_;
 
     Channel<HttpData> data_;
 };

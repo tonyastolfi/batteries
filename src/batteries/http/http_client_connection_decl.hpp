@@ -1,9 +1,15 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_HTTP_HTTP_CLIENT_CONNECTION_DECL_HPP
 #define BATTERIES_HTTP_HTTP_CLIENT_CONNECTION_DECL_HPP
 
+#include <batteries/http/http_data.hpp>
+#include <batteries/http/http_request.hpp>
 #include <batteries/http/http_response.hpp>
 
+#include <batteries/async/buffer_source.hpp>
 #include <batteries/async/queue.hpp>
 #include <batteries/async/stream_buffer.hpp>
 
@@ -25,6 +31,8 @@ class HttpClientConnection
         {
             return this->content_length || this->chunked_encoding || !this->keep_alive;
         }
+
+        HttpData get_data(StreamBuffer& input_buffer);
 
         Optional<usize> content_length;
         bool keep_alive;
@@ -59,7 +67,7 @@ class HttpClientConnection
 
     boost::asio::ip::tcp::socket socket_;
 
-    Queue<HttpResponse*> response_queue_;
+    Queue<Pin<HttpResponse>> response_queue_;
 
     StreamBuffer input_buffer_{16 * 1024};
 

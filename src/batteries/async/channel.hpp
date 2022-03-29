@@ -80,13 +80,13 @@ void Channel<T>::async_write(T& value, Handler&& handler)
 
     BATT_CHECK_EQ(last_seen + 1, target);
 
-    this->write_count_.async_wait(
+    this->read_count_.async_wait(
         last_seen,
         bind_handler(BATT_FORWARD(handler), [this, target](auto&& handler, StatusOr<i32> observed) {
-            this->value_ = nullptr;
             if (observed.ok()) {
                 BATT_CHECK_EQ(target, *observed);
             }
+            this->value_ = nullptr;
             handler(observed.status());
         }));
 }
@@ -116,6 +116,7 @@ template <typename T>
 inline void Channel<T>::consume()
 {
     BATT_CHECK(this->is_active());
+    this->value_ = nullptr;
     this->read_count_.fetch_add(1);
 }
 
@@ -131,13 +132,9 @@ inline Status Channel<T>::write(T& value)
     }
 
     this->value_ = &value;
-    auto on_scope_exit = finally([&] {
-        this->value_ = nullptr;
-    });
-
     const i32 target = this->write_count_.fetch_add(1) + 1;
 
-    StatusOr<i32> consumed = this->read_count_.await_equal(target);
+    Status consumed = this->read_count_.await_equal(target);
     BATT_REQUIRE_OK(consumed);
 
     return OkStatus();

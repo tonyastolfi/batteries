@@ -81,6 +81,8 @@ class Task
 
     BATT_STRONG_TYPEDEF_WITH_DEFAULT(i32, Priority, 0);
 
+    BATT_STRONG_TYPEDEF(bool, IsDone);
+
     using executor_type = boost::asio::any_io_executor;
 
     using AllTaskList = boost::intrusive::list<Task, boost::intrusive::constant_time_size<false>>;
@@ -157,21 +159,23 @@ class Task
     static constexpr bool is_ready_state(state_type state)
     {
         return
-            // The task must be suspended, but not terminated.
+            // The task must be suspended but not terminated.
             //
-            ((state & (kSuspended | kTerminated)) == kSuspended) &&
+            ((state & (kSuspended | kTerminated)) == kSuspended)
 
-            (  // *Either* task is not waiting for a signal...
-               //
-                (state & (kNeedSignal | kHaveSignal)) == 0 ||
+            && (  // *Either* task is not waiting for a signal...
+                  //
+                   (state & (kNeedSignal | kHaveSignal)) == 0 ||
 
-                // ...*Or* task was waiting for a signal, and it received one.
-                //
-                (state & (kNeedSignal | kHaveSignal)) == (kNeedSignal | kHaveSignal)) &&
+                   // ...*Or* task was waiting for a signal, and it received one.
+                   //
+                   (state & (kNeedSignal | kHaveSignal)) == (kNeedSignal | kHaveSignal)  //
+
+                   )
 
             // The stack trace flag is not set.
             //
-            ((state & kStackTrace) == 0);
+            && ((state & kStackTrace) == 0);
     }
 
     // Returns true if the passed state represents a fully terminated task.
@@ -405,7 +409,7 @@ class Task
             [body_fn = ::batt::make_optional(BATT_FORWARD(body_fn)), this](Continuation&& parent) mutable {
                 auto work_guard = boost::asio::make_work_guard(this->ex_);
 
-                this->pre_entry(std::move(parent));
+                this->pre_body_fn_entry(std::move(parent));
 
                 try {
                     (*body_fn)();
@@ -420,7 +424,7 @@ class Task
                 }
                 body_fn = None;
 
-                return this->post_exit();
+                return this->post_body_fn_exit();
             });
 
         {
@@ -428,7 +432,7 @@ class Task
             all_tasks().push_back(*this);
         }
 
-        this->handle_event(kSuspended);
+        this->handle_event(kSuspended | kHaveSignal);
     }
 
     ~Task() noexcept;
@@ -459,7 +463,7 @@ class Task
 
     void join();
 
-    bool try_join();
+    IsDone try_join();
 
     bool wake();
 
@@ -468,10 +472,12 @@ class Task
         return this->ex_;
     }
 
+    IsDone is_done() const;
+
     template <typename F = void()>
     void call_when_done(F&& handler)
     {
-        if (this->state_.load() & kTerminated) {
+        if (this->is_done()) {
             BATT_FORWARD(handler)();
             return;
         }
@@ -515,28 +521,31 @@ class Task
        public:
         static void activate_task(Task* t);
 
+        static Task* get_current_task();
+
        private:
         static Trampoline& per_thread_instance();
 
         Task* next_to_run_ = nullptr;
+        Task* current_task_ = nullptr;
     };
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
     static i32 next_id();
 
-    static Task*& current_ptr();
+    static Task* current_ptr();
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
     // Invoked in the task's context prior to entering the task function; yields control back to the parent
     // context, ensuring that the task function is invoked via the executor.
     //
-    void pre_entry(Continuation&& parent) noexcept;
+    void pre_body_fn_entry(Continuation&& parent) noexcept;
 
     // Invoked in the task's context after the task function returns.
     //
-    Continuation post_exit() noexcept;
+    Continuation post_body_fn_exit() noexcept;
 
     // Suspend the task, resuming the parent context.
     //
@@ -559,7 +568,7 @@ class Task
     // rather they directly call resume_impl after atomically setting the kStackTrace bit (conditional on the
     // thread *not* being in a running, ready-to-run, or terminal state).
     //
-    void run();
+    IsDone run();
 
     // Switch the current thread context to the task and resume execution.
     //
@@ -631,33 +640,63 @@ class Task
 
     // Activate this task via boost::asio::post.
     //
-    void post_activation();
+    void activate_via_post();
 
     // Activate this task via boost::asio::dispatchx.
     //
-    void dispatch_activation();
+    void activate_via_dispatch();
 
-    // Create an activation completion handler for use inside `post_activation`, `dispatch_activation`, etc.
+    // Create an activation completion handler for use inside `activate_via_post`, `activate_via_dispatch`,
+    // etc.
     //
     auto make_activation_handler(bool via_post);
 
+    // Unconditionally removes completion handlers from `this` and runs them on the current thread/task.
+    //
+    void run_completion_handlers();
+
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
+    // Process-unique serial id number for this Task; automatically assigned at construction time.
+    //
     const i32 id_ = next_id();
+
+    // Human-readable (non-unique) name for this Task; passed in at construction time.
+    //
     const std::string name_;
+
+    // The (Boost.Async) Executor used to activate/schedule this task.
+    //
     executor_type ex_;
+
+    // The most recent context from which this Task was activated/scheduled.  If this is non-empty, then the
+    // task is active/running.  At most one of `scheduler_` and `self_` are non-empty at any given time.
+    //
     Continuation scheduler_;
+
+    // The current (suspended) context of this Task.  If this is non-copy, then the task is suspended/waiting.
+    // At most one of `scheduler_` and `self_` are non-empty at any given time.
+    //
     Continuation self_;
-    std::atomic<state_type> state_{kSuspended};
+
+    // Contains all spin lock bits and run-state information for this task.  Initially set to `kNeedSignal`
+    // because the task must receive the "go" signal before it can enter normal operation.
+    //
+    std::atomic<state_type> state_{kNeedSignal};
+
+    // The current advisory priority for this task.  Higher numeric values signify more urgent priority.
+    //
     std::atomic<Priority::value_type> priority_;
-    Promise<NoneType> promise_;
+
     Optional<boost::asio::deadline_timer> sleep_timer_;
+
     Optional<boost::stacktrace::stacktrace> stack_trace_;
+
     HandlerList<> completion_handlers_;
+
     HandlerMemory<kHandlerMemoryBytes> activate_memory_;
+
     const volatile u8* stack_base_ = nullptr;
-    // TODO [tastolfi 2021-10-18]
-    //    std::atomic<DebugTrace*> debug_trace_{nullptr};
 
     bool is_preempted_ = false;
 };

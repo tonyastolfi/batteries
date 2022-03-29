@@ -5,11 +5,13 @@
 #ifndef BATTERIES_ASYNC_IO_RESULT_HPP
 #define BATTERIES_ASYNC_IO_RESULT_HPP
 
+#include <batteries/assert.hpp>
 #include <batteries/status.hpp>
 #include <batteries/utility.hpp>
 
 #include <boost/system/error_code.hpp>
 
+#include <ostream>
 #include <tuple>
 #include <type_traits>
 
@@ -74,6 +76,13 @@ class IOResult
     ErrorCode ec_;
     value_type value_;
 };
+
+template <typename... Ts>
+inline std::ostream& operator<<(std::ostream& out, const IOResult<Ts...>& t)
+{
+    return out << "IOResult{.error=" << t.error() << "(" << t.error().message()
+               << "), .value=" << make_printable(t.value()) << ",}";
+}
 
 template <typename... Ts>
 bool is_ok_status(const IOResult<Ts...>& io_result)

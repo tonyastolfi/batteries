@@ -1,3 +1,6 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_HTTP_HTTP_CLIENT_HOST_CONTEXT_IMPL_HPP
 #define BATTERIES_HTTP_HTTP_CLIENT_HOST_CONTEXT_IMPL_HPP

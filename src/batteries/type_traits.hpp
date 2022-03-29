@@ -200,4 +200,6 @@ auto name_of(batt::StaticType<T> = {})
     return abi::__cxa_demangle(typeid(T).name(), NULL, NULL, &status);
 }
 
+// =============================================================================
+
 }  // namespace batt

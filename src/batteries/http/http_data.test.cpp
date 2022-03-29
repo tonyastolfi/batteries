@@ -1,3 +1,6 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #include <batteries/http/http_data.hpp>
 //
 #include <batteries/http/http_data.hpp>
@@ -6,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include <batteries/http/http_chunk_decoder.hpp>
+#include <batteries/http/http_chunk_encoder.hpp>
 
 #include <boost/asio/bind_executor.hpp>
 

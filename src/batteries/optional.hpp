@@ -116,8 +116,10 @@ class Optional
               typename = batt::EnableIfNoShadow<Optional, U> >
     Optional(Optional<U>&& u) noexcept : valid_{false}
     {
-        new (&this->storage_) T(std::move(*u));
-        valid_ = true;
+        if (u) {
+            new (&this->storage_) T(std::move(*u));
+            valid_ = true;
+        }
     }
 
     template <typename U,
@@ -125,8 +127,10 @@ class Optional
               typename = batt::EnableIfNoShadow<Optional, U> >
     Optional(const Optional<U>& u) noexcept : valid_{false}
     {
-        new (&this->storage_) T(*u);
-        valid_ = true;
+        if (u) {
+            new (&this->storage_) T(*u);
+            valid_ = true;
+        }
     }
 
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<T, Args&&...> >,

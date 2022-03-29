@@ -1,3 +1,6 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_HTTP_HTTP_CLIENT_HOST_CONTEXT_DECL_HPP
 #define BATTERIES_HTTP_HTTP_CLIENT_HOST_CONTEXT_DECL_HPP
@@ -36,9 +39,9 @@ class HttpClientHostContext : public RefCounted<HttpClientHostContext>
 
     boost::asio::io_context& get_io_context();
 
-    Status submit_request(HttpRequest* request, HttpResponse* response)
+    Status submit_request(Pin<HttpRequest>&& request, Pin<HttpResponse>&& response)
     {
-        this->request_queue_.push(std::make_tuple(request, response));
+        this->request_queue_.push(std::make_tuple(std::move(request), std::move(response)));
         return OkStatus();
     }
 
@@ -57,7 +60,12 @@ class HttpClientHostContext : public RefCounted<HttpClientHostContext>
         return this->host_address_;
     }
 
-    // private:
+    StatusOr<std::tuple<Pin<HttpRequest>, Pin<HttpResponse>>> await_next_request()
+    {
+        return this->request_queue_.await_next();
+    }
+
+   private:
     void host_task_main();
 
     void create_connection();
@@ -68,7 +76,7 @@ class HttpClientHostContext : public RefCounted<HttpClientHostContext>
 
     HostAddress host_address_;
 
-    Queue<std::tuple<HttpRequest*, HttpResponse*>> request_queue_;
+    Queue<std::tuple<Pin<HttpRequest>, Pin<HttpResponse>>> request_queue_;
 
     Watch<usize> max_connections_{HttpClientHostContext::kDefaultMaxConnections};
 

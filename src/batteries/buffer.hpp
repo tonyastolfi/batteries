@@ -63,6 +63,28 @@ inline void consume_buffers(VecT& buffers, usize count)
     }
 }
 
+template <typename Iter>
+inline std::pair<Iter, usize /*offset*/> consume_buffers_iter(const std::pair<Iter, usize /*offset*/>& pos,
+                                                              const Iter& last, usize count)
+{
+    Iter first = pos.first;
+    usize offset = pos.second;
+
+    while (count > 0 && first != last) {
+        ConstBuffer front{*first};
+        front += offset;
+        offset = 0;
+
+        if (front.size() > count) {
+            return std::make_pair(first, count);
+        }
+
+        count -= front.size();
+        ++first;
+    }
+    return std::make_pair(first, 0);
+}
+
 template <typename VecT>
 inline VecT consume_buffers_copy(const VecT& buffers, usize count)
 {

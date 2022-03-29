@@ -193,6 +193,9 @@ class WatchAtomic
         }
 
         invoke_all_handlers(&local_observers, this->get_final_status());
+        //
+        // IMPORTANT: Nothing can come after invoking observers, since we must allow one observer to delete
+        // the WatchAtomic object (`this`).
     }
 
     bool is_closed() const

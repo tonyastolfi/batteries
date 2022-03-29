@@ -1,6 +1,11 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_HTTP_REQUEST_HPP
 #define BATTERIES_HTTP_REQUEST_HPP
+
+#include <batteries/async/buffer_source.hpp>
 
 #include <batteries/http/http_data.hpp>
 #include <batteries/http/http_header.hpp>
@@ -8,6 +13,7 @@
 
 #include <batteries/int_types.hpp>
 #include <batteries/status.hpp>
+#include <batteries/stream_util.hpp>
 
 #include <string_view>
 
@@ -21,81 +27,27 @@ class HttpRequest : public HttpMessageBase<pico_http::Request>
     template <typename AsyncWriteStream>
     Status serialize(AsyncWriteStream& stream)
     {
-        const StatusOr<std::string> msg = [&]() -> StatusOr<std::string> {
-            StatusOr<pico_http::Request&> message = this->await_message();
-            BATT_REQUIRE_OK(message);
+        StatusOr<pico_http::Request&> message = this->await_message();
+        BATT_REQUIRE_OK(message);
 
-            //----- --- -- -  -  -   -
-            auto on_scope_exit = finally([&] {
-                this->release_message();
-            });
-            //----- --- -- -  -  -   -
-
-            std::ostringstream oss;
-
-            oss << message->method << " " << message->path  //
-                << " HTTP/" << message->major_version << "." << message->minor_version << "\r\n";
-
-            for (const HttpHeader& hdr : message->headers) {
-                oss << hdr.name << ": " << hdr.value << "\r\n";
-            }
-
-            oss << "\r\n";
-            return std::move(oss).str();
-        }();
-        BATT_REQUIRE_OK(msg);
-
-        usize n_unsent_msg = msg->size();
-
-        SmallVec<ConstBuffer, 3> buffer;
-        buffer.emplace_back(ConstBuffer{msg->data(), msg->size()});
+        const std::string message_str = to_string(*message);
+        this->release_message();
 
         StatusOr<HttpData&> data = this->await_data();
+        BATT_REQUIRE_OK(data);
+
         //----- --- -- -  -  -   -
         auto on_scope_exit = finally([&] {
             this->release_data();
         });
         //----- --- -- -  -  -
 
-        for (;;) {
-            StatusOr<SmallVec<ConstBuffer, 2>> payload = fetch_http_data(*data);
-            BATT_REQUIRE_OK(payload);
+        StatusOr<usize> bytes_written =               //
+            *data                                     //
+            | seq::prepend(make_buffer(message_str))  //
+            | seq::write_to(stream);
 
-            if (payload->empty() && buffer.empty()) {
-                break;
-            }
-
-            buffer.insert(buffer.end(), payload->begin(), payload->end());
-
-            auto n_written = Task::await<IOResult<usize>>([&](auto&& handler) {
-                stream.async_write_some(buffer, BATT_FORWARD(handler));
-            });
-            BATT_REQUIRE_OK(n_written);
-
-            const usize n_msg_to_consume = std::min(n_unsent_msg, *n_written);
-            const usize n_data_to_consume = *n_written - n_msg_to_consume;
-
-            // Trim the fetched data; we will consume it directly from the data src.
-            //
-            BATT_CHECK(!buffer.empty());
-            buffer.erase(buffer.begin() + 1, buffer.end());
-
-            // If we are still consuming message data, do so now.
-            //
-            if (n_msg_to_consume) {
-                BATT_CHECK(!buffer.empty());
-                buffer[0] += n_msg_to_consume;
-                if (buffer[0].size() == 0) {
-                    buffer.clear();
-                }
-            }
-
-            // Consume payload data.
-            //
-            consume_http_data(*data, n_data_to_consume);
-        }
-        // TODO [tastolfi 2022-03-16] use chunked encoding or close connection if content-length not
-        // given.
+        BATT_REQUIRE_OK(bytes_written);
 
         return OkStatus();
     }

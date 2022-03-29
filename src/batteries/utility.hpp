@@ -109,4 +109,39 @@ void make_default()
 {
 }
 
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+template <typename T>
+T&& unwrap_ref(T&& obj)
+{
+    return BATT_FORWARD(obj);
+}
+
+template <typename T>
+T& unwrap_ref(const std::reference_wrapper<T>& wrapper)
+{
+    return wrapper.get();
+}
+
+template <typename T>
+T& unwrap_ref(std::reference_wrapper<T>&& wrapper)
+{
+    return wrapper.get();
+}
+
+template <typename T>
+T& unwrap_ref(std::reference_wrapper<T>& wrapper)
+{
+    return wrapper.get();
+}
+
+template <typename T>
+T& unwrap_ref(const std::reference_wrapper<T>&& wrapper)
+{
+    return wrapper.get();
+}
+
+template <typename T>
+using UnwrapRefType = decltype(unwrap_ref(std::declval<T>()));
+
 }  // namespace batt

@@ -51,6 +51,9 @@ struct MessageHeader {
     std::string_view value;
 };
 
+std::ostream& operator<<(std::ostream& out, const MessageHeader& t);
+std::ostream& operator<<(std::ostream& out, const batt::SmallVecBase<MessageHeader>& t);
+
 constexpr usize kDefaultNumHeaders = 16;
 
 constexpr int kParseOk = 0;
@@ -77,6 +80,8 @@ struct Request {
     }
 };
 
+std::ostream& operator<<(std::ostream& out, const Request& t);
+
 struct Response {
     int major_version;
     int minor_version;
@@ -96,6 +101,8 @@ struct Response {
         return this->parse(static_cast<const char*>(buf.data()), buf.size());
     }
 };
+
+std::ostream& operator<<(std::ostream& out, const Response& t);
 
 /* returns number of bytes consumed if successful, kParseIncomplete if request is partial,
  * kParseFailed if failed

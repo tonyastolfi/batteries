@@ -228,7 +228,11 @@ StatusOr<SmallVec<BufferType, 2>> StreamBuffer::pre_transfer(i64 min_count, Watc
         const StatusOr<i64> result = moving_pos.await_true([min_target](i64 observed) {  //
             return observed >= min_target;
         });
-        BATT_REQUIRE_OK(result);
+        if (!result.ok()) {
+            if (result.status() != StatusCode::kEndOfStream || moving_pos.get_value() < min_target) {
+                return result.status();
+            }
+        }
 
         if (BATT_HINT_FALSE(moving_pos_observed != nullptr)) {
             *moving_pos_observed = *result;

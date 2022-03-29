@@ -1,7 +1,11 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_HTTP_HTTP_CLIENT_CONNECTION_IMPL_HPP
 #define BATTERIES_HTTP_HTTP_CLIENT_CONNECTION_IMPL_HPP
 
+#include <batteries/http/http_chunk_decoder.hpp>
 #include <batteries/http/http_client_connection.hpp>
 #include <batteries/http/http_client_host_context.hpp>
 
@@ -12,7 +16,7 @@ namespace batt {
 BATT_INLINE_IMPL /*explicit*/ HttpClientConnection::HttpClientConnection(
     HttpClientHostContext& context) noexcept
     : context_{context}
-    , socket_{this->context_.client_.io_}
+    , socket_{this->context_.get_io_context()}
 {
 }
 
@@ -34,16 +38,11 @@ BATT_INLINE_IMPL void HttpClientConnection::start()
                                        this->process_requests().IgnoreError();
                                    }};
 
-        Task fill_input_buffer_task{executor, [this] {
-                                        this->fill_input_buffer().IgnoreError();
-                                    }};
-
         Task process_responses_task{executor, [this] {
                                         this->process_responses().IgnoreError();
                                     }};
 
         process_requests_task.join();
-        fill_input_buffer_task.join();
         process_responses_task.join();
     });
 }
@@ -80,28 +79,29 @@ BATT_INLINE_IMPL Status HttpClientConnection::open_connection()
 //
 BATT_INLINE_IMPL Status HttpClientConnection::process_requests()
 {
-    auto on_exit = finally([this] {
+    Optional<Task> fill_input_buffer_task;
+
+    auto on_exit = finally([this, &fill_input_buffer_task] {
         boost::system::error_code ec;
         this->socket_.shutdown(boost::asio::socket_base::shutdown_send, ec);
         this->response_queue_.close();
+
+        if (fill_input_buffer_task) {
+            fill_input_buffer_task->join();
+        }
     });
 
     bool connected = false;
 
     for (;;) {
-        using RequestTuple = std::tuple<HttpRequest*, HttpResponse*>;
-        BATT_ASSIGN_OK_RESULT(RequestTuple next, this->context_.request_queue_.await_next());
+        Pin<HttpRequest> request;
+        Pin<HttpResponse> response;
 
-        HttpRequest* request = nullptr;
-        HttpResponse* response = nullptr;
-        std::tie(request, response) = next;
+        BATT_ASSIGN_OK_RESULT(std::tie(request, response), this->context_.await_next_request());
 
         BATT_CHECK_NOT_NULLPTR(request);
         BATT_CHECK_NOT_NULLPTR(response);
-
-        auto on_scope_exit = batt::finally([&] {
-            request->state().set_value(HttpRequest::kConsumed);
-        });
+        BATT_CHECK_EQ(request->state().get_value(), HttpRequest::kInitialized);
 
         if (!connected) {
             Status status = this->open_connection();
@@ -111,12 +111,18 @@ BATT_INLINE_IMPL Status HttpClientConnection::process_requests()
             }
             BATT_REQUIRE_OK(status);
             connected = true;
+
+            fill_input_buffer_task.emplace(Task::current().get_executor(), [this] {
+                this->fill_input_buffer().IgnoreError();
+            });
         }
 
         this->response_queue_.push(response);
 
         Status status = request->serialize(this->socket_);
         BATT_REQUIRE_OK(status);
+
+        request->state().set_value(HttpRequest::kConsumed);
     }
 }
 
@@ -132,7 +138,6 @@ BATT_INLINE_IMPL Status HttpClientConnection::fill_input_buffer()
         // Allocate some space in the input buffer for incoming data.
         //
         StatusOr<SmallVec<MutableBuffer, 2>> buffer = this->input_buffer_.prepare_at_least(1);
-
         BATT_REQUIRE_OK(buffer);
 
         // Read data from the socket into the buffer.
@@ -140,7 +145,6 @@ BATT_INLINE_IMPL Status HttpClientConnection::fill_input_buffer()
         auto n_read = Task::await<IOResult<usize>>([&](auto&& handler) {
             this->socket_.async_read_some(*buffer, BATT_FORWARD(handler));
         });
-
         BATT_REQUIRE_OK(n_read);
 
         // Assuming we were successful, commit the read data so it can be consumed by the parser task.
@@ -158,20 +162,24 @@ BATT_INLINE_IMPL Status HttpClientConnection::process_responses()
     });
 
     for (;;) {
-        BATT_ASSIGN_OK_RESULT(HttpResponse* const response, this->response_queue_.await_next());
+        BATT_ASSIGN_OK_RESULT(Pin<HttpResponse> const response, this->response_queue_.await_next());
         BATT_CHECK_NOT_NULLPTR(response);
-
-        auto on_scope_exit = batt::finally([&] {
-            response->state().set_value(HttpResponse::kConsumed);
-        });
 
         pico_http::Response response_message;
         StatusOr<i32> message_length = this->read_next_response(response_message);
         BATT_REQUIRE_OK(message_length);
 
+        ResponseInfo response_info(response_message);
+        if (!response_info.is_valid()) {
+            response->update_status(StatusCode::kInvalidArgument);
+            response->state().close();
+            return StatusCode::kInvalidArgument;
+        }
+
+        response->state().set_value(HttpResponse::kInitialized);
+
         // Pass control over to the consumer and wait for it to signal it is done reading the message headers.
         //
-        response->state().set_value(HttpResponse::kInitialized);
         Status message_consumed = response->await_set_message(response_message);
         BATT_REQUIRE_OK(message_consumed);
 
@@ -179,11 +187,23 @@ BATT_INLINE_IMPL Status HttpClientConnection::process_responses()
         //
         this->input_buffer_.consume(*message_length);
 
-        //        Status data_read = this->read_response_data(next_state, *response_info);
-        //        BATT_REQUIRE_OK(data_read);
-        BATT_PANIC() << "TODO [tastolfi 2022-03-23] implement reading response data!";
+        HttpData response_data{response_info.get_data(this->input_buffer_)};
+        response->await_set_data(response_data).IgnoreError();
+        //
+        // We must not touch `response` after `await_set_data` returns!
+
+        // If we are going to keep the connection alive, we must consume any extra data that wasn't read by
+        // the application.  Otherwise we just close it.
+        //
+        if (response_info.keep_alive) {
+            Status data_consumed = std::move(response_data) | seq::consume();
+            BATT_REQUIRE_OK(data_consumed);
+        } else {
+            boost::system::error_code ec;
+            this->socket_.close(ec);
+            return OkStatus();
+        }
     }
-    return OkStatus();
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -218,6 +238,16 @@ BATT_INLINE_IMPL StatusOr<i32> HttpClientConnection::read_next_response(pico_htt
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
+BATT_INLINE_IMPL void HttpClientConnection::join()
+{
+    if (this->task_) {
+        this->task_->join();
+        this->task_ = None;
+    }
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
 HttpClientConnection::ResponseInfo::ResponseInfo(const pico_http::Response& response)
     : content_length{find_header(response.headers, "Content-Length").flat_map([](std::string_view s) {
         return Optional{from_string<usize>(std::string(s))};
@@ -236,82 +266,29 @@ HttpClientConnection::ResponseInfo::ResponseInfo(const pico_http::Response& resp
 {
 }
 
-#if 0
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL Status HttpClientConnection::read_response_data(StatusOr<i32> next_state,
-                                                                 const ResponseInfo& info,
-                                                                 HttpClientResponse& response)
+HttpData HttpClientConnection::ResponseInfo::get_data(StreamBuffer& input_buffer)
 {
-    BATT_REQUIRE_OK(next_state);
-
-    usize consumed_byte_count = 0;
-    bool last_chunk_consumed = false;
-    bool done = false;
-
-    // Response data reading loop.
-    //
-    while (!done) {
-        if (info.content_length && consumed_byte_count == *info.content_length) {
-            last_chunk_consumed = true;
-        }
-
-        switch (*next_state) {
-        case HttpClientResponse::kReadyForChunk: {
-            ConstBuffer next_chunk = fetched->front();
-            if (last_chunk_consumed) {
-                response.chunk_data_ = {};  // empty buffer
+    return HttpData{[&]() -> BufferSource {
+        if (this->content_length == None) {
+            if (this->chunked_encoding) {
+                return HttpChunkDecoder<StreamBuffer&>{input_buffer};
             } else {
-                StatusOr<SmallVec<ConstBuffer, 2>> fetched = this->input_buffer_.fetch_at_least(1);
-                BATT_REQUIRE_OK(fetched);
-
-                if (info.chunked_encoding) {
-                    BATT_PANIC() << "TODO [tastolfi 2022-03-18] ";
-                }
-                BATT_CHECK(!fetched->empty());
-
-                next_chunk = fetched->front();
-                if (info.content_length) {
-                    next_chunk = resize_buffer(next_chunk, *info.content_length - consumed_byte_count);
+                if (this->keep_alive) {
+                    return BufferSource{};
+                } else {
+                    return std::ref(input_buffer);
                 }
             }
-
-            // Pass control to the request task and wait for it to signal us.
-            //
-            response.chunk_data_ = next_chunk;
-            response.state_.set_value(HttpClientResponse::kReadingChunk);
-            next_state = response.state_.await_not_equal(HttpClientResponse::kReadingChunk);
-            BATT_REQUIRE_OK(next_state);
-
-            consumed_byte_count += response.chunk_data_.size();
-            this->input_buffer_.consume(response.chunk_data_.size());
-            break;
+        } else {
+            if (this->chunked_encoding) {
+                return HttpChunkDecoder<StreamBuffer&>{input_buffer} | seq::take_n(*this->content_length);
+            } else {
+                return input_buffer | seq::take_n(*this->content_length);
+            }
         }
-        case HttpClientResponse::kReadyToRelease:
-            BATT_CHECK(last_chunk_consumed);
-            done = true;
-            break;
-
-        case HttpClientResponse::kWaiting:
-        case HttpClientResponse::kReceived:
-        case HttpClientResponse::kReadingChunk:
-        case HttpClientResponse::kReleased:
-        default:
-            BATT_PANIC() << "Illegal state transition for HttpClientResponse!";
-            break;
-        }
-    }
-}
-#endif
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-//
-BATT_INLINE_IMPL void HttpClientConnection::join()
-{
-    if (this->task_) {
-        this->task_->join();
-        this->task_ = None;
-    }
+    }()};
 }
 
 }  // namespace batt
