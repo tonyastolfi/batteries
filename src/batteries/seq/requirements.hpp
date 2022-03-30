@@ -1,3 +1,6 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_SEQ_REQUIREMENTS_HPP
 #define BATTERIES_SEQ_REQUIREMENTS_HPP
@@ -15,10 +18,10 @@ inline std::false_type has_seq_requirements_impl(...)
     return {};
 }
 
-template <typename T, typename ItemT = typename T::Item,
-          typename = std::enable_if_t<                                                //
-              std::is_same_v<decltype(std::declval<T>().next()), Optional<ItemT>> &&  //
-              std::is_same_v<decltype(std::declval<T>().peek()), Optional<ItemT>>     //
+template <typename T, typename ItemT = typename std::decay_t<T>::Item,
+          typename = std::enable_if_t<                                                       //
+              std::is_convertible_v<decltype(std::declval<T>().next()), Optional<ItemT>> &&  //
+              std::is_convertible_v<decltype(std::declval<T>().peek()), Optional<ItemT>>     //
               >>
 inline std::true_type has_seq_requirements_impl(std::decay_t<T>*)
 {

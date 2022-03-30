@@ -5,6 +5,7 @@
 #define BATTERIES_STATE_MACHINE_MODEL_HPP
 
 #include <batteries/assert.hpp>
+#include <batteries/async/debug_info.hpp>
 #include <batteries/async/fake_executor.hpp>
 #include <batteries/async/mutex.hpp>
 #include <batteries/async/queue.hpp>
@@ -16,6 +17,7 @@
 
 #include <array>
 #include <atomic>
+#include <bitset>
 #include <chrono>
 #include <deque>
 #include <unordered_map>
@@ -51,6 +53,7 @@ struct StateMachineResult {
     double states_per_second = 0.0;
     double branch_pop_per_second = 0.0;
     double branch_push_per_second = 0.0;
+    std::bitset<64> shards{0};
 
     void update_elapsed_time()
     {
@@ -85,6 +88,7 @@ inline StateMachineResult combine_results(const StateMachineResult& a, const Sta
     c.self_branch_count = a.self_branch_count + b.self_branch_count;
     c.elapsed_ms = std::max(a.elapsed_ms, b.elapsed_ms);
     c.start_time = std::chrono::steady_clock::now() - std::chrono::milliseconds(c.elapsed_ms);
+    c.shards = a.shards | b.shards;
     c.update_rates();
 
     return c;
@@ -104,7 +108,9 @@ inline std::ostream& operator<<(std::ostream& out, const StateMachineResult& r)
                << ", .states_per_second=" << r.states_per_second            //
                << ", .branch_push_per_second=" << r.branch_push_per_second  //
                << ", .branch_pop_per_second=" << r.branch_pop_per_second    //
-               << ", .elapsed_ms=" << r.elapsed_ms << ",}";
+               << ", .elapsed_ms=" << r.elapsed_ms                          //
+               << ", .shards=" << r.shards                                  //
+               << ",}";
 }
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
@@ -219,6 +225,8 @@ class StateMachineModel
     {
         return this->visited_.count(s) != 0;
     }
+
+    std::shared_ptr<std::ostringstream> debug_out = std::make_shared<std::ostringstream>();
 
    protected:
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -363,7 +371,13 @@ inline std::ostream& operator<<(std::ostream& out, const ModelCheckShardMetrics&
 }
 
 template <typename Branch>
-struct ParallelModelCheckState {
+class ParallelModelCheckState
+{
+   public:
+    static constexpr u64 kStallEpochUnit = u64{1} << 32;
+    static constexpr u64 kStallCountMask = kStallEpochUnit - 1;
+    static constexpr u64 kStallEpochMask = ~kStallCountMask;
+
     using ShardMetrics = ModelCheckShardMetrics;
 
     explicit ParallelModelCheckState(usize n_shards)
@@ -376,19 +390,21 @@ struct ParallelModelCheckState {
         BATT_CHECK_EQ(this->stalled.size(), this->shard_count);
         BATT_CHECK_EQ(this->recv_queues.size(), this->shard_count);
         BATT_CHECK_EQ(this->send_queues.size(), this->shard_count);
+        BATT_CHECK_EQ(this->shard_metrics.size(), this->shard_count);
 
-        for (auto& stalled_per_other : this->stalled) {
+        for (std::unique_ptr<std::atomic<bool>[]>& stalled_per_other : this->stalled) {
             stalled_per_other.reset(new std::atomic<bool>[this->shard_count]);
             for (usize i = 0; i < this->shard_count; ++i) {
                 stalled_per_other[i].store(false);
             }
         }
 
-        for (auto& recv_queues_per_dst : this->recv_queues) {
+        for (std::unique_ptr<Queue<std::vector<Branch>>>& recv_queues_per_dst : this->recv_queues) {
             recv_queues_per_dst.reset(new Queue<std::vector<Branch>>{});
         }
 
-        for (auto& send_queues_per_src : this->send_queues) {
+        for (CpuCacheLineIsolated<std::vector<std::vector<Branch>>>&  //
+                 send_queues_per_src : this->send_queues) {
             send_queues_per_src->resize(this->shard_count);
         }
     }
@@ -412,9 +428,7 @@ struct ParallelModelCheckState {
         if (this->stalled[src_i][dst_i].load()) {
             std::vector<Branch> to_send;
             std::swap(to_send, src_dst_send_queue);
-            if (this->recv_queues[dst_i]->push(std::move(to_send))) {
-                this->queue_push_count.fetch_add(1);
-            }
+            this->queue_push(dst_i, std::move(to_send));
         }
     }
 
@@ -432,10 +446,21 @@ struct ParallelModelCheckState {
             this->metrics(src_i).flush_count += 1;
             std::vector<Branch> to_send;
             std::swap(to_send, src_dst_send_queue);
-            if (this->recv_queues[dst_i]->push(std::move(to_send))) {
-                this->queue_push_count.fetch_add(1);
-            }
+            this->queue_push(dst_i, std::move(to_send));
         }
+    }
+
+    void queue_push(usize dst_i, std::vector<Branch>&& to_send)
+    {
+        this->queue_push_count.fetch_add(1);
+        const bool success = this->recv_queues[dst_i]->push(std::move(to_send));
+        BATT_CHECK(success);
+
+        // Reset the stall count to 0 and increment the stall epoch.
+        //
+        this->stall_state.modify([](u64 observed) {
+            return (observed & kStallEpochMask) + kStallEpochUnit;
+        });
     }
 
     StatusOr<usize> recv(usize shard_i, std::deque<Branch>& local_queue)
@@ -453,59 +478,99 @@ struct ParallelModelCheckState {
             return count;
         };
 
-        {
-            Optional<std::vector<Branch>> next_batch = src_queue.try_pop_next();
-            if (next_batch) {
-                return transfer_batch(next_batch);
-            }
-        }
+        StatusOr<u64> observed_stall_state = this->stall_state.get_value();
+        for (;;) {
+            BATT_REQUIRE_OK(observed_stall_state);
 
-        // Set "stalled" flags for this shard so that other shards know to send queued batches ASAP.
-        //
-        for (usize other_i = 0; other_i < shard_count; ++other_i) {
-            this->stalled[other_i][shard_i].store(true);
-        }
-        const auto reset_stall_flags = finally([&] {
-            // Clear "stalled" flags, now that we have a some branches to process, or the entire job is
-            // done.
+            const u64 initial_stall_epoch = *observed_stall_state & kStallEpochMask;
+
+            // Try to pop branches without stalling.
+            //
+            {
+                Optional<std::vector<Branch>> next_batch = src_queue.try_pop_next();
+                if (next_batch) {
+                    return transfer_batch(next_batch);
+                }
+            }
+
+            // Set "stalled" flags for this shard so that other shards know to send queued batches ASAP.
             //
             for (usize other_i = 0; other_i < shard_count; ++other_i) {
-                this->stalled[other_i][shard_i].store(false);
+                this->stalled[other_i][shard_i].store(true);
             }
-        });
+            const auto reset_stall_flags = finally([&] {
+                // Clear "stalled" flags, now that we have a some branches to process, or the entire job is
+                // done.
+                //
+                for (usize other_i = 0; other_i < shard_count; ++other_i) {
+                    this->stalled[other_i][shard_i].store(false);
+                }
+            });
 
-        // Because we are about to go to put the current task to sleep awaiting the next batch, flush all
-        // outgoing batches so no other shards are blocked on `shard_i`.
-        //
-        this->flush_all(shard_i);
+            // Because we are about to go to put the current task to sleep awaiting the next batch, flush all
+            // outgoing batches so no other shards are blocked on `shard_i`.
+            //
+            this->flush_all(shard_i);
 
-        const usize currently_stalled = this->stall_count.fetch_add(1) + 1;
-        const auto decrement_stall_count = finally([&] {
-            this->stall_count.fetch_sub(1);
-        });
+            // If the stall epoch is the same as at the top of the loop (indicating nothing was pushed to
+            // *any* queue), then we increment the stall count and either wait or close it down.  Otherwise
+            // there may be new branches in our queue, so continue from the top of the loop.
+            //
+            Optional<u64> new_stall_state = this->stall_state.modify_if([&](u64 state) -> Optional<u64> {
+                if ((state & kStallEpochMask) != initial_stall_epoch) {
+                    return None;
+                }
+                return state + 1;
+            });
 
-        // If all of the shards are stalled waiting for more input but there are no messages in any of the
-        // recv queues, then we are done!
-        //
-        if (currently_stalled == this->shard_count && this->pending_count() == 0) {
-            for (const auto& p_queue : recv_queues) {
-                p_queue->close();
+            // The epoch changed; retry.
+            //
+            if (!new_stall_state) {
+                observed_stall_state = this->stall_state.get_value();
+                BATT_CHECK_OK(observed_stall_state);
+                continue;
             }
+
+            this->metrics(shard_i).stall_count += 1;
+
+            // If all shards are now stalled, that means there is no way to make progress.  Close all the
+            // queues and the stall state, returning non-Ok.
+            //
+            const u64 new_stall_count = (*new_stall_state + 1) & kStallCountMask;
+            if (new_stall_count == this->shard_count) {
+                for (const auto& p_queue : this->recv_queues) {
+                    BATT_CHECK(p_queue->empty());
+                    p_queue->close();
+                }
+                this->stall_state.close();
+                return {StatusCode::kClosed};
+            }
+
+            // Output some debugging info in case of deadlock.
+            //
+            BATT_DEBUG_INFO(
+                "[ModelCheck::await_next] "
+                << BATT_INSPECT(shard_i) << BATT_INSPECT(new_stall_count) << BATT_INSPECT(initial_stall_epoch)
+                << BATT_INSPECT(this->get_stall_count()) << BATT_INSPECT(this->get_stall_epoch())
+                << BATT_INSPECT(this->queue_push_count.load()) << BATT_INSPECT(this->queue_pop_count.load()));
+
+            // Only continue if the epoch changes (indicating new branches were pushed), *or* if the
+            // stall_state is closed (indicating all shards have finished).
+            //
+            observed_stall_state = this->stall_state.await_true([&](u64 state) {
+                return (state & kStallEpochMask) != initial_stall_epoch;
+            });
         }
-
-        this->metrics(shard_i).stall_count += 1;
-
-        StatusOr<std::vector<Branch>> next_batch = src_queue.await_next();
-        BATT_REQUIRE_OK(next_batch);
-
-        return transfer_batch(next_batch);
     }
 
-    // NOTE: this will only be accurate if all shards are currently stalled.
-    //
-    isize pending_count() const
+    u64 get_stall_count() const
     {
-        return this->queue_push_count.load() - this->queue_pop_count.load();
+        return this->stall_state.get_value() & kStallCountMask;
+    }
+
+    u64 get_stall_epoch() const
+    {
+        return this->stall_state.get_value() >> 32;
     }
 
     void finished(usize shard_i)
@@ -513,7 +578,6 @@ struct ParallelModelCheckState {
         this->flush_all(shard_i);
         this->recv_queues[shard_i]->close();
         this->queue_pop_count.fetch_add(this->recv_queues[shard_i]->drain());
-        this->stall_count.fetch_add(1);
     }
 
     ShardMetrics& metrics(usize shard_i)
@@ -523,9 +587,10 @@ struct ParallelModelCheckState {
 
     const usize shard_count;
     const usize hash_space_per_shard = std::numeric_limits<usize>::max() / this->shard_count;
-    std::atomic<usize> stall_count{0};
-    std::atomic<isize> queue_push_count{0};
-    std::atomic<isize> queue_pop_count{0};
+    Watch<u64> stall_state{0};
+    std::atomic<i64> queue_push_count{0};
+    std::atomic<i64> queue_pop_count{0};
+
     std::vector<std::unique_ptr<std::atomic<bool>[]>> stalled;
     std::vector<std::unique_ptr<Queue<std::vector<Branch>>>> recv_queues;
     std::vector<CpuCacheLineIsolated<std::vector<std::vector<Branch>>>> send_queues;
@@ -558,6 +623,7 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
     // std::mutex m;
     std::vector<std::unique_ptr<Latch<Result>>> shard_results(n_shards);
     std::vector<VisitedBranchMap> shard_visited(n_shards);
+    std::vector<std::unique_ptr<StateMachineModel>> shard_models(n_shards);
     std::vector<std::thread> threads;
     const usize cpu_count = std::thread::hardware_concurrency();
 
@@ -565,58 +631,94 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
     //
     for (usize shard_i = 0; shard_i < n_shards; ++shard_i) {
         shard_results[shard_i] = std::make_unique<Latch<Result>>();
+
+        // Each thread gets its own copy of the model object.
+        //
+        shard_models[shard_i] = this->clone();
+        BATT_CHECK_NOT_NULLPTR(shard_models[shard_i])
+            << "clone() MUST return non-nullptr if max_concurrency() is > 1";
     }
+
+    const bool pin_cpu = this->advanced_options().pin_shard_to_cpu;
 
     // Launch threads, one per shard.  Each thread will explore the model state space that hashes to its
     // portion of the hash space (i.e., its "shard") and then do O(log_2(N)) combine operations to collect the
     // results of other shards.  These two stages are like Map and Reduce.
     //
     for (usize shard_i = 0; shard_i < n_shards; ++shard_i) {
-        threads.emplace_back([shard_i, &shard_results, &shard_visited, &mesh, /*&m,*/ this, cpu_count] {
+        threads.emplace_back([shard_i, &shard_results, &shard_models, &shard_visited, &mesh, cpu_count,
+                              pin_cpu] {
+            boost::asio::io_context io;
+
+            batt::Task shard_task{
+                io.get_executor(), [&] {
 #ifdef __linux__
-            // Pin each thread to a different CPU to try to speed things up.
-            if (this->advanced_options().pin_shard_to_cpu) {
-                const usize cpu_i = shard_i % cpu_count;
-                cpu_set_t mask;
-                CPU_ZERO(&mask);
-                CPU_SET(cpu_i, &mask);
-                BATT_CHECK_EQ(0, sched_setaffinity(0, sizeof(mask), &mask))
-                    << BATT_INSPECT(cpu_i) << BATT_INSPECT(cpu_count);
-            }
+                    // Pin each thread to a different CPU to try to speed things up.
+                    if (pin_cpu) {
+                        const usize cpu_i = shard_i % cpu_count;
+                        cpu_set_t mask;
+                        CPU_ZERO(&mask);
+                        CPU_SET(cpu_i, &mask);
+                        BATT_CHECK_EQ(0, sched_setaffinity(0, sizeof(mask), &mask))
+                            << BATT_INSPECT(cpu_i) << BATT_INSPECT(cpu_count);
+                    }
 #endif  //__linux__
 
-            // Each thread gets its own copy of the model object.
-            //
-            std::unique_ptr<StateMachineModel> shard_model = this->clone();
-            BATT_CHECK_NOT_NULLPTR(shard_model)
-                << "clone() MUST return non-nullptr if max_concurrency() is > 1";
+                    // First step is to compute the shard-local result.
+                    //
+                    Checker checker{*shard_models[shard_i], mesh, shard_i};
+                    Result tmp_result = checker.run();
+                    tmp_result.shards.set(shard_i, true);
 
-            // First step is to compute the shard-local result.
-            //
-            Checker checker{*shard_model, mesh, shard_i};
-            Result tmp_result = checker.run();
+                    shard_visited[shard_i] = std::move(shard_models[shard_i]->visited_);
 
-            shard_visited[shard_i] = std::move(shard_model->visited_);
+                    // Combine sub-results until the merge mask collides with the least-significant 1 bit of
+                    // the shard index.
+                    //
+                    // Example:
+                    //
+                    // shard_i  | merge_i values
+                    // ---------|---------------------------------
+                    // 0b0000   | {0b0001, 0b0010, 0b0100, 0b1000}
+                    // 0b0001   | {}
+                    // 0b0010   | {0b0011}
+                    // 0b0011   | {}
+                    // 0b0100   | {0b0101, 0b0110}
+                    // 0b0101   | {}
+                    // 0b0110   | {0b0111}
+                    // 0b0111   | {}
+                    // 0b1000   | {0b1001, 0b1010, 0b1100}
+                    // 0b1001   | {}
+                    // 0b1010   | {0b1011}
+                    // 0b1011   | {}
+                    // 0b1100   | {0b1101, 0b1110}
+                    // 0b1101   | {}
+                    // 0b1110   | {0b1111}
+                    // 0b1111   | {}
+                    //
 
-            // Combine sub-results until the merge mask collides with the least-significant 1 bit of the
-            // shard index.
-            //
-            usize merge_mask = 1;
-            while ((merge_mask & shard_i) == 0) {
-                const usize merge_i = (shard_i | merge_mask);
-                if (merge_i >= mesh.shard_count) {
-                    // `merge_i` is only going to get bigger, so stop as soon as this happens.
-                    break;
-                }
-                BATT_CHECK_NE(shard_i, merge_i);
-                tmp_result =
-                    combine_results(tmp_result, BATT_OK_RESULT_OR_PANIC(shard_results[merge_i]->await()));
+                    for (usize merge_mask = 1; (merge_mask & shard_i) == 0; merge_mask <<= 1) {
+                        const usize merge_i = (shard_i | merge_mask);
+                        if (merge_i >= mesh.shard_count) {
+                            // `merge_i` is only going to get bigger, so stop as soon as this happens.
+                            break;
+                        }
+                        BATT_CHECK_LT(shard_i, merge_i);
+                        BATT_CHECK_LT(merge_i, shard_results.size());
 
-                shard_visited[shard_i].insert(shard_visited[merge_i].begin(), shard_visited[merge_i].end());
+                        const Result merge_result = BATT_OK_RESULT_OR_PANIC(shard_results[merge_i]->await());
 
-                merge_mask <<= 1;
-            }
-            shard_results[shard_i]->set_value(std::move(tmp_result));
+                        tmp_result = combine_results(tmp_result, merge_result);
+
+                        shard_visited[shard_i].insert(shard_visited[merge_i].begin(),
+                                                      shard_visited[merge_i].end());
+                    }
+                    BATT_CHECK(shard_results[shard_i]->set_value(std::move(tmp_result)));
+
+                    io.stop();
+                }};
+
+            io.run();
         });
     }
 
@@ -624,8 +726,16 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
         t.join();
     }
 
+    {
+        usize shard_i = 0;
+        for (auto& r : shard_results) {
+            *this->debug_out << shard_i << ": " << BATT_OK_RESULT_OR_PANIC(r->poll()) << std::endl;
+            ++shard_i;
+        }
+    }
+
     this->visited_ = std::move(shard_visited[0]);
-    Result result = std::move(BATT_OK_RESULT_OR_PANIC(shard_results[0]->poll()));
+    Result result = BATT_OK_RESULT_OR_PANIC(shard_results[0]->poll());
     result.state_count = this->visited_.size();
 
     return result;

@@ -76,10 +76,9 @@ class BoxedSeq
 
     BoxedSeq() = default;
 
-    template <typename T,                                        //
-              typename = batt::EnableIfNoShadow<BoxedSeq, T&&>,  //
-              typename = decltype(std::declval<T>().next()),     //
-              typename = decltype(std::declval<T>().peek()),     //
+    template <typename T,                                  //
+              typename = EnableIfNoShadow<BoxedSeq, T&&>,  //
+              typename = EnableIfSeq<T>,                   //
               typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Status> &&
                                           !std::is_same_v<std::decay_t<T>, StatusCode>>>
     explicit BoxedSeq(T&& seq) : impl_(std::make_unique<SeqImpl<T>>(BATT_FORWARD(seq)))
@@ -87,10 +86,10 @@ class BoxedSeq
         static_assert(std::is_same<T, std::decay_t<T>>{}, "BoxedSeq may not be used to capture a reference");
     }
 
-    template <typename U>
+    template <typename U, typename = std::enable_if_t<!std::is_same_v<ItemT, U>>>
     BoxedSeq(const BoxedSeq<U>& other_seq) = delete;
 
-    template <typename U>
+    template <typename U, typename = std::enable_if_t<!std::is_same_v<ItemT, U>>>
     BoxedSeq(BoxedSeq<U>&& other_seq) = delete;
 
     // Use std::unique_ptr move semantics
@@ -146,9 +145,10 @@ inline BoxedBinder boxed()
     return {};
 }
 
-template <typename Seq,
-          typename Item = std::conditional_t<has_seq_requirements<Seq>(), SeqItem_Impl<Seq>, void>,
-          typename = std::enable_if_t<has_seq_requirements<Seq>()>>
+template <
+    typename Seq, typename = EnableIfSeq<Seq>,
+    typename Item = typename std::conditional_t<has_seq_requirements<Seq>(),  //
+                                                /*then*/ SeqItem_Impl<Seq>, /*else*/ StaticType<void>>::type>
 [[nodiscard]] inline BoxedSeq<Item> operator|(Seq&& seq, BoxedBinder)
 {
     static_assert(std::is_same_v<Seq, std::decay_t<Seq>>,

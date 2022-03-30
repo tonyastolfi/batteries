@@ -67,13 +67,7 @@ class Pinnable
 
     void unpin()
     {
-        if (this->pin_count_.fetch_sub(1, std::memory_order_release) == 1) {
-            // We can safely assert this is the case because once the pin count goes to 0, it should never
-            // increase again (because of the self-pin acquired at construction time and released at
-            // destruction time).
-            //
-            BATT_CHECK_EQ(this->pin_count_.load(std::memory_order_acquire), 0);
-        }
+        this->pin_count_.fetch_sub(1, std::memory_order_release);
     }
 
    private:

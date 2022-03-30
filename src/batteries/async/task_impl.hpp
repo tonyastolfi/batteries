@@ -510,10 +510,6 @@ BATT_INLINE_IMPL bool Task::try_dump_stack_trace(bool force)
 
     observed_state = this->state_.load();
     for (;;) {
-        if (is_ready_state(observed_state)) {
-            break;
-        }
-
         const state_type target_state = (observed_state & ~kStackTrace) | kSuspended;
 
         BATT_CHECK(!is_terminal_state(target_state))
@@ -525,10 +521,9 @@ BATT_INLINE_IMPL bool Task::try_dump_stack_trace(bool force)
             break;
         }
     }
-    BATT_CHECK(is_ready_state(observed_state));
-
-    this->schedule_to_run(observed_state, /*force_post=*/true);
-
+    if (is_ready_state(observed_state)) {
+        this->schedule_to_run(observed_state, /*force_post=*/true);
+    }
     return true;
 }
 

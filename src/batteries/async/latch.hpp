@@ -29,6 +29,7 @@ class Latch : public RefCounted<Latch<T>>
     enum State : u32 {
         kInitial = 0,
         kSetting = 1,
+        // 2 intentionally skipped; these states are treated as a bitmap of orthogonal conditions.
         kReady = 3,
     };
 

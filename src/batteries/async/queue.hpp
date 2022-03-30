@@ -1,5 +1,5 @@
 //######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_ASYNC_QUEUE_HPP
@@ -22,6 +22,11 @@ class QueueBase
     bool is_open() const
     {
         return !this->pending_count_.is_closed();
+    }
+
+    bool is_closed() const
+    {
+        return !this->is_open();
     }
 
     i64 size() const

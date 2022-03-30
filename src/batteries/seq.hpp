@@ -408,24 +408,6 @@ template <typename LeftSeq, typename RightSeq, typename MapFn>
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-
-template <typename T>
-class Empty
-{
-   public:
-    using Item = T;
-
-    Optional<T> peek()
-    {
-        return None;
-    }
-    Optional<T> next()
-    {
-        return None;
-    }
-};
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 // last
 //
 struct LastBinder {

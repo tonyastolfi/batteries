@@ -173,20 +173,25 @@ class WatchAtomic
                                           if ((prior_state & kOpen) != kOpen) {
                                               return 0;
                                           }
-                                          switch (final_status_code) {
-                                          case StatusCode::kEndOfStream:
-                                              return WatchAtomic::kClosedAtEnd;
 
-                                          case StatusCode::kClosedBeforeEndOfStream:
-                                              return WatchAtomic::kClosedBeforeEnd;
+                                          BATT_SUPPRESS_IF_GCC("-Wswitch-enum")
+                                          {
+                                              switch (final_status_code) {
+                                              case StatusCode::kEndOfStream:
+                                                  return WatchAtomic::kClosedAtEnd;
 
-                                          case StatusCode::kClosed:  // fall-through
-                                          default:
-                                              // All other StatusCode values are ignored; set status
-                                              // StatusCode::kClosed.
-                                              //
-                                              return 0;
+                                              case StatusCode::kClosedBeforeEndOfStream:
+                                                  return WatchAtomic::kClosedBeforeEnd;
+
+                                              case StatusCode::kClosed:  // fall-through
+                                              default:
+                                                  // All other StatusCode values are ignored; set status
+                                                  // StatusCode::kClosed.
+                                                  //
+                                                  return 0;
+                                              }
                                           }
+                                          BATT_UNSUPPRESS_IF_GCC()
                                       }());
 
             this->unlock_observers(desired_state);
@@ -296,7 +301,8 @@ class WatchAtomic
 
     // Fn: (T) -> Optional<T>
     //
-    // Keeps retrying using CAS until success or `fn` returns None.  Returns the final return value of `fn`.
+    // Keeps retrying using CAS until success or `fn` returns None.  Returns the value for which `fn` returned
+    // non-None, or None.
     //
     template <typename Fn = Optional<T>(T)>
     Optional<T> modify_if(Fn&& fn)
