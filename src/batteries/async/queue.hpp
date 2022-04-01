@@ -111,6 +111,20 @@ class Queue : public QueueBase
         return true;
     }
 
+    template <typename FactoryFn>
+    bool push_with_lock(FactoryFn&& factory_fn)
+    {
+        if (!this->is_open()) {
+            return false;
+        }
+        {
+            auto locked = this->pending_items_.lock();
+            locked->emplace_back(BATT_FORWARD(factory_fn)());
+        }
+        this->notify(1);
+        return true;
+    }
+
     // `items` should be an STL sequence; i.e., something that can be iterated via a for-each loop.
     //
     template <typename Items>

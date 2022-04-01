@@ -138,13 +138,13 @@ class TimeStampedQueue
     //
     Optional<i64> send(T&& value)
     {
-        if (this->is_closed()) {
-            return None;
-        }
-        const i64 ts = this->send_ts_->fetch_add(1) + 1;
-        const bool success = queue_.push(TimeStamped<T>{
-            .ts = ts,
-            .value = BATT_FORWARD(value),
+        i64 ts = 0;
+        const bool success = this->queue_.push_with_lock([&] {
+            ts = this->send_ts_->fetch_add(1) + 1;
+            return TimeStamped<T>{
+                .ts = ts,
+                .value = BATT_FORWARD(value),
+            };
         });
         if (!success) {
             return None;
@@ -162,7 +162,7 @@ class TimeStampedQueue
         return this->queue_.await_next();
     }
 
-    void ack(i64 ts)
+    i64 ack(i64 ts)
     {
         const i64 old_ts = this->ack_ts_->exchange(ts);
 
@@ -171,6 +171,8 @@ class TimeStampedQueue
 
         BATT_CHECK(!time_stamp_less(this->send_ts_->load(), ts))
             << "Tried to ack a message sent in the future!";
+
+        return old_ts;
     }
 
     Optional<TimeStampedQueueState> is_stalled() const
@@ -188,6 +190,7 @@ class TimeStampedQueue
    private:
     CpuCacheLineIsolated<std::atomic<i64>> send_ts_{kInitialTs - 1};
     CpuCacheLineIsolated<std::atomic<i64>> ack_ts_{kInitialTs - 1};
+
     Queue<TimeStamped<T>> queue_;
 };
 

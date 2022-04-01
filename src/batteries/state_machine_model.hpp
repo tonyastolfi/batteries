@@ -9,7 +9,11 @@
 #include <batteries/async/fake_executor.hpp>
 #include <batteries/async/mutex.hpp>
 #include <batteries/async/queue.hpp>
+#if 0
 #include <batteries/async/time_stamped_queue.hpp>
+#else
+#include <batteries/async/queue.hpp>
+#endif
 
 #include <batteries/assert.hpp>
 #include <batteries/cpu_align.hpp>
@@ -394,19 +398,31 @@ class ParallelModelCheckState
     explicit ParallelModelCheckState(usize n_shards)
         : shard_count{n_shards}
         , stalled(this->shard_count)
+#if 0
         , shard_seen_ts(this->shard_count)
+#endif
         , recv_queues(this->shard_count)
         , send_queues(this->shard_count)
         , shard_metrics(this->shard_count)
+        , local_consume_count(this->shard_count)
     {
         BATT_CHECK_EQ(this->stalled.size(), this->shard_count);
-        BATT_CHECK_EQ(this->shard_seen_ts.size(), this->shard_count);
+        BATT_CHECK_EQ(this->local_consume_count.size(), this->shard_count);
+#if 0
+         BATT_CHECK_EQ(this->shard_seen_ts.size(), this->shard_count);
+#endif
         BATT_CHECK_EQ(this->recv_queues.size(), this->shard_count);
         BATT_CHECK_EQ(this->send_queues.size(), this->shard_count);
         BATT_CHECK_EQ(this->shard_metrics.size(), this->shard_count);
 
+#if 0
         for (auto& ts : this->shard_seen_ts) {
             *ts = TimeStampedQueue<std::vector<Branch>>::kInitialTs - 1;
+        }
+#endif
+
+        for (auto& count : this->local_consume_count) {
+            *count = 0;
         }
 
         for (std::unique_ptr<std::atomic<bool>[]>& stalled_per_other : this->stalled) {
@@ -417,7 +433,11 @@ class ParallelModelCheckState
         }
 
         for (auto& recv_queues_per_dst : this->recv_queues) {
+#if 0
             recv_queues_per_dst = std::make_unique<TimeStampedQueue<std::vector<Branch>>>();
+#else
+            recv_queues_per_dst = std::make_unique<Queue<std::vector<Branch>>>();
+#endif
         }
 
         for (CpuCacheLineIsolated<std::vector<std::vector<Branch>>>&  //
@@ -467,35 +487,62 @@ class ParallelModelCheckState
     {
         std::vector<Branch> to_send;
         std::swap(to_send, *branch);
-        const Optional<i64> success = this->recv_queues[dst_i]->send(std::move(to_send));
+        this->total_pending_count->fetch_add(1);
+        const Optional<i64> success = this->recv_queues[dst_i]->push(std::move(to_send));
         BATT_CHECK(success) << BATT_INSPECT(dst_i) << BATT_INSPECT(this->shard_count);
         this->queue_push_count.fetch_add(1);
     }
 
     StatusOr<usize> recv(usize shard_i, std::deque<Branch>& local_queue)
     {
+#if 0
         TimeStampedQueue<std::vector<Branch>>& src_queue = *this->recv_queues[shard_i];
+#else
+        Queue<std::vector<Branch>>& src_queue = *this->recv_queues[shard_i];
+#endif
 
         this->metrics(shard_i).recv_count += 1;
 
+#if 0
+#define BATT_CHECK_SRC_QUEUE_NOT_STALLED()                                                                   \
+    do {                                                                                                     \
+        auto src_queue_is_stalled = src_queue.is_stalled();                                                  \
+        BATT_CHECK(!src_queue_is_stalled)                                                                    \
+            << BATT_INSPECT(src_queue.send_ts_upper_bound()) << BATT_INSPECT(src_queue.ack_ts_upper_bound()) \
+            << BATT_INSPECT(src_queue_is_stalled);                                                           \
+    } while (false)
+#endif
+
         const auto transfer_batch = [this, &local_queue, &src_queue, shard_i](auto& maybe_next_batch) {
+#if 0
             TimeStamped<std::vector<Branch>>& next_batch = *maybe_next_batch;
+#else
+            std::vector<Branch>& next_batch = *maybe_next_batch;
+#endif
             this->queue_pop_count.fetch_add(1);
 
-            usize count = next_batch.value.size();
-            local_queue.insert(local_queue.end(),                                  //
-                               std::make_move_iterator(next_batch.value.begin()),  //
-                               std::make_move_iterator(next_batch.value.end()));
+            usize count = next_batch.size();
+            local_queue.insert(local_queue.end(),                            //
+                               std::make_move_iterator(next_batch.begin()),  //
+                               std::make_move_iterator(next_batch.end()));
 
+#if 0
             // Update the read message timestamp upper bound for this shard; don't ack the timestamp yet,
             // however, so we maintain the invariant that no queue ever stalls unless the shard for that
             // queue has flushed all outgoing branches.
             //
+            const i64 seen_before = *this->shard_seen_ts[shard_i];
             *this->shard_seen_ts[shard_i] = time_stamp_max(*this->shard_seen_ts[shard_i], next_batch.ts);
+            const i64 seen_after = *this->shard_seen_ts[shard_i];
 
-            auto b = src_queue.is_stalled();
-            BATT_CHECK(!b) << BATT_INSPECT(src_queue.send_ts_upper_bound())
-                           << BATT_INSPECT(src_queue.ack_ts_upper_bound()) << BATT_INSPECT(b);
+
+            BATT_CHECK_LT(seen_before, seen_after);
+            BATT_CHECK_EQ(seen_after, next_batch.ts);
+            BATT_CHECK_EQ(seen_before + 1, seen_after);
+            BATT_CHECK_SRC_QUEUE_NOT_STALLED();
+#endif
+
+            *this->local_consume_count[shard_i] += 1;
 
             return count;
         };
@@ -503,7 +550,11 @@ class ParallelModelCheckState
         // Try to pop branches without stalling.
         //
         {
+#if 0
             Optional<TimeStamped<std::vector<Branch>>> next_batch = src_queue.poll();
+#else
+            Optional<std::vector<Branch>> next_batch = src_queue.try_pop_next();
+#endif
             if (next_batch) {
                 return transfer_batch(next_batch);
             }
@@ -533,53 +584,76 @@ class ParallelModelCheckState
         // Now that we've flushed all outgoing branches, it is safe to ack the read message timestamp
         // upper bound for this shard.
         //
-        src_queue.ack(*this->shard_seen_ts[shard_i]);
+#if 0
+        if (*this->shard_seen_ts[shard_i] != 0) {
+            BATT_CHECK_SRC_QUEUE_NOT_STALLED();
+            const i64 old_ts = src_queue.ack(*this->shard_seen_ts[shard_i]);
+            BATT_CHECK_NE(old_ts, *this->shard_seen_ts[shard_i]);        
+            }
+#endif
 
+        i64 n_to_consume = 0;
+        std::swap(n_to_consume, *this->local_consume_count[shard_i]);
+        const i64 old_value = this->total_pending_count->fetch_sub(n_to_consume);
+
+#if 0
+        if (this->all_queues_are_stalled())
+#endif
         // Check for deadlock; if all shards are stalled, then the branch-state-space has been fully explored
         // and we are done!
         //
-        if (this->all_queues_are_stalled()) {
-            this->close_all();
+        if (old_value - n_to_consume == 0) {  // this->total_pending_count->load() == 0) {
+            this->close_all(shard_i);
             //
             // More than one shard task may call close_all; this is fine!
         }
 
+#if 0
         StatusOr<TimeStamped<std::vector<Branch>>> next_batch = src_queue.await();
+#else
+        StatusOr<std::vector<Branch>> next_batch = src_queue.await_next();
+#endif
         BATT_REQUIRE_OK(next_batch);
 
         return transfer_batch(next_batch);
+
+#undef BATT_CHECK_SRC_QUEUE_NOT_STALLED
     }
 
+#if 0
     bool all_queues_are_stalled() const
     {
         return as_seq(this->recv_queues)  //
                | seq::map([](const auto& queue) {
-                     return queue->is_stalled();
+                     return bool{queue->is_stalled()};
                  })  //
                | seq::all_true();
     }
+#endif
 
-    void close_all(bool allow_pending = false)
+    void close_all(usize shard_i, bool allow_pending = false)
     {
         for (usize dst_i = 0; dst_i < this->recv_queues.size(); ++dst_i) {
             const auto& p_queue = this->recv_queues[dst_i];
-            const bool queue_is_empty = p_queue->empty();
+            bool queue_is_empty = p_queue->empty();
+            if (!queue_is_empty) {
+                Task::sleep(boost::posix_time::milliseconds(1200));
+                queue_is_empty = p_queue->empty();
+            }
             BATT_CHECK(allow_pending || queue_is_empty)
+                << BATT_INSPECT(shard_i)
+#if 0
+                << BATT_INSPECT(p_queue->send_ts_upper_bound())
+                << BATT_INSPECT(p_queue->ack_ts_upper_bound())
+                << BATT_INSPECT(p_queue->is_stalled())
+                << "\nlast_seen=" << dump_range(this->shard_seen_ts)
+#endif
                 << BATT_INSPECT(dst_i) << BATT_INSPECT(queue_is_empty) << BATT_INSPECT(p_queue->empty())
                 << BATT_INSPECT(allow_pending) << BATT_INSPECT(p_queue->size())
                 << BATT_INSPECT(this->shard_count);
+
             p_queue->close();
         }
-    }
-
-    u64 get_stall_count() const
-    {
-        return this->stall_state.get_value() & kStallCountMask;
-    }
-
-    u64 get_stall_epoch() const
-    {
-        return this->stall_state.get_value() >> 32;
     }
 
     void finished(usize shard_i)
@@ -607,10 +681,17 @@ class ParallelModelCheckState
     std::atomic<i64> queue_pop_count{0};
 
     std::vector<std::unique_ptr<std::atomic<bool>[]>> stalled;
+#if 0
     std::vector<CpuCacheLineIsolated<i64>> shard_seen_ts;
     std::vector<std::unique_ptr<TimeStampedQueue<std::vector<Branch>>>> recv_queues;
+#else
+    std::vector<std::unique_ptr<Queue<std::vector<Branch>>>> recv_queues;
+#endif
     std::vector<CpuCacheLineIsolated<std::vector<std::vector<Branch>>>> send_queues;
     std::vector<CpuCacheLineIsolated<ShardMetrics>> shard_metrics;
+
+    CpuCacheLineIsolated<std::atomic<i64>> total_pending_count{0};
+    std::vector<CpuCacheLineIsolated<i64>> local_consume_count;
 };
 
 }  // namespace detail
@@ -951,7 +1032,11 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::Checker::run() -> Result
     }
     this->mesh_.flush_all(this->shard_i_);
     BATT_CHECK_OK(this->mesh_.wait_for_other_shards());
+#if 0
     BATT_CHECK(!this->mesh_.all_queues_are_stalled());
+#else
+    BATT_CHECK_GT(this->mesh_.total_pending_count->load(), 0);
+#endif
 
     this->result_.ok = true;
     this->result_.state_count = 1;
