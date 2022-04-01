@@ -446,6 +446,8 @@ TEST(StateMachineModelTest, ParallelModelCheckStateSendRecv)
 
     std::array<std::deque<std::string>, 3> local_inbox;
 
+    state.total_pending_count->fetch_add(1);
+
     boost::asio::io_context io;
 
     batt::Task task1{io.get_executor(), [&] {
