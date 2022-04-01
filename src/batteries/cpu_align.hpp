@@ -1,9 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATT_CPU_ALIGN_HPP
 #define BATT_CPU_ALIGN_HPP
 
+#include <batteries/assert.hpp>
 #include <batteries/hint.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/type_traits.hpp>
@@ -163,6 +165,12 @@ class CpuCacheLineIsolated
     //
     std::aligned_storage_t<kIsolatedSize, kCpuCacheLineSize> storage_;
 };
+
+template <typename T>
+inline std::ostream& operator<<(std::ostream& out, const CpuCacheLineIsolated<T>& t)
+{
+    return out << make_printable(t.value());
+}
 
 }  // namespace batt
 
