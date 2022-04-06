@@ -164,8 +164,24 @@ BATT_DETAIL_SPECIALIZE_STRING_PRINTABLE(std::string_view)
 #undef BATT_DETAIL_SPECIALIZE_STRING_PRINTABLE
 #undef BATT_DETAIL_OVERLOAD_STRING_PRINTABLE
 
+#define BATT_INSPECT_STR(expr) " " << #expr << " == " << ::batt::c_str_literal((expr))
+
+inline const std::string_view& StringUpperBound()
+{
+    static const std::string_view s = [] {
+        static std::array<char, 4096> s;
+        s.fill(0xff);
+        return std::string_view{s.data(), s.size()};
+    }();
+    return s;
+}
+
 inline std::ostream& operator<<(std::ostream& out, const EscapedStringLiteral& t)
 {
+    if (t.str.data() == StringUpperBound().data()) {
+        return out << "\"\\xff\"...";
+    }
+
     static const char xdigit[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
                                     '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
@@ -406,6 +422,12 @@ RangeDumper<const T&> dump_range(const T& value, Pretty pretty)
 {
     return RangeDumper<const T&>{value, pretty};
 }
+
+#define BATT_INSPECT_RANGE(expr) " " << #expr << " == " << ::batt::dump_range((expr))
+#define BATT_INSPECT_RANGE_PRETTY(expr)                                                                      \
+    " " << #expr << " == " << ::batt::dump_range((expr), ::batt::Pretty::True)
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
 #define BATT_PRINT_OBJECT_FIELD(r, obj, fieldname)                                                           \
     << " ." << BOOST_PP_STRINGIZE(fieldname) << "=" << ::batt::make_printable(obj.fieldname) << ","

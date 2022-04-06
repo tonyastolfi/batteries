@@ -172,6 +172,14 @@ BATT_INLINE_IMPL void Task::run_completion_handlers()
 
     HandlerList<> local_handlers = [&] {
         SpinLockGuard lock{this, kCompletionHandlersLock};
+        {
+            // Set a state bit to make sure that there is no window of time where it is possible to add a new
+            // handler after this lambda executes, but before `this->is_done()` returns true.
+            //
+            const state_type prior_state = this->state_.fetch_or(kCompletionHandlersClosed);
+            BATT_CHECK_EQ(prior_state & kCompletionHandlersClosed, state_type(0))
+                << BATT_INSPECT(Task::StateBitset{prior_state});
+        }
         return std::move(this->completion_handlers_);
     }();
 

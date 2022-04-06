@@ -139,9 +139,13 @@ class Task
     //
     static constexpr state_type kSleepTimerLockSuspend = state_type{1} << 7;
 
+    // State bit to indicate that completion handlers should not be added to the list, but called immediately.
+    //
+    static constexpr state_type kCompletionHandlersClosed = state_type{1} << 8;
+
     // The number of state flags defined above.
     //
-    static constexpr usize kNumStateFlags = 8;
+    static constexpr usize kNumStateFlags = 9;
 
     // The bitset type for a state.
     //
@@ -477,13 +481,24 @@ class Task
     template <typename F = void()>
     void call_when_done(F&& handler)
     {
-        if (this->is_done()) {
-            BATT_FORWARD(handler)();
+        for (;;) {
+            if (this->is_done()) {
+                BATT_FORWARD(handler)();
+                return;
+            }
+
+            SpinLockGuard lock{this, kCompletionHandlersLock};
+            if (Task::is_terminal_state(lock.prior_state()) ||
+                (lock.prior_state() & kCompletionHandlersClosed) != 0) {
+                // It's possible that the completion handlers list was cleared out after the call to
+                // `is_done()` above, but before we grab the spin lock.  If so, keep retrying until we resolve
+                // the race.
+                //
+                continue;
+            }
+            push_handler(&this->completion_handlers_, BATT_FORWARD(handler));
             return;
         }
-
-        SpinLockGuard lock{this, kCompletionHandlersLock};
-        push_handler(&this->completion_handlers_, BATT_FORWARD(handler));
     }
 
     // =#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
@@ -500,7 +515,7 @@ class Task
        public:
         explicit SpinLockGuard(Task* task, state_type mask) noexcept : task_{task}, mask_{mask}
         {
-            task_->spin_lock(mask);
+            this->prior_state_ = task_->spin_lock(mask);
         }
 
         SpinLockGuard(const SpinLockGuard&) = delete;
@@ -511,9 +526,15 @@ class Task
             task_->spin_unlock(mask_);
         }
 
+        state_type prior_state() const
+        {
+            return this->prior_state_;
+        }
+
        private:
         Task* const task_;
         const state_type mask_;
+        state_type prior_state_;
     };
 
     class Trampoline
