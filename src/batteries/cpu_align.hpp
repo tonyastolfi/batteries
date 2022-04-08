@@ -8,7 +8,12 @@
 #include <batteries/assert.hpp>
 #include <batteries/hint.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/status.hpp>
 #include <batteries/type_traits.hpp>
+
+#ifdef __linux__
+#include <sched.h>
+#endif  // __linux__
 
 namespace batt {
 
@@ -170,6 +175,21 @@ template <typename T>
 inline std::ostream& operator<<(std::ostream& out, const CpuCacheLineIsolated<T>& t)
 {
     return out << make_printable(t.value());
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+
+inline Status pin_thread_to_cpu(usize cpu_i)
+{
+#ifdef __linux__
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    CPU_SET(cpu_i, &mask);
+    const int retval = sched_setaffinity(0, sizeof(mask), &mask);
+    return status_from_retval(retval);
+#else
+    return StatusCode::kUnimplemented;
+#endif  //__linux__
 }
 
 }  // namespace batt

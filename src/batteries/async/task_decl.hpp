@@ -224,6 +224,16 @@ class Task
         return "";
     }
 
+    static i32 current_id()
+    {
+        auto ptr = Task::current_ptr();
+        if (ptr) {
+            return ptr->id();
+        }
+        thread_local const i32 id_ = Task::next_id();
+        return id_;
+    }
+
     // Returns the current stack position, if currently inside a task.
     //
     static Optional<usize> current_stack_pos();

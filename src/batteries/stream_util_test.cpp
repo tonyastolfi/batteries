@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #include <batteries/stream_util.hpp>
 //
@@ -167,6 +168,29 @@ TEST(FromString, IntFormat)
     EXPECT_EQ(batt::from_string<int>("93"), std::make_optional(93));
     EXPECT_EQ(batt::from_string<int>("147"), std::make_optional(147));
     EXPECT_EQ(batt::from_string<int>("93", std::hex), std::make_optional(147));
+}
+
+TEST(CStrLiteral, OptionalStr)
+{
+    EXPECT_THAT(batt::to_string(batt::c_str_literal(batt::None)), ::testing::StrEq("--"));
+
+    EXPECT_THAT(batt::to_string(batt::c_str_literal(batt::Optional<const char*>{batt::None})),
+                ::testing::StrEq("--"));
+
+    EXPECT_THAT(batt::to_string(batt::c_str_literal(batt::Optional<std::string>{batt::None})),
+                ::testing::StrEq("--"));
+
+    EXPECT_THAT(batt::to_string(batt::c_str_literal(batt::Optional<std::string_view>{batt::None})),
+                ::testing::StrEq("--"));
+
+    EXPECT_THAT(batt::to_string(batt::c_str_literal(batt::Optional<const char*>{"hello, world\n"})),
+                ::testing::StrEq("\"hello, world\\n\""));
+
+    EXPECT_THAT(batt::to_string(batt::c_str_literal(batt::Optional<std::string>{"hello, world\n"})),
+                ::testing::StrEq("\"hello, world\\n\""));
+
+    EXPECT_THAT(batt::to_string(batt::c_str_literal(batt::Optional<std::string_view>{"hello, world\n"})),
+                ::testing::StrEq("\"hello, world\\n\""));
 }
 
 }  // namespace

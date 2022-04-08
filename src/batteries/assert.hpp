@@ -89,8 +89,9 @@ inline bool ignore(Ts&&...)
 
 inline bool lock_fail_check_mutex()
 {
-    static std::mutex m;
-    m.lock();
+    static std::aligned_storage_t<sizeof(std::mutex), alignof(std::mutex)> storage_;
+    static std::mutex* m = new (&storage_) std::mutex{};
+    m->lock();
     return false;
 }
 

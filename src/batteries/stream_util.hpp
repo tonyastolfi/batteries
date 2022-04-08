@@ -1,9 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 
 #include <batteries/finally.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/optional.hpp>
 #include <batteries/suppress.hpp>
 #include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
@@ -144,6 +146,20 @@ struct EscapedStringLiteral {
 inline EscapedStringLiteral c_str_literal(const std::string_view& str)
 {
     return EscapedStringLiteral{str};
+}
+
+template <typename T, typename = std::enable_if_t<std::is_convertible_v<T, std::string_view>>>
+inline Optional<EscapedStringLiteral> c_str_literal(const Optional<T>& maybe_str)
+{
+    if (maybe_str) {
+        return {c_str_literal(*maybe_str)};
+    }
+    return None;
+}
+
+inline Optional<EscapedStringLiteral> c_str_literal(const NoneType&)
+{
+    return None;
 }
 
 #define BATT_DETAIL_OVERLOAD_STRING_PRINTABLE(type)                                                          \

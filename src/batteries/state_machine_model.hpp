@@ -26,10 +26,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#ifdef __linux__
-#include <sched.h>
-#endif  // __linux__
-
 namespace batt {
 
 #if 0
@@ -649,17 +645,12 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
 
             batt::Task shard_task{
                 io.get_executor(), [&] {
-#ifdef __linux__
                     // Pin each thread to a different CPU to try to speed things up.
+                    //
                     if (pin_cpu) {
                         const usize cpu_i = shard_i % cpu_count;
-                        cpu_set_t mask;
-                        CPU_ZERO(&mask);
-                        CPU_SET(cpu_i, &mask);
-                        BATT_CHECK_EQ(0, sched_setaffinity(0, sizeof(mask), &mask))
-                            << BATT_INSPECT(cpu_i) << BATT_INSPECT(cpu_count);
+                        BATT_CHECK_OK(pin_thread_to_cpu(cpu_i));
                     }
-#endif  //__linux__
 
                     // First step is to compute the shard-local result.
                     //
