@@ -71,6 +71,7 @@ enum class StatusCode : int {
     kLoopBreak = 102,
     kEndOfStream = 103,
     kClosedBeforeEndOfStream = 104,
+    kGrantRevoked = 105,
 };
 
 enum ErrnoValue {};
@@ -575,6 +576,42 @@ class StatusOr
         this->status_ = new_status;
 
         return *this;
+    }
+
+    template <typename... Args>
+    void emplace(Args&&... args)
+    {
+        if (this->ok()) {
+            this->value_.destroy();
+        }
+        this->value_.construct(BATT_FORWARD(args)...);
+        this->status_ = OkStatus();
+    }
+
+    template <typename U>
+    void emplace(StatusOr<U>&& that)
+    {
+        if (this->ok()) {
+            this->value_.destroy();
+            this->status_ = StatusCode::kUnknown;
+        }
+        if (that.ok()) {
+            this->value_.construct(std::move(*that));
+        }
+        this->status_ = that.status();
+    }
+
+    template <typename U>
+    void emplace(const StatusOr<U>& that)
+    {
+        if (this->ok()) {
+            this->value_.destroy();
+            this->status_ = StatusCode::kUnknown;
+        }
+        if (that.ok()) {
+            this->value_.construct(*that);
+        }
+        this->status_ = that.status();
     }
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

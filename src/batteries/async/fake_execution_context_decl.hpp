@@ -28,6 +28,13 @@ class FakeExecutionContext : public boost::asio::execution_context
     template <typename OutstandingWorkP>
     friend class BasicFakeExecutor;
 
+    struct AlwaysReturnZero {
+        usize operator()(usize) const
+        {
+            return 0;
+        }
+    };
+
     using executor_type = BasicFakeExecutor<boost::asio::execution::outstanding_work_t::untracked_t>;
 
     FakeExecutionContext() = default;
@@ -48,7 +55,7 @@ class FakeExecutionContext : public boost::asio::execution_context
     // returns some non-negative integer smaller than this number.  This method then removes that handler from
     // the ready set and returns it.
     //
-    UniqueHandler<> pop_ready_handler(const std::function<usize(usize)>& picker);
+    UniqueHandler<> pop_ready_handler(const std::function<usize(usize)>& picker = AlwaysReturnZero{});
 
     // Access the default allocator directly.
     //

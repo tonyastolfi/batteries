@@ -67,6 +67,7 @@ BATT_INLINE_IMPL detail::StatusBase::StatusBase() noexcept
             {StatusCode::kLoopBreak, "Loop break"},
             {StatusCode::kEndOfStream, "End of stream"},
             {StatusCode::kClosedBeforeEndOfStream, "The stream was closed before the end of data"},
+            {StatusCode::kGrantRevoked, "The Grant was revoked"},
         });
 
         std::vector<std::pair<ErrnoValue, std::string>> errno_codes;
