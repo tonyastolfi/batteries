@@ -14,7 +14,7 @@ default:
   cache:
     key: conan-cache
     paths:
-      - /root/.conan/data/
+      - .conan/
   retry:
     max: 2
     when: runner_system_failure
@@ -31,7 +31,7 @@ install:
   # before_script:
   #   - apt update && apt -y install make autoconf
   script:
-    - make install
+    - cp -r /root/.conan ./ && CONAN_USER_HOME=$(pwd) make install
   rules:
     - changes:
       - conanfile.py
@@ -51,7 +51,7 @@ build:
   # before_script:
   #   - apt update && apt -y install make autoconf
   script:
-    - make build
+    - cp -r /root/.conan ./ && CONAN_USER_HOME=$(pwd) make build
   artifacts:
     paths:
       - build/
@@ -64,4 +64,4 @@ build:
 test:
   stage: test
   script:
-    - make test
+    - cp -r /root/.conan ./ && CONAN_USER_HOME=$(pwd) make test
