@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_OPTIONAL_HPP
@@ -6,6 +7,8 @@
 
 #include <batteries/assert.hpp>
 #include <batteries/hint.hpp>
+
+#include <optional>
 
 #ifdef BATT_USE_BOOST_OPTIONAL
 

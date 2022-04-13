@@ -4,7 +4,7 @@ import os
 
 class BatteriesConan(ConanFile):
     name = "batteries"
-    version = "0.3.0-devel"
+    version = "0.4.1"
     license = "Apache Public License 2.0"
     author = "Tony Astolfi <tastolfi@gmail.com>"
     url = "https://github.com/tonyastolfi/batteries.git"
@@ -32,6 +32,8 @@ class BatteriesConan(ConanFile):
         "src/batteries/*/*.ipp",
         "src/batteries/**/*.ipp",
     ]
+    default_user = "tastolfi+batteries"
+    default_channel = "stable"
 
     def configure(self):
         self.options["gtest"].shared = False
