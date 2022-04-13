@@ -12,9 +12,16 @@ image: registry.insidelabs-git.mathworks.com/tastolfi/batteries:latest
 
 default:
   cache:
-    key: conan-cache
+    - key: conan-cache
+      paths:
+        - .conan/
+    - key: build-cache
+      paths:
+        - build/
+  artifacts:
     paths:
-      - .conan/
+      - build/
+    
   retry:
     max: 2
     when: runner_system_failure
@@ -36,13 +43,6 @@ install:
     - changes:
       - conanfile.py
       - .gitlab-ci.yml
-  artifacts:
-    paths:
-      - build/
-  cache:
-    key: build-cache
-    paths:
-      - build/
 
 build:
   stage: build
@@ -52,13 +52,6 @@ build:
   #   - apt update && apt -y install make autoconf
   script:
     - cp -r /root/.conan ./ && CONAN_USER_HOME=$(pwd) make build
-  artifacts:
-    paths:
-      - build/
-  cache:
-    key: build-cache
-    paths:
-      - build/
 
 # run tests using the binary built before
 test:
