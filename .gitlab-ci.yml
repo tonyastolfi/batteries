@@ -36,6 +36,10 @@ install:
   artifacts:
     paths:
       - build/
+  cache:
+    key: build-cache
+    paths:
+      - build/
 
 build:
   stage: build
@@ -46,6 +50,10 @@ build:
   script:
     - make build
   artifacts:
+    paths:
+      - build/
+  cache:
+    key: build-cache
     paths:
       - build/
 
