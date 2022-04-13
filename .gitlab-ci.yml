@@ -10,6 +10,12 @@
 
 image: registry.insidelabs-git.mathworks.com/tastolfi/batteries:latest
 
+default:
+  cache:
+    key: conan-cache
+    paths:
+      - /root/.conan/data/
+
 stages:
   - install
   - build
@@ -23,10 +29,14 @@ install:
   #   - apt update && apt -y install make autoconf
   script:
     - make install
+  rules:
+    - changes:
+      - conanfile.py
+      - .gitlab-ci.yml
   artifacts:
     paths:
       - build/
-      - ~/.conan/data/
+      - /root/.conan/data/
       # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
       # cache:
       #   paths:
