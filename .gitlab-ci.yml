@@ -8,7 +8,7 @@
 # can use verions as well, like gcc:5.2
 # see https://hub.docker.com/_/gcc/
 
-image: gcc
+image: registry.insidelabs-git.mathworks.com/tastolfi/batteries:latest
 
 build:
   stage: build
@@ -17,10 +17,10 @@ build:
   # before_script:
   #   - apt update && apt -y install make autoconf
   script:
-    - g++ helloworld.cpp -o mybinary
+    - make install build
   artifacts:
     paths:
-      - mybinary
+      - build/
       # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
       # cache:
       #   paths:
@@ -30,4 +30,4 @@ build:
 test:
   stage: test
   script:
-    - ./runmytests.sh
+    - make test
