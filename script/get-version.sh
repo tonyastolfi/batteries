@@ -22,12 +22,19 @@ if [[ -n $(git status --short) ]]; then
     exit 0
 fi
 
+# Get the latest commit hash and the commit hash of the latest release tag.
+#
 latest_commit=$(git show-ref --head HEAD | awk '{print $1}')
 latest_release_commit=$(git show-ref ${latest_release} | awk '{print $1}')
 
+# If the working tree is clean but our branch is ahead of the release tag, then we also
+# want to emit the devel version.
+#
 if [ "${latest_commit}" != "${latest_release_commit}" ]; then
     devel ${latest_release}
     exit 0
 fi
 
+# This truly is the current release!
+#
 echo $latest_release
