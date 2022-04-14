@@ -25,7 +25,7 @@ fi
 latest_commit=$(git show-ref --head HEAD | awk '{print $1}')
 latest_release_commit=$(git show-ref ${latest_release} | awk '{print $1}')
 
-if [ "${latest_commit}" -ne "${latest_release_commit}" ]; then
+if [ "${latest_commit}" != "${latest_release_commit}" ]; then
     devel ${latest_release}
     exit 0
 fi
