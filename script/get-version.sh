@@ -2,32 +2,25 @@
 #
 set -e
 
-function verbose {
-    if [[ "$VERBOSE" == "1" ]]; then
-        echo "($@)" >&2
-    fi
-}
+script_dir=$(cd $(dirname $0) && pwd)
+source "${script_dir}/common.sh"
 
 # Search for the latest release tag reachable from the current branch.
 #
-latest_release_tag=$(git tag --list --merged HEAD --sort=-version:refname release-* | head -1)
-latest_release=$(echo "$latest_release_tag" | sed -e 's,release-,,g')
+latest_release_tag=$(find_release_tag)
+latest_release=$(version_from_release_tag "${latest_release_tag}")
 
 function devel {
-    prev_version=$1
-    major_minor=$(echo "$1" | sed -e 's,\., ,g' | awk '{ print $1 "." $2; }')
-    patch_num=$(echo "$1" | sed -e 's,\., ,g' | awk '{ print $3; }')
-    next_patch=$(expr $patch_num \+ 1)
-    echo "${major_minor}.${next_patch}-devel"
+    echo $(find_next_version "$1" patch)-devel
 }
 
 # If the working tree is dirty, then show the next patch version with "-devel" appended.
 #
-if [[ -n $(git status --short) ]]; then
+working_tree_is_clean || {
     verbose "The working tree is dirty; adding '+1-devel' to latest release '${latest_release}'"
-    devel ${latest_release}
+    devel "${latest_release}"
     exit 0
-fi
+}
 
 # Get the latest commit hash and the commit hash of the latest release tag.
 #
@@ -39,7 +32,7 @@ latest_release_commit=$(git rev-list -n 1 "${latest_release_tag}" | awk '{print 
 #
 if [ "${latest_commit}" != "${latest_release_commit}" ]; then
     verbose "HEAD is ahead of last release tag '${latest_release_tag}'; adding '+1-devel' to latest release '${latest_release}'"
-    devel ${latest_release}
+    devel "${latest_release}"
     exit 0
 fi
 

@@ -4,7 +4,7 @@ ifeq ($(BUILD_TYPE),)
 BUILD_TYPE := RelWithDebInfo
 endif
 
-build:
+build: | install
 	mkdir -p build/$(BUILD_TYPE)
 	(cd build/$(BUILD_TYPE) && conan build ../..)
 
@@ -18,3 +18,7 @@ install:
 
 create: test
 	(cd build/$(BUILD_TYPE) && conan create ../..)
+
+
+publish: | test build
+	script/publish-release.sh
