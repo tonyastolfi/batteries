@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 set -e
 
@@ -18,6 +18,7 @@ function devel {
 # If the working tree is dirty, then show the next patch version with "-devel" appended.
 #
 if [[ -n $(git status --short) ]]; then
+    echo "working tree dirty" > /dev/null
     devel ${latest_release}
     exit 0
 fi
@@ -31,6 +32,7 @@ latest_release_commit=$(git show-ref ${latest_release} | awk '{print $1}')
 # want to emit the devel version.
 #
 if [ "${latest_commit}" != "${latest_release_commit}" ]; then
+    echo "HEAD is ahead of last release tag ${latest_release_tag}" > /dev/null
     devel ${latest_release}
     exit 0
 fi
