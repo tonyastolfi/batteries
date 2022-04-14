@@ -11,9 +11,16 @@ default:
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 stages:
+  - debug_env
   - install
   - build
   - test
+
+debug_env:
+  stage: debug_env
+  script:
+    - echo "CI_DEPLOY_USER=${CI_DEPLOY_USER}"
+    - echo "CI_DEPLOY_PASSWORD=${CI_DEPLOY_PASSWORD}"
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 install:
