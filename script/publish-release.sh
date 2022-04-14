@@ -36,3 +36,13 @@ if [ "$active_version" != "$release_version" ]; then
     exit 1
 fi
 
+if [ "${conan_login}${conan_pass}" != "" ]; then
+    conan user --remote=${RELEASE_CONAN_REMOTE} --password=${conan_pass} ${conan_user}
+fi
+
+conan_recipe=batteries/${release_version}@${RELEASE_CONAN_USER}/${RELEASE_CONAN_CHANNEL}
+
+( cd ${project_dir} && make BUILD_TYPE=Release install build test create )
+( cd ${project_dir}/build/Release && conan create ../.. ${conan_recipe} )
+
+conan upload --remote=${RELEASE_CONAN_REMOTE} ${conan_recipe}
