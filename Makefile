@@ -1,4 +1,4 @@
-.PHONY: build build-nodoc install create
+.PHONY: build build-nodoc install create test publish docker-build docker-push docker
 
 ifeq ($(BUILD_TYPE),)
 BUILD_TYPE := RelWithDebInfo
@@ -22,3 +22,14 @@ create: test
 
 publish: | test build
 	script/publish-release.sh
+
+
+docker-build:
+	(cd docker && docker build -t registry.gitlab.com/tonyastolfi/batteries .)
+
+
+docker-push: | docker-build
+	(cd docker && docker push registry.gitlab.com/tonyastolfi/batteries)
+
+
+docker: docker-build docker-push

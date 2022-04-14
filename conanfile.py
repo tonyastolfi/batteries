@@ -38,8 +38,6 @@ class BatteriesConan(ConanFile):
         "src/batteries/*/*.ipp",
         "src/batteries/**/*.ipp",
     ]
-    default_user = "tastolfi+batteries"
-    default_channel = "stable"
 
     def configure(self):
         self.options["gtest"].shared = False

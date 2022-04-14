@@ -62,6 +62,7 @@ RUN conan config init
 #
 RUN conan profile update settings.compiler.libcxx=libstdc++11 default
 
-# Point at TMW insidelabs gitlab.
+# Point at various release package repos.
 #
+RUN conan remote add gitlab https://gitlab.com/api/v4/packages/conan
 RUN conan remote add mw-insidelabs-gitlab https://insidelabs-git.mathworks.com/api/v4/packages/conan

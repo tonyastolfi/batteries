@@ -22,7 +22,7 @@ echo "${current_version} => ${next_version}"
 
 command="git tag -m '(no message)' -a release-${next_version} HEAD"
 
-if [ "$DRY_RUN" == "1" ]; then
+if [ "$DRY_RUN" = "1" ]; then
     echo $command
     working_tree_is_clean || {
         echo "Warning: command will fail because the working tree is dirty." >&2
