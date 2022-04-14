@@ -11,9 +11,20 @@ default:
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 stages:
+  - debug_env
   - install
   - build
   - test
+
+debug_env:
+  stage: debug_env
+  variables:
+    RELEASE_CONAN_LOGIN_USERNAME: "${CI_DEPLOY_USER}"
+    RELEASE_CONAN_PASSWORD: "${CI_DEPLOY_PASSWORD}"
+  script:
+    - echo "CI_DEPLOY_USER=${CI_DEPLOY_USER}"
+    - echo "CI_DEPLOY_PASSWORD=${CI_DEPLOY_PASSWORD}"
+    - env
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 install:
