@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 #
 # Usage: script/tag-release.sh <"major"|"minor"|"patch"(default)>
 #
