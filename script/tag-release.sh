@@ -20,7 +20,7 @@ next_version=$(find_next_version "${current_version}" "${release_type}")
 
 echo "${current_version} => ${next_version}"
 
-command="git tag -m \"(no message)\" -a release-${next_version} HEAD"
+command="git tag -m '(no message)' -a release-${next_version} HEAD"
 
 if [ "$DRY_RUN" == "1" ]; then
     echo $command
