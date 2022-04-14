@@ -30,7 +30,7 @@ if [ "$DRY_RUN" == "1" ]; then
 else
     working_tree_is_clean || {
         echo "Error: the working tree has uncommitted changes; please commit all and retry." >&2
-        exit 1
+        exit 1;
     }
     $command
 fi
