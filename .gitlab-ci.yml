@@ -12,17 +12,6 @@ image: ah-tastolfi-l.dhcp.mathworks.com:5000/a8-ubuntu:latest
 #image: registry.insidelabs-git.mathworks.com/tastolfi/batteries:latest
 
 default:
-  cache:
-    - key: conan-cache
-      paths:
-        - .conan/
-    - key: build-cache
-      paths:
-        - build/
-  artifacts:
-    paths:
-      - build/
-    
   retry:
     max: 2
     when: runner_system_failure
@@ -44,6 +33,15 @@ install:
     - changes:
       - conanfile.py
       - .gitlab-ci.yml
+  cache:
+    - key: conan-cache
+      paths:
+        - .conan/
+      policy: push
+    - key: build-cache
+      paths:
+        - build/
+      policy: push
 
 build:
   stage: build
@@ -53,9 +51,26 @@ build:
   #   - apt update && apt -y install make autoconf
   script:
     - cp -r /root/.conan ./ && CONAN_USER_HOME=$(pwd) make build
+  artifacts:
+    paths:
+      - build/
+  cache:
+    - key: conan-cache
+      paths:
+        - .conan/
+      policy: pull
+    - key: build-cache
+      paths:
+        - build/
+      policy: pull-push
 
 # run tests using the binary built before
 test:
   stage: test
   script:
     - cp -r /root/.conan ./ && CONAN_USER_HOME=$(pwd) make test
+  cache:
+    - key: build-cache
+      paths:
+        - build/
+      policy: pull
