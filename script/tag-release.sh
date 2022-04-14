@@ -57,4 +57,4 @@ next_version=$(find_next_version "${current_version}" "${release_type}")
 
 echo "${current_version} => ${next_version}"
 
-git tag -a release-${next_version} -m "$USER ran $@"
+git tag -m "$USER ran $@" -a release-${next_version} HEAD
