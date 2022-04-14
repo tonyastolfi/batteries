@@ -24,6 +24,9 @@ command=$(echo git tag -m \'"$USER ran ${script}"\' -a release-${next_version} H
 
 if [ "$DRY_RUN" == "1" ]; then
     echo $command
+    working_tree_is_clean || {
+        echo "Warning: command will fail because the working tree is dirty." >&2
+    }
 else
     working_tree_is_clean || {
         echo "Error: the working tree has uncommitted changes; please commit all and retry." >&2
