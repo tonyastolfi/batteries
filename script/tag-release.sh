@@ -32,5 +32,5 @@ else
         echo "Error: the working tree has uncommitted changes; please commit all and retry." >&2
         exit 1;
     }
-    $command
+    bash -c "$command"
 fi
