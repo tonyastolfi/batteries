@@ -37,7 +37,7 @@ latest_release_commit=$(git rev-list -n 1 "${latest_release_tag}" | awk '{print 
 # If the working tree is clean but our branch is ahead of the release tag, then we also
 # want to emit the devel version.
 #
-if [ "${latest_commit}" != "${latest_release_commit}" g]; then
+if [ "${latest_commit}" != "${latest_release_commit}" ]; then
     verbose "HEAD is ahead of last release tag '${latest_release_tag}'; adding '+1-devel' to latest release '${latest_release}'"
     devel ${latest_release}
     exit 0
