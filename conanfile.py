@@ -2,9 +2,15 @@ from conans import ConanFile, CMake
 
 import os
 
+SCRIPT_DIR_ = os.path.join(os.path.dirname(__file__), 'script')
+print(f"SCRIPT_DIR_={SCRIPT_DIR_}")
+
+VERSION_ = os.popen(os.path.join(SCRIPT_DIR_, "get-version.sh")).read().strip()
+print(f"VERSION_={VERSION_}")
+
 class BatteriesConan(ConanFile):
     name = "batteries"
-    version = "0.4.1"
+    version = VERSION_
     license = "Apache Public License 2.0"
     author = "Tony Astolfi <tastolfi@gmail.com>"
     url = "https://github.com/tonyastolfi/batteries.git"

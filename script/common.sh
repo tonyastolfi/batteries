@@ -13,6 +13,8 @@ local_conan_parent_dir=${project_dir}/
 local_conan_dir=${local_conan_parent_dir}/.conan
 default_conan_dir=${HOME}/.conan
 
+cd "$project_dir"
+
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 # usage: verbose [stuff to print]...
 #
