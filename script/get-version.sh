@@ -22,4 +22,12 @@ if [[ -n $(git status --short) ]]; then
     exit 0
 fi
 
+latest_commit=$(git show-ref --head HEAD | awk '{print $1}')
+latest_release_commit=$(git show-ref ${latest_release} | awk '{print $1}')
+
+if [[ "${latest_commit}" -ne "${latest_release_commit}" ]]; then
+    devel ${latest_release}
+    exit 0
+fi
+
 echo $latest_release
