@@ -17,3 +17,8 @@ if [ "$active_version" != "$release_version" ]; then
     echo "Error: active version (${active_version}) does not match the release version (${release_version}); did you forget to run ${script_dir}/tag-release.sh?" >&2
     exit 1
 fi
+
+if [ "$BATT_CONAN_UPLOAD_USER" == "" ]; then
+    echo "Error: env var `BATT_CONAN_UPLOAD_USER` not specified!" >&2
+    exit 1
+fi
