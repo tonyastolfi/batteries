@@ -20,7 +20,8 @@ if [[ -n $(git status --short) ]]; then
     exit 1
 fi
 
-script_dir=$(cd $(dirname $0) && pwd)
+script=$0
+script_dir=$(cd $(dirname "${script}") && pwd)
 release_type=${1:-patch}
 current_version=$("${script_dir}/get-version.sh")
 
@@ -57,4 +58,4 @@ next_version=$(find_next_version "${current_version}" "${release_type}")
 
 echo "${current_version} => ${next_version}"
 
-git tag -m "$USER ran $@" -a release-${next_version} HEAD
+git tag -m "$USER ran ${script}" -a release-${next_version} HEAD
