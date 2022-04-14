@@ -8,8 +8,13 @@
 # can use verions as well, like gcc:5.2
 # see https://hub.docker.com/_/gcc/
 
+#+++++++++++-+-+--+----- --- -- -  -  -   -
+# TODO [tastolfi 2022-04-14] Use the GitLab registry once we sort out login auth reliability.
+#
+# image: registry.insidelabs-git.mathworks.com/tastolfi/batteries:latest
 image: ah-tastolfi-l.dhcp.mathworks.com:5000/a8-ubuntu:latest
-#image: registry.insidelabs-git.mathworks.com/tastolfi/batteries:latest
+#
+#+++++++++++-+-+--+----- --- -- -  -  -   -
 
 default:
   retry:
@@ -23,12 +28,8 @@ stages:
 
 install:
   stage: install
-  # instead of calling g++ directly you can also use some build toolkit like make
-  # install the necessary build tools when needed
-  # before_script:
-  #   - apt update && apt -y install make autoconf
   script:
-    - cp -r /root/.conan ./ && CONAN_USER_HOME=$(pwd) make install
+    - script/ci-make.sh install
   rules:
     - changes:
       - conanfile.py
@@ -45,12 +46,8 @@ install:
 
 build:
   stage: build
-  # instead of calling g++ directly you can also use some build toolkit like make
-  # install the necessary build tools when needed
-  # before_script:
-  #   - apt update && apt -y install make autoconf
   script:
-    - cp -r /root/.conan ./ && CONAN_USER_HOME=$(pwd) make build
+    - script/ci-make.sh build
   artifacts:
     paths:
       - build/
@@ -64,12 +61,15 @@ build:
         - build/
       policy: pull-push
 
-# run tests using the binary built before
 test:
   stage: test
   script:
-    - cp -r /root/.conan ./ && CONAN_USER_HOME=$(pwd) make test
+    - script/ci-make.sh test
   cache:
+    - key: conan-cache
+      paths:
+        - .conan/
+      policy: pull
     - key: build-cache
       paths:
         - build/
