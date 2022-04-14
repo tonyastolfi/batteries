@@ -2,3 +2,4 @@ build/
 *~
 .mypy_cache/
 .conan/
+.DS_Store
