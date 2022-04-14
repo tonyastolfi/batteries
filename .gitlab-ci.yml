@@ -12,7 +12,8 @@
 # TODO [tastolfi 2022-04-14] Use the GitLab registry once we sort out login auth reliability.
 #
 # image: registry.insidelabs-git.mathworks.com/tastolfi/batteries:latest
-image: ah-tastolfi-l.dhcp.mathworks.com:5000/a8-ubuntu:latest
+# image: ah-tastolfi-l.dhcp.mathworks.com:5000/a8-ubuntu:latest
+image: registry.gitlab.com/tonyastolfi/batteries:latest
 #
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 
