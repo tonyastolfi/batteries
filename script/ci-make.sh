@@ -1,5 +1,7 @@
 #!/bin/bash -x
 #
+# Copyright 2022 Anthony Paul Astolfi
+#
 set -e
 
 script_dir=$(cd $(dirname $0) && pwd)

@@ -16,28 +16,38 @@ function devel {
     echo $(find_next_version "$1" patch)-devel
 }
 
-# If the working tree is dirty, then show the next patch version with "-devel" appended.
+# If the working tree is dirty, then show the next patch version with
+# "-devel" appended.
 #
 working_tree_is_clean || {
-    verbose "The working tree is dirty; adding '+1-devel' to latest release '${latest_release}'"
+    verbose $(cat <<EOF
+              The working tree is dirty; adding '+1-devel' to latest release
+              '${latest_release}'
+EOF
+        )
     devel "${latest_release}"
     exit 0
 }
 
-# Get the latest commit hash and the commit hash of the latest release tag.
+# Get the latest commit hash and the commit hash of the latest release
+# tag.
 #
 latest_commit=$(git rev-list -n 1 HEAD | awk '{print $1}')
-latest_release_commit=$(git rev-list -n 1 "${latest_release_tag}" | awk '{print $1}')
+latest_release_commit=$(git rev-list -n 1 "${latest_release_tag}" \
+                         | awk '{print $1}')
 
-# If the working tree is clean but our branch is ahead of the release tag, then we also
-# want to emit the devel version.
+# If the working tree is clean but our branch is ahead of the release
+# tag, then we also want to emit the devel version.
 #
 if [ "${latest_commit}" != "${latest_release_commit}" ]; then
-    verbose "HEAD is ahead of last release tag '${latest_release_tag}'; adding '+1-devel' to latest release '${latest_release}'"
+    verbose $(cat <<EOF
+              HEAD is ahead of last release tag '${latest_release_tag}'; adding
+              '+1-devel' to latest release '${latest_release}'"
+EOF
+        )
     devel "${latest_release}"
-    exit 0
+else
+    # This truly is the current release!
+    #
+    echo $latest_release
 fi
-
-# This truly is the current release!
-#
-echo $latest_release

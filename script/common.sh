@@ -18,7 +18,7 @@ cd "$project_dir"
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 # usage: verbose [stuff to print]...
 #
-# Prints arguments like `echo`, iff VERBOSE=1 
+# Prints arguments like `echo`, iff VERBOSE=1
 #
 function verbose {
     if [[ "$VERBOSE" == "1" ]]; then
@@ -33,7 +33,7 @@ function verbose {
 #
 # Examples:
 #
-#  COMMAND: parse_version 0.4.7 1 
+#  COMMAND: parse_version 0.4.7 1
 #  OUTPUT:  0
 #
 #  COMMAND: parse_version 0.4.7 2
@@ -43,7 +43,7 @@ function verbose {
 #  OUTPUT:  7
 #
 #  COMMAND: parse_version 0.4.7 4
-#  OUTPUT:  
+#  OUTPUT:
 #
 #  COMMAND: parse_version 0.4.7-devel 4
 #  OUTPUT:  devel
@@ -64,7 +64,7 @@ function find_next_version {
     minor_num=$(parse_version "${current_version}" 2)
     patch_num=$(parse_version "${current_version}" 3)
     devel_tag=$(parse_version "${current_version}" 4)
-    
+
     if [ "${release_type}" == "major" ]; then
         echo "$(expr ${major_num} \+ 1).0.0"
     elif [ "${release_type}" == "minor" ]; then
@@ -87,7 +87,7 @@ function find_next_version {
 function working_tree_is_clean {
     if [[ -n $(git status --short) ]]; then
         false
-    fi    
+    fi
 }
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -103,4 +103,15 @@ function find_release_tag {
 function version_from_release_tag {
     release_tag=$1
     echo "${release_tag}" | sed -e 's,release-,,g'
+}
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+# Exit with non-0 status if the specified env var isn't defined.
+#
+function require_env_var {
+    var_name=$1
+    if [ "${!var_name}" = "" ]; then
+        echo "Error: env var '${var_name}' not specified!" >&2
+        exit 1
+    fi
 }
