@@ -5,6 +5,10 @@ set -e
 script_dir=$(cd $(dirname $0) && pwd)
 source "${script_dir}/common.sh"
 
+# Use GitLab CI Deployment Token to authenticate against the Conan
+# package registry, if possible.  Otherwise fall back on env vars
+# RELEASE_CONAN_LOGIN_USERNAME, RELEASE_CONAN_PASSWORD.
+#
 conan_login=${CI_DEPLOY_USER:-${RELEASE_CONAN_LOGIN_USERNAME}}
 conan_pass=${CI_DEPLOY_PASSWORD:-${RELEASE_CONAN_PASSWORD}}
 
@@ -32,7 +36,11 @@ active_version=$("${script_dir}/get-version.sh")
 release_version=$("${script_dir}/get-release.sh")
 
 if [ "$active_version" != "$release_version" ]; then
-    echo "Error: active version (${active_version}) does not match the release version (${release_version}); did you forget to run ${script_dir}/tag-release.sh?" >&2
+    echo $(cat <<EOF
+Error: active version (${active_version}) does not match the release version 
+(${release_version}); did you forget to run ${script_dir}/tag-release.sh? 
+EOF
+        ) >&2
     exit 1
 fi
 
