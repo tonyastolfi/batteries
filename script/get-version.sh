@@ -42,7 +42,7 @@ latest_release_commit=$(git rev-list -n 1 "${latest_release_tag}" \
 if [ "${latest_commit}" != "${latest_release_commit}" ]; then
     verbose $(cat <<EOF
               HEAD is ahead of last release tag '${latest_release_tag}'; adding
-              '+1-devel' to latest release '${latest_release}'"
+              '+1-devel' to latest release '${latest_release}'
 EOF
         )
     devel "${latest_release}"
