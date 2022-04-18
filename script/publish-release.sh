@@ -52,7 +52,7 @@ if [ "$CI_COMMIT_TAG" != "" ]; then
                Warning: the active version (${active_version}) does not match
                the GitLab CI_COMMIT_TAG (${CI_COMMIT_TAG})!
 EOF
-            ) > &2
+            ) >&2
     fi
 fi
 
