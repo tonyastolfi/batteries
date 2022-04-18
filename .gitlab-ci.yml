@@ -15,6 +15,7 @@ stages:
   - install
   - build
   - test
+  - release
 
 debug_env:
   stage: debug_env
@@ -68,6 +69,23 @@ test:
   stage: test
   script:
     - script/ci-make.sh test
+  cache:
+    - key: conan-cache
+      paths:
+        - .conan/
+      policy: pull
+    - key: build-cache
+      paths:
+        - build/
+      policy: pull
+
+#+++++++++++-+-+--+----- --- -- -  -  -   -
+release:
+  stage: release
+  script:
+    - script/publish-release.sh
+  rules:
+    - if: $CI_COMMIT_TAG
   cache:
     - key: conan-cache
       paths:
