@@ -62,7 +62,8 @@ verbose "Publishing ${conan_recipe}..."
 # Apply Conan package registry credentials.
 #
 if [ "${conan_login}${conan_pass}" != "" ]; then
-    conan user --remote=${RELEASE_CONAN_REMOTE} --password=${conan_pass} ${conan_user}
+    echo "Setting Conan user credentials..." >&2
+    conan user --remote=${RELEASE_CONAN_REMOTE} --password=${conan_pass} ${conan_login}
 fi
 
 # This is just a sanity check; the project must be fully built before
@@ -76,4 +77,6 @@ fi
 
 # ...and upload it!
 #
-conan upload --remote=${RELEASE_CONAN_REMOTE} ${conan_recipe}
+CONAN_PASSWORD=${conan_pass}        \
+CONAN_LOGIN_USERNAME=${conan_login} \
+  conan upload --remote=${RELEASE_CONAN_REMOTE} ${conan_recipe}
