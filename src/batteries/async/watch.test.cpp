@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #include <batteries/async/watch.hpp>
 //
@@ -8,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include <batteries/async/task.hpp>
+#include <batteries/cpu_align.hpp>
 
 #include <boost/asio/io_context.hpp>
 
@@ -746,48 +748,63 @@ TEST(AsyncWatchTest, AwaitModifyRaceSucceed)
     batt::StatusOr<i32> result1, result2;
     i32 num_attempts = 0;
 
-    batt::Task await_modifier{io1.get_executor(), [&] {
-                                  result1 = num.await_modify([&](i32 n) -> batt::Optional<i32> {
-                                      num_attempts += 1;
-                                      if (n < 1000) {
-                                          return batt::None;
-                                      }
-                                      return n;
-                                  });
+    batt::Task task1{io1.get_executor(), [&] {
+                         // We want to force `task1` to spin inside `Watch::await_modify`, failing at least 10
+                         // times before eventually succeeding.
+                         //
+                         result1 = num.await_modify([&](i32 n) -> batt::Optional<i32> {
+                             num_attempts += 1;
+                             if (n < 10000) {
+                                 return batt::None;
+                             }
+                             return n;
+                         });
 
-                                  for (i32 j = 0; j < 100000; ++j) {
-                                      result2 = num.await_modify([&](i32 n) -> batt::Optional<i32> {
-                                          return n + 1;
-                                      });
-                                  }
-                              }};
+                         for (i32 j = 0; j < 100000; ++j) {
+                             result2 = num.await_modify([&](i32 n) -> batt::Optional<i32> {
+                                 return n + 1;
+                             });
+                         }
+                     }};
 
-    batt::Task adder{io2.get_executor(), [&] {
+    batt::Task task2{io2.get_executor(), [&] {
                          for (i32 i = 0; i < 100000; ++i) {
-                             (void)num.await_modify([](i32 n) {
+                             (void)num.await_modify([&](i32 n) -> batt::Optional<i32> {
+                                 // Slow this task down to let `task1` catch up.
+                                 //
+                                 if (i < 10000 && num_attempts < 10) {
+                                     for (i32 j = 0; j < (i + 1) * 25; ++j) {
+                                         batt::Task::yield();
+                                     }
+                                 }
                                  return n + 1;
                              });
                          }
                      }};
 
     std::thread t1{[&] {
+        // We've seen some flakiness in this test in the past when running on gitlab.com on the default CI
+        // runners, so pin threads to a single CPU as a way of trying to simulate underpowered hardware.
+        //
+        batt::pin_thread_to_cpu(0).IgnoreError();
         io1.run();
     }};
 
     std::thread t2{[&] {
+        batt::pin_thread_to_cpu(0).IgnoreError();
         io2.run();
     }};
 
     t1.join();
     t2.join();
 
-    await_modifier.join();
-    adder.join();
+    task1.join();
+    task2.join();
 
     EXPECT_TRUE(result2.ok());
     EXPECT_GT(*result2, 100000);
     EXPECT_EQ(num.get_value(), 200000);
-    EXPECT_GT(num_attempts, 1);
+    EXPECT_GE(num_attempts, 10);
 }
 
 TEST(AsyncWatchTest, AwaitModifyFailClosed)
