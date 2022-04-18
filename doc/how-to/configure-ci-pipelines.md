@@ -113,4 +113,6 @@ sudo gitlab-runner install --user=gitlab-runner --working-directory=/local/home/
 sudo gitlab-runner start
 ```
 
-##### 
+##### Register the runner with GitLab
+
+_TODO [tastolfi 2022-04-18] write me!_
