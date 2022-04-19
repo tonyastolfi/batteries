@@ -8,9 +8,9 @@ Navigate to your repo on GitLab.  Go to  Settings &gt; Repository &gt; Deploy To
 
 Enter the following:
 
-Name: ci-deployment-token
-Expiration date (optional): <whatever-date-you-want>
-Username (optional): <leave-blank>
+- Name: ci-deployment-token
+- Expiration date (optional): <whatever-date-you-want>
+- Username (optional): <leave-blank>
 
 For the "Scopes" section, click the checkbox next to `write_package_registry` (this is the only required capability).
 
@@ -115,4 +115,16 @@ sudo gitlab-runner start
 
 ##### Register the runner with GitLab
 
-_TODO [tastolfi 2022-04-18] write me!_
+Go to (your repo) &gt; Settings &gt; CI/CD &gt; Runners &gt; Expand.
+
+Under the column "Specific runners," copy the registration token string.
+
+On the machine where you installed gitlab-runner:
+
+```shell
+sudo gitlab-runner register
+```
+
+This will prompt you for various pieces of information.  Paste the registration token string you copied above when prompted.
+
+If this step is successful, you will see your runner show up on the Settings &gt; CI/CD &gt; Runners page in GitLab.
