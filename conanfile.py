@@ -37,6 +37,7 @@ class BatteriesConan(ConanFile):
         "src/batteries/*.ipp",
         "src/batteries/*/*.ipp",
         "src/batteries/**/*.ipp",
+        "script/*.sh",
     ]
 
     def configure(self):
