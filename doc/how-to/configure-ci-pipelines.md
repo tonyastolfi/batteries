@@ -95,6 +95,12 @@ Follow the instructions at [Linux Manual Install](https://docs.gitlab.com/runner
 sudo curl -L --output /usr/local/bin/gitlab-runner "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64"
 ```
 
+##### Make runnable
+
+```shell
+sudo chmod +x /usr/local/bin/gitlab-runner
+```
+
 ##### Create gitlab-runner user
 
 You can put the home directory for this user wherever you want; it was convenient for my setup to place it under `/local/home`.
