@@ -44,4 +44,9 @@ EOF
     # All checks have passed!  Apply the tag.
     #
     bash -c "$command"
+
+    echo
+    echo "Release has been tagged; to publish this version, run:"
+    echo
+    echo "git push origin release-${next_version}"
 fi
