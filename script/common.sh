@@ -4,11 +4,24 @@
 # script/common.sh - Common Bash Script code.
 #
 if [ "$script_dir" == "" ]; then
-    echo "Set script_dir before including this script!"
-    exit 1
+    echo $(cat <<EOF
+           Set script_dir before including this script!
+           (example: 'script_dir=\$(cd \$(dirname \$0) && pwd)')
+EOF
+        ) >&2
+    return 1
 fi
 
-project_dir=$(cd ${script_dir}/.. && pwd)
+# Determine the project root directory.  First attempt to find the
+# local git top-level dir relative to the parent directory of this
+# file; if this fails, then use the parent of the script dir.
+#
+function find_project_dir {
+    { cd ${script_dir} && git rev-parse --show-toplevel; } \
+        || { cd ${script_dir}/.. && pwd; }
+}
+
+project_dir=$(find_project_dir)
 local_conan_parent_dir=${project_dir}/
 local_conan_dir=${local_conan_parent_dir}/.conan
 default_conan_dir=${HOME}/.conan
@@ -77,16 +90,16 @@ function find_next_version {
         fi
     else
         echo "usage: $0 [major|minor|patch](default=patch)" >&2
-        exit 1
+        return 1
     fi
 }
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-# Exit with non-0 status if the git working tree is not clean.
+# Return non-0 status if the git working tree is not clean.
 #
 function working_tree_is_clean {
     if [[ -n $(git status --short) ]]; then
-        false
+        return 1
     fi
 }
 
@@ -106,12 +119,12 @@ function version_from_release_tag {
 }
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-# Exit with non-0 status if the specified env var isn't defined.
+# Return non-0 status if the specified env var isn't defined.
 #
 function require_env_var {
     var_name=$1
     if [ "${!var_name}" = "" ]; then
         echo "Error: env var '${var_name}' not specified!" >&2
-        exit 1
+        return 1
     fi
 }

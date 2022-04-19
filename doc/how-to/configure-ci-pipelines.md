@@ -8,13 +8,13 @@ Navigate to your repo on GitLab.  Go to  Settings &gt; Repository &gt; Deploy To
 
 Enter the following:
 
-- Name: ci-deployment-token
+- Name: gitlab-deploy-token
 - Expiration date (optional): <whatever-date-you-want>
 - Username (optional): <leave-blank>
 
 For the "Scopes" section, click the checkbox next to `write_package_registry` (this is the only required capability).
 
-NOTE: The name "ci-deployment-token" MUST be entered exactly as shown; this is a special magic token name that GitLab uses to infer that the token should be injected via environment variables to CI/CD pipelines.
+NOTE: The name "gitlab-deploy-token" MUST be entered exactly as shown; this is a special magic token name that GitLab uses to infer that the token should be injected via environment variables to CI/CD pipelines.
 
 Click "Create deploy token."  You can save the token value if you want, but you don't have to; it will be automatically injected into your pipeline jobs from now on.
 
