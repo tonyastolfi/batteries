@@ -45,8 +45,8 @@ EOF
     #
     bash -c "$command"
 
-    echo
     echo "Release has been tagged; to publish this version, run:"
     echo
     echo "git push origin release-${next_version}"
+    echo
 fi
