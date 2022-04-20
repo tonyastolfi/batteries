@@ -16,7 +16,7 @@ source "${script_dir}/common.sh"
 
 script=$0
 release_type=${1:-"patch"}
-current_version=$(VERBOSE=0 "${script_dir}/get-version.sh")
+current_version=$(VERBOSE=0 NO_CHECK_CONAN=1 "${script_dir}/get-version.sh")
 next_version=$(find_next_version "${current_version}" "${release_type}")
 
 echo "${current_version} => ${next_version}"
@@ -39,6 +39,16 @@ else
 EOF
                ) >&2
         exit 1;
+    }
+
+    conan_version=$(OVERRIDE_RELEASE_TAG="release-${next_version}" find_conan_version)
+    [ "${conan_version}" == "${next_version}" ] || {
+        echo $(cat <<EOF
+               Error: the conan version (${conan_version}) does not match the
+               target release version (${next_version}); please fix and try
+               again!
+EOF
+            )
     }
 
     # All checks have passed!  Apply the tag.

@@ -1,12 +1,16 @@
 from conans import ConanFile, CMake
 
-import os
+import os, sys
+
+VERBOSE_ = os.getenv('VERBOSE') and True or False
 
 SCRIPT_DIR_ = os.path.join(os.path.dirname(__file__), 'script')
-print(f"SCRIPT_DIR_={SCRIPT_DIR_}")
+if VERBOSE_:
+    print(f"SCRIPT_DIR_={SCRIPT_DIR_}", file=sys.stderr)
 
-VERSION_ = os.popen(os.path.join(SCRIPT_DIR_, "get-version.sh")).read().strip()
-print(f"VERSION_={VERSION_}")
+VERSION_ = os.popen("VERBOSE= " + os.path.join(SCRIPT_DIR_, "get-version.sh")).read().strip()
+if VERBOSE_:
+    print(f"VERSION_={VERSION_}", file=sys.stderr)
 
 class BatteriesConan(ConanFile):
     name = "batteries"
@@ -46,7 +50,7 @@ class BatteriesConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
-        cmake.verbose = os.getenv('VERBOSE') and True or False
+        cmake.verbose = VERBOSE_
         cmake.definitions["BUILD_DOC"] = "ON"
         cmake.configure(source_folder="src")
         cmake.build()
