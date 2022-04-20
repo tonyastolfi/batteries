@@ -33,9 +33,8 @@ else
     # Get the latest commit hash and the commit hash of the latest release
     # tag.
     #
-    latest_commit=$(git rev-list -n 1 HEAD | awk '{print $1}')
-    latest_release_commit=$(git rev-list -n 1 "${latest_release_tag}" \
-                                | awk '{print $1}')
+    latest_commit=$(find_git_hash "HEAD")
+    latest_release_commit=$(find_release_commit_hash)
 
     # If the working tree is clean but our branch is ahead of the release
     # tag, then we also want to emit the devel version.

@@ -22,6 +22,8 @@ next_version=$(find_next_version "${current_version}" "${release_type}")
 echo "${current_version} => ${next_version}"
 
 command="git tag -m '(no message)' -a release-${next_version} HEAD"
+conan_version=$(find_conan_version)
+target_conan_version=$(OVERRIDE_RELEASE_TAG="release-${next_version}" find_conan_version)
 
 if [ "$DRY_RUN" = "1" ]; then
     echo $command
@@ -30,6 +32,15 @@ if [ "$DRY_RUN" = "1" ]; then
                Warning: command will fail because the working tree is dirty.
 EOF
             ) >&2
+    }
+    [ "${target_conan_version}" == "${next_version}" ] || {
+        echo $(cat <<EOF
+               Warning: command will fail because the conan version
+               (${conan_version}) does not match the target release version
+               (${next_version}).
+EOF
+            )
+        exit 1;
     }
 else
     working_tree_is_clean || {
@@ -41,14 +52,14 @@ EOF
         exit 1;
     }
 
-    conan_version=$(OVERRIDE_RELEASE_TAG="release-${next_version}" find_conan_version)
-    [ "${conan_version}" == "${next_version}" ] || {
+    [ "${target_conan_version}" == "${next_version}" ] || {
         echo $(cat <<EOF
                Error: the conan version (${conan_version}) does not match the
                target release version (${next_version}); please fix and try
                again!
 EOF
             )
+        exit 1;
     }
 
     # All checks have passed!  Apply the tag.

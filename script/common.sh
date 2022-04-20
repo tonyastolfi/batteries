@@ -118,6 +118,25 @@ function find_release_tag() {
 }
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+# Print the SHA hash for the given GIT ref.
+#
+function find_git_hash() {
+    git rev-list -n 1 "${1:-HEAD}" | awk '{print $1}'
+}
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+# Print the SHA hash for the given release tag.
+# If OVERRIDE_RELEASE_TAG is set, then prints the SHA hash of HEAD.
+#
+function find_release_commit_hash() {
+    if [ "${OVERRIDE_RELEASE_TAG}" != "" ]; then
+        find_git_hash "HEAD"
+    else
+        find_git_hash "${latest_release_tag}"
+    fi
+}
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 # Print the release version given a release tag.
 #
 function version_from_release_tag() {
