@@ -46,7 +46,7 @@ RUN apt-get install -y python3
 RUN apt-get install -y python3-pip
 RUN pip3 install conan
 
-# Enable UTF-8 locale for rendering chess piece glyphs.
+# Enable UTF-8 locale for rendering non-ASCII characters.
 #
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
