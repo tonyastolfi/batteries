@@ -58,9 +58,13 @@ ENV LC_ALL en_US.UTF-8
 #
 RUN conan config init
 
-# Use libstdc++11 by default.
+# Use libstdc++11, c++17 by default; enable accurate stack traces.
 #
-RUN conan profile update settings.compiler.libcxx=libstdc++11 default
+RUN conan profile update 'settings.compiler.libcxx=libstdc++11' default
+RUN conan profile update 'settings.compiler.cppstd=17' default
+RUN conan profile update 'env.CXXFLAGS=-fno-omit-frame-pointer' default
+RUN conan profile update 'env.CFLAGS=-fno-omit-frame-pointer' default
+RUN conan profile update 'env.LDFLAGS=-fno-omit-frame-pointer' default
 
 # Point at various release package repos.
 #
