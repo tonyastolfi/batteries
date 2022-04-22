@@ -70,3 +70,11 @@ RUN conan profile update 'env.LDFLAGS=-fno-omit-frame-pointer' default
 #
 RUN conan remote add gitlab https://gitlab.com/api/v4/packages/conan
 RUN conan remote add mw-insidelabs-gitlab https://insidelabs-git.mathworks.com/api/v4/packages/conan
+
+# Heuristic Optimization: pre-cache some commonly used packages.
+#
+RUN ( cd /tmp && \
+      echo '[requires]' >conanfile.txt && \
+      echo 'boost/1.77.0' >>conanfile.txt && \
+      echo 'icu/69.1'  >>conanfile.txt && \
+      conan install . -s build_type=Release --build=missing )
