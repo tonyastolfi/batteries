@@ -24,18 +24,23 @@ Optional<T> getenv_as(const char* var_name)
 #ifdef BATT_GLOG_AVAILABLE
     VLOG(1) << "reading env variable '" << var_name << "'";
 #endif  // BATT_GLOG_AVAILABLE
+
     const char* var_value = std::getenv(var_name);
     if (var_value == nullptr) {
+        //
 #ifdef BATT_GLOG_AVAILABLE
         VLOG(1) << "... not set";
 #endif  // BATT_GLOG_AVAILABLE
-        return std::nullopt;
+
+        return None;
     }
 
     auto result = batt::from_string<T>(var_value);
+
 #ifdef BATT_GLOG_AVAILABLE
     VLOG(1) << "... value is '" << var_value << "'; parsing as " << typeid(T).name() << " == " << result;
 #endif  // BATT_GLOG_AVAILABLE
+
     return result;
 }
 
