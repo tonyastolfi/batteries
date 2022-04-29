@@ -17,7 +17,7 @@ install:
 	(cd build/$(BUILD_TYPE) && conan install ../.. -s build_type=$(BUILD_TYPE) --build=missing)
 
 create: test
-	(cd build/$(BUILD_TYPE) && conan create ../..)
+	(cd build/$(BUILD_TYPE) && conan create ../.. -s build_type=$(BUILD_TYPE))
 
 
 publish: | test build

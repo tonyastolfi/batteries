@@ -19,33 +19,30 @@ FROM ubuntu:20.04
 #
 ENV TERM screen
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
-RUN apt-get update
-RUN apt-get install -y -q dialog apt-utils
+RUN apt-get update && apt-get install --no-install-recommends -y -q dialog apt-utils
 
 # Basic CLI tools.
 #
-RUN apt-get install -y nano
-RUN apt-get install -y sed
-RUN apt-get install -y locales
+RUN apt-get update && apt-get install --no-install-recommends -y nano sed locales
 
 # Developer/Build tools.
 #
-RUN apt-get install -y git
-RUN apt-get install -y gcc
-RUN apt-get install -y make
-RUN apt-get install -y cmake
+RUN apt-get update && apt-get install --no-install-recommends -y git gcc g++ make cmake
 
 # Some libraries.
 #
-RUN apt-get install -y libssl-dev
-RUN apt-get install -y libz-dev
+RUN apt-get update && apt-get install --no-install-recommends -y libc-dev libssl-dev libz-dev
 
 # Conan.
 #
-RUN apt-get install -y python3
-RUN apt-get install -y python3-pip
+RUN apt-get update && apt-get install --no-install-recommends -y python3 python3-pip
 RUN pip3 install conan
 
+# Clean up apt caches.
+#
+RUN rm -rf /var/lib/apt/lists/*
+
+#=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 # Enable UTF-8 locale for rendering non-ASCII characters.
 #
 RUN locale-gen en_US.UTF-8
@@ -73,8 +70,30 @@ RUN conan remote add mw-insidelabs-gitlab https://insidelabs-git.mathworks.com/a
 
 # Heuristic Optimization: pre-cache some commonly used packages.
 #
-RUN ( cd /tmp && \
+RUN ( cd /tmp && rm -f conanfile.txt && \
       echo '[requires]' >conanfile.txt && \
       echo 'boost/1.77.0' >>conanfile.txt && \
       echo 'icu/69.1'  >>conanfile.txt && \
+      echo 'gtest/cci.20210126'  >>conanfile.txt && \
+      echo 'libcap/2.58'  >>conanfile.txt && \
+      echo 'openssl/1.1.1l'  >>conanfile.txt && \
+      echo 'zlib/1.2.12'  >>conanfile.txt && \
+      echo 'protobuf/3.17.1'  >>conanfile.txt && \
+      echo 'expat/2.4.4' >>conanfile.txt && \
+      conan install . -s build_type=Release --build=missing )
+
+# We have to do this multiple times to avoid version conflicts.
+#
+RUN ( cd /tmp && rm -f conanfile.txt && \
+      echo '[requires]' >conanfile.txt && \
+      echo 'boost/1.78.0' >>conanfile.txt && \
+      echo 'icu/71.1' >>conanfile.txt && \
+      echo 'expat/2.4.8' >>conanfile.txt && \
+      echo 'protobuf/3.20.0' >>conanfile.txt && \
+      echo 'openssl/3.0.2' >>conanfile.txt && \
+      conan install . -s build_type=Release --build=missing )
+
+RUN ( cd /tmp && rm -f conanfile.txt && \
+      echo '[requires]' >conanfile.txt && \
+      echo 'openssl/1.1.1n' >>conanfile.txt && \
       conan install . -s build_type=Release --build=missing )
