@@ -99,6 +99,8 @@ function find_next_version() {
 function working_tree_is_clean() {
     if [[ -n $(git status --short) ]]; then
         return 1
+    else
+        return 0
     fi
 }
 

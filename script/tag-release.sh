@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2022 Anthony Paul Astolfi
+# Copyright 2022 The MathWorks, Inc.
 #
 # Usage: script/tag-release.sh <"major"|"minor"|"patch"(default)>
 #
@@ -21,27 +21,43 @@ next_version=$(find_next_version "${current_version}" "${release_type}")
 
 echo "${current_version} => ${next_version}"
 
-command="git tag -m '(no message)' -a release-${next_version} HEAD"
+tag_command="git tag -m '(no message)' -a release-${next_version} HEAD"
 conan_version=$(find_conan_version)
 target_conan_version=$(OVERRIDE_RELEASE_TAG="release-${next_version}" find_conan_version)
 
-if [ "$DRY_RUN" = "1" ]; then
-    echo $command
+push_command="git push origin release-${next_version}"
+if [ "$A8_PUSH_MAIN_WITH_RELEASE" == "1" ]; then
+    push_command="${push_command} main"
+fi
+
+if [ "$DRY_RUN" == "1" ]; then
+    if [ "$A8_COPY_COMMANDS_TO_CLIPBOARD" == "1" ] && [ "$(uname)" == "Darwin" ]; then
+        echo "# ${push_command}" | pbcopy
+    fi
+
+    echo $tag_command
+    will_fail=0
     working_tree_is_clean || {
+        will_fail=1
         echo $(cat <<EOF
                Warning: command will fail because the working tree is dirty.
 EOF
             ) >&2
     }
     [ "${target_conan_version}" == "${next_version}" ] || {
+        will_fail=1
         echo $(cat <<EOF
                Warning: command will fail because the conan version
                (${conan_version}) does not match the target release version
                (${next_version}).
 EOF
             )
-        exit 1;
     }
+    if [ "$will_fail" == "1" ]; then
+        echo "(No action taken; fix all warnings and re-run without DRY_RUN=1 to apply changes)"
+    else
+        echo "(No action taken; re-run without DRY_RUN=1 to apply changes)"
+    fi
 else
     working_tree_is_clean || {
         echo $(cat <<EOF
@@ -64,10 +80,17 @@ EOF
 
     # All checks have passed!  Apply the tag.
     #
-    bash -c "$command"
+    bash -c "${tag_command}"
 
     echo "Release has been tagged; to publish this version, run:"
     echo
-    echo "git push origin release-${next_version}"
+    echo "${push_command}"
     echo
+
+    # Copy the push command to the clipboard if requested.
+    #
+    if [ "$A8_COPY_COMMANDS_TO_CLIPBOARD" == "1" ] && [ "$(uname)" == "Darwin" ]; then
+        echo "${push_command}" | pbcopy
+        echo "(command copied to clipboard)"
+    fi
 fi

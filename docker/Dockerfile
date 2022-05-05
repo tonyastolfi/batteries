@@ -96,4 +96,5 @@ RUN ( cd /tmp && rm -f conanfile.txt && \
 RUN ( cd /tmp && rm -f conanfile.txt && \
       echo '[requires]' >conanfile.txt && \
       echo 'openssl/1.1.1n' >>conanfile.txt && \
+      echo 'tbb/2020.3' >>conanfile.txt && \
       conan install . -s build_type=Release --build=missing )

@@ -6,19 +6,22 @@ set -e
 
 script_dir=$(cd $(dirname $0) && pwd)
 source "${script_dir}/common.sh"
-
-# Use GitLab CI Deployment Token to authenticate against the Conan
-# package registry, if possible.  Otherwise fall back on env vars
-# RELEASE_CONAN_LOGIN_USERNAME, RELEASE_CONAN_PASSWORD.
-#
-conan_login=${CI_DEPLOY_USER:-${RELEASE_CONAN_LOGIN_USERNAME}}
-conan_pass=${CI_DEPLOY_PASSWORD:-${RELEASE_CONAN_PASSWORD}}
+source "${script_dir}/conan-login.sh"
 
 # Verify all required variables are defined.
 #
-require_env_var RELEASE_CONAN_USER
 require_env_var RELEASE_CONAN_CHANNEL
 require_env_var RELEASE_CONAN_REMOTE
+
+# If RELEASE_CONAN_USER is not defined, then attempt to default to the GitLab
+# CI_PROJECT_NAMESPACE and CI_PROJECT_TITLE; if these too are not defined,
+# then show the error requiring RELEASE_CONAN_USER.
+#
+conan_recipe_user=${RELEASE_CONAN_USER:-"${CI_PROJECT_NAMESPACE}+${CI_PROJECT_TITLE}"}
+if [ "$conan_recipe_user" == "+" ]; then
+    require_env_var RELEASE_CONAN_USER
+    conan_recipe_user=${RELEASE_CONAN_USER}
+fi
 
 # The working tree must be clean before we continue...
 #
@@ -56,27 +59,22 @@ EOF
     fi
 fi
 
-conan_recipe=batteries/${release_version}@${RELEASE_CONAN_USER}/${RELEASE_CONAN_CHANNEL}
-verbose "Publishing ${conan_recipe}..."
+conan_name=$(conan inspect --raw=name "${project_dir}")
+conan_recipe=${conan_name}/${release_version}@${conan_recipe_user}/${RELEASE_CONAN_CHANNEL}
 
-# Apply Conan package registry credentials.
-#
-if [ "${conan_login}${conan_pass}" != "" ]; then
-    echo "Setting Conan user credentials..." >&2
-    conan user --remote=${RELEASE_CONAN_REMOTE} --password=${conan_pass} ${conan_login}
-fi
+verbose "Publishing ${conan_recipe}..."
 
 # This is just a sanity check; the project must be fully built before
 # we continue.
 #
-( cd ${project_dir} && make BUILD_TYPE=Release install build test create )
+( cd "${project_dir}" && make BUILD_TYPE=Release install build test create )
 
 # Create the release package...
 #
-( cd ${project_dir}/build/Release && conan create ../.. ${conan_recipe} )
+( cd "${project_dir}/build/Release" && conan create ../.. ${conan_recipe} )
 
 # ...and upload it!
 #
 CONAN_PASSWORD=${conan_pass}        \
 CONAN_LOGIN_USERNAME=${conan_login} \
-  conan upload --remote=${RELEASE_CONAN_REMOTE} ${conan_recipe}
+  conan upload ${conan_recipe} --all --remote=${RELEASE_CONAN_REMOTE}
