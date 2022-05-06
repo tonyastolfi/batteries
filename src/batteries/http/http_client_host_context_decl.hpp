@@ -39,6 +39,11 @@ class HttpClientHostContext : public RefCounted<HttpClientHostContext>
 
     boost::asio::io_context& get_io_context();
 
+    HttpClient& client() const noexcept
+    {
+        return this->client_;
+    }
+
     Status submit_request(Pin<HttpRequest>&& request, Pin<HttpResponse>&& response)
     {
         this->request_queue_.push(std::make_tuple(std::move(request), std::move(response)));
