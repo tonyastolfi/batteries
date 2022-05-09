@@ -69,6 +69,11 @@ test:
   stage: test
   script:
     - script/ci-make.sh test
+  artifacts:
+    reports:
+      junit:
+        - build/Release/test-results.xml
+        - build/Release/death-test-results.xml
   cache:
     - key: conan-cache
       paths:
