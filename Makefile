@@ -10,7 +10,10 @@ build: | install
 
 test: build
 	mkdir -p build/$(BUILD_TYPE)
-	(cd build/$(BUILD_TYPE) && ctest --verbose)
+	@echo -e "\n\nRunning non-DEATH tests ==========================================\n"
+	(cd build/$(BUILD_TYPE) && GTEST_FILTER='*-*Death*' ctest --verbose)
+	@echo -e "\n\nRunning DEATH tests ==============================================\n"
+	(cd build/$(BUILD_TYPE) && GTEST_FILTER='*Death*' ctest --verbose)
 
 install:
 	mkdir -p build/$(BUILD_TYPE)

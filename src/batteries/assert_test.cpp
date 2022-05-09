@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #include <batteries/assert.hpp>
 //
@@ -8,13 +9,13 @@
 
 namespace {
 
-TEST(Check, BasicFail)
+TEST(Check, BasicFailDeath)
 {
     EXPECT_DEATH(BATT_CHECK_EQ(1, 2) << "Special message",
-                 "Assert.*failed.*1.*==.*2.*Special message.*Check_BasicFail_Test.*TestBody.*main");
+                 "Assert.*failed.*1.*==.*2.*Special message.*Check_BasicFailDeath_Test.*TestBody.*main");
 }
 
-TEST(Check, InRange)
+TEST(Check, InRangeDeath)
 {
     BATT_CHECK_IN_RANGE(0, 0 * 3, 6);
     BATT_CHECK_IN_RANGE(0, 1 * 3, 6);
