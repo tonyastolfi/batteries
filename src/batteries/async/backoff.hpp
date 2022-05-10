@@ -8,8 +8,11 @@
 #include <batteries/async/task_decl.hpp>
 
 #include <batteries/int_types.hpp>
+#include <batteries/suppress.hpp>
 
+BATT_SUPPRESS_IF_GCC("-Wswitch-enum")
 #include <boost/date_time/posix_time/posix_time.hpp>
+BATT_UNSUPPRESS_IF_GCC()
 
 #include <type_traits>
 
