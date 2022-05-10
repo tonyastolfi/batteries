@@ -5,10 +5,16 @@
 #ifndef BATTERIES_ASYNC_BACKOFF_HPP
 #define BATTERIES_ASYNC_BACKOFF_HPP
 
+#include <batteries/config.hpp>
+
 #include <batteries/async/task_decl.hpp>
 
 #include <batteries/int_types.hpp>
 #include <batteries/suppress.hpp>
+
+#ifdef BATT_GLOG_AVAILABLE
+#include <glog/logging.h>
+#endif  // BATT_GLOG_AVAILABLE
 
 BATT_SUPPRESS_IF_GCC("-Wswitch-enum")
 #include <boost/date_time/posix_time/posix_time.hpp>
