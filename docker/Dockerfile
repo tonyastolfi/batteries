@@ -72,21 +72,15 @@ RUN conan remote add mw-insidelabs-gitlab https://insidelabs-git.mathworks.com/a
 #
 RUN ( cd /tmp && rm -f conanfile.txt && \
       echo '[requires]' >conanfile.txt && \
-      echo 'boost/1.77.0' >>conanfile.txt && \
-      echo 'icu/69.1'  >>conanfile.txt && \
       echo 'gtest/cci.20210126'  >>conanfile.txt && \
       echo 'libcap/2.58'  >>conanfile.txt && \
-      echo 'openssl/1.1.1l'  >>conanfile.txt && \
       echo 'zlib/1.2.12'  >>conanfile.txt && \
-      echo 'protobuf/3.17.1'  >>conanfile.txt && \
-      echo 'expat/2.4.4' >>conanfile.txt && \
       conan install . -s build_type=Release --build=missing )
 
 # We have to do this multiple times to avoid version conflicts.
 #
 RUN ( cd /tmp && rm -f conanfile.txt && \
       echo '[requires]' >conanfile.txt && \
-      echo 'boost/1.78.0' >>conanfile.txt && \
       echo 'icu/71.1' >>conanfile.txt && \
       echo 'expat/2.4.8' >>conanfile.txt && \
       echo 'protobuf/3.20.0' >>conanfile.txt && \

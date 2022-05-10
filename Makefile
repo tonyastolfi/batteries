@@ -10,10 +10,14 @@ build: | install
 
 test: build
 	mkdir -p build/$(BUILD_TYPE)
-	@echo -e "\n\nRunning non-DEATH tests ==========================================\n"
-	(cd build/$(BUILD_TYPE) && GTEST_OUTPUT='xml:../test-results.xml' GTEST_FILTER='*-*Death*' ctest --verbose)
+ifeq ("$(GTEST_FILTER)","")
 	@echo -e "\n\nRunning DEATH tests ==============================================\n"
 	(cd build/$(BUILD_TYPE) && GTEST_OUTPUT='xml:../death-test-results.xml' GTEST_FILTER='*Death*' ctest --verbose)
+	@echo -e "\n\nRunning non-DEATH tests ==========================================\n"
+	(cd build/$(BUILD_TYPE) && GTEST_OUTPUT='xml:../test-results.xml' GTEST_FILTER='*-*Death*' ctest --verbose)
+else
+	(cd build/$(BUILD_TYPE) && GTEST_OUTPUT='xml:../test-results.xml' ctest --verbose)
+endif
 
 install:
 	mkdir -p build/$(BUILD_TYPE)
