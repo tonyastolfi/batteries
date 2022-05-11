@@ -66,7 +66,7 @@ TEST(CheckedCastTest, SameWidth)
     EXPECT_EQ(v_i64, batt::checked_cast<i64>(v_i64));
 }
 
-TEST(CheckedCastTest, Narrowing)
+TEST(CheckedCastTest, NarrowingDeath)
 {
     EXPECT_DEATH(batt::checked_cast<u8>(v_u16), "Assertion failed");
     EXPECT_DEATH(batt::checked_cast<u8>(v_u32), "Assertion failed");

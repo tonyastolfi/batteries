@@ -1,23 +1,19 @@
 # Getting Started
 
-Add the batteriesincuded repo to your conan remotes:
+Add the GitLab repo to your conan remotes:
 
 ```
-conan remote add batteriesincluded https://api.bintray.com/conan/batteriesincluded/conan 
+conan remote add gitlab https://gitlab.com/api/v4/packages/conan
 ```
 
-Add a ref to batteries (latest release=0.2.0):
-
-```
-conan remote add_ref batteries/0.2.0@demo/testing batteriesincluded
-```
-
-Now add this to your conan project requirements (conanfile.py):
+Now a package ref to your Conan project requirements (conanfile.py):
 
 ```
     requires = [
         ...
-        "batteries/0.2.0@demo/testing",
+        "batteries/0.5.17@tonyastolfi+batteries/stable",
     ]
 
 ```
+
+Check out the [documentation](https://batteriescpp.github.io/)!

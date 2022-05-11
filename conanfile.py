@@ -1,10 +1,20 @@
 from conans import ConanFile, CMake
 
-import os
+import os, sys
+
+VERBOSE_ = os.getenv('VERBOSE') and True or False
+
+SCRIPT_DIR_ = os.path.join(os.path.dirname(__file__), 'script')
+if VERBOSE_:
+    print(f"SCRIPT_DIR_={SCRIPT_DIR_}", file=sys.stderr)
+
+VERSION_ = os.popen("VERBOSE= " + os.path.join(SCRIPT_DIR_, "get-version.sh")).read().strip()
+if VERBOSE_:
+    print(f"VERSION_={VERSION_}", file=sys.stderr)
 
 class BatteriesConan(ConanFile):
     name = "batteries"
-    version = "0.4.1"
+    version = VERSION_
     license = "Apache Public License 2.0"
     author = "Tony Astolfi <tastolfi@gmail.com>"
     url = "https://github.com/tonyastolfi/batteries.git"
@@ -16,7 +26,7 @@ class BatteriesConan(ConanFile):
     build_policy = "missing"
     requires = [
         "gtest/cci.20210126",
-        "boost/1.77.0",
+        "boost/1.79.0",
     ]
     exports_sources = [
         "src/CMakeLists.txt",
@@ -31,9 +41,8 @@ class BatteriesConan(ConanFile):
         "src/batteries/*.ipp",
         "src/batteries/*/*.ipp",
         "src/batteries/**/*.ipp",
+        "script/*.sh",
     ]
-    default_user = "tastolfi+batteries"
-    default_channel = "stable"
 
     def configure(self):
         self.options["gtest"].shared = False
@@ -41,7 +50,7 @@ class BatteriesConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
-        cmake.verbose = os.getenv('VERBOSE') and True or False
+        cmake.verbose = VERBOSE_
         cmake.definitions["BUILD_DOC"] = "ON"
         cmake.configure(source_folder="src")
         cmake.build()
@@ -55,6 +64,7 @@ class BatteriesConan(ConanFile):
     def package(self):
         self.copy("*.hpp", dst="include", src="src")
         self.copy("*.ipp", dst="include", src="src")
+        self.copy("*.sh", dst="bin", src="script")
 
     def package_info(self):
         self.cpp_info.cxxflags = ["-std=c++17 -D_GNU_SOURCE"]

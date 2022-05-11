@@ -16,7 +16,7 @@ BATT_INLINE_IMPL /*explicit*/ HttpClientHostContext::HttpClientHostContext(HttpC
                                                                            const HostAddress& host_addr)
     : client_{client}
     , host_address_{host_addr}
-    , task_{this->client_.io_.get_executor(), [this] {
+    , task_{this->client_.get_io_context().get_executor(), [this] {
                 this->host_task_main();
             }}
 {

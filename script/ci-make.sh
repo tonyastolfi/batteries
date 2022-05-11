@@ -1,12 +1,11 @@
 #!/bin/bash -x
 #
+# Copyright 2022 Anthony Paul Astolfi
+#
 set -e
 
 script_dir=$(cd $(dirname $0) && pwd)
-project_dir=$(cd ${script_dir}/.. && pwd)
-local_conan_parent_dir=${project_dir}/
-local_conan_dir=${local_conan_parent_dir}/.conan
-default_conan_dir=${HOME}/.conan
+source "${script_dir}/common.sh"
 
 # Create a local conan cache dir so we can use GitLab file cache.
 #

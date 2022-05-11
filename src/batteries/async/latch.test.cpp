@@ -62,7 +62,7 @@ TEST(AsyncLatchTest, SetValueTwice)
     EXPECT_EQ(*latch.await(), 42);
 }
 
-TEST(AsyncLatchTest, GetReadyValuePanic)
+TEST(AsyncLatchTest, GetReadyValuePanicDeath)
 {
     batt::Latch<int> latch;
 

@@ -25,12 +25,12 @@ void BATT_NO_OPTIMIZE level_one()
     level_two();
 }
 
-TEST(Segv, StackTraceOnSegv)
+TEST(Segv, StackTraceOnSegvDeath)
 {
     EXPECT_DEATH(level_one(),
                  "Seg.*fault"
 #ifndef __APPLE__
-                 ".*level_three.*level_two.*level_one.*Segv_StackTraceOnSegv_Test::TestBody()"
+                 ".*level_three.*level_two.*level_one.*Segv_StackTraceOnSegvDeath_Test::TestBody()"
 #endif  // __APPLE__
     );
 }

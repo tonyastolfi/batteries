@@ -51,21 +51,11 @@ BATT_INLINE_IMPL void HttpClientConnection::start()
 //
 BATT_INLINE_IMPL Status HttpClientConnection::open_connection()
 {
-    boost::asio::ip::tcp::resolver resolver{this->get_io_context()};
-
-    const HostAddress& host_address = this->context_.host_address();
-
-    auto hosts = Task::await<IOResult<boost::asio::ip::tcp::resolver::results_type>>([&](auto&& handler) {
-        resolver.async_resolve(host_address.hostname, host_address.scheme, BATT_FORWARD(handler));
-    });
+    StatusOr<SmallVec<boost::asio::ip::tcp::endpoint>> hosts =
+        await_resolve(this->get_io_context(), this->context_.host_address());
     BATT_REQUIRE_OK(hosts);
 
-    for (const auto& result : *hosts) {
-        auto endpoint = result.endpoint();
-        if (host_address.port) {
-            endpoint.port(*host_address.port);
-        }
-
+    for (const boost::asio::ip::tcp::endpoint& endpoint : *hosts) {
         ErrorCode ec = Task::await_connect(this->socket_, endpoint);
         if (!ec) {
             return OkStatus();
