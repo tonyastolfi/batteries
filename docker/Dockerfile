@@ -93,3 +93,15 @@ RUN ( cd /tmp && rm -f conanfile.txt && \
       echo 'openssl/1.1.1n' >>conanfile.txt && \
       echo 'tbb/2020.3' >>conanfile.txt && \
       conan install . -s build_type=Release --build=missing )
+
+#=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+# Install the GitLab release cli
+#
+# Basic CLI tools.
+#
+RUN apt-get update && apt-get install --no-install-recommends -y curl
+
+RUN curl --location --output /usr/local/bin/release-cli \
+      "https://release-cli-downloads.s3.amazonaws.com/latest/release-cli-linux-amd64" && \
+    chmod +x /usr/local/bin/release-cli && \
+    release-cli -v
