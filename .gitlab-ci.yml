@@ -1,7 +1,7 @@
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 # See batteries/docker/Dockerfile
 #
-image: registry.gitlab.com/tonyastolfi/batteries@sha256:961f0b2498431d56fae5b9259f01b708ef6384ee8e611b8df3892eee02c4d31d
+image: registry.gitlab.com/tonyastolfi/batteries:latest
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 default:
