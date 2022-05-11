@@ -46,7 +46,7 @@ class HttpClient
     {
     }
 
-    boost::asio::io_context& get_io_context()
+    boost::asio::io_context& get_io_context() const noexcept
     {
         return this->io_;
     }
@@ -54,7 +54,9 @@ class HttpClient
     Status submit_request(const HostAddress& host_address, Pin<HttpRequest>&& request,
                           Pin<HttpResponse>&& response);
 
+   private:
     boost::asio::io_context& io_;
+
     Mutex<std::unordered_map<HostAddress, SharedPtr<HttpClientHostContext>, boost::hash<HostAddress>>>
         host_contexts_;
 };
@@ -71,6 +73,7 @@ class DefaultHttpClient
         return default_client_->client_;
     }
 
+   private:
     boost::asio::io_context io_;
 
     Optional<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> work_guard_{
@@ -129,7 +132,7 @@ class HttpClientRequestContext
     Status set_params(HttpResponse* response, Rest&&... rest)
     {
         BATT_CHECK_NOT_NULLPTR(response);
-        this->response_ = response;
+        this->set_response_object(response);
         return this->set_params(BATT_FORWARD(rest)...);
     }
 
@@ -205,9 +208,32 @@ class HttpClientRequestContext
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
+    HttpResponse* get_response_object() const noexcept
+    {
+        return this->response_;
+    }
+
+    void set_response_object(HttpResponse* response) noexcept
+    {
+        this->response_ = response;
+    }
+
+    const HttpRequest* get_request_object() const noexcept
+    {
+        return &this->request_;
+    }
+
+    HttpRequest* get_request_object() noexcept
+    {
+        return &this->request_;
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
     Status submit()
     {
         BATT_CHECK_NOT_NULLPTR(this->client_);
+        BATT_CHECK_NOT_NULLPTR(this->response_);
 
         // TODO [tastolfi 2022-03-29] Check headers and adjust `this->data_` accordingly.
 
@@ -217,7 +243,7 @@ class HttpClientRequestContext
     }
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
-
+   private:
     HttpClient* client_ = &DefaultHttpClient::get();
     std::string path_;
     std::string content_length_;
@@ -226,7 +252,8 @@ class HttpClientRequestContext
     HttpData data_;
     HttpRequest request_;
     HttpResponse* response_ = nullptr;
-};
+
+};  // class HttpClientRequestContext
 
 }  // namespace detail
 
@@ -237,8 +264,12 @@ StatusOr<std::unique_ptr<HttpResponse>> http_request(std::string_view method, st
     StatusOr<UrlParse> url_parse = parse_url(url);
     BATT_REQUIRE_OK(url_parse);
 
+    // Create a request context object to hold all the things we may need to submit the request.
+    //
     detail::HttpClientRequestContext context;
 
+    // Initialize the request from args.
+    //
     Status method_status = context.set_method(method);
     BATT_REQUIRE_OK(method_status);
 
@@ -248,28 +279,52 @@ StatusOr<std::unique_ptr<HttpResponse>> http_request(std::string_view method, st
     Status params_status = context.set_params(BATT_FORWARD(params)...);
     BATT_REQUIRE_OK(params_status);
 
-    std::unique_ptr<HttpResponse> response;
-    if (context.response_ == nullptr) {
-        response = std::make_unique<HttpResponse>();
-        context.response_ = response.get();
+    // If the caller did not pass an HttpResponse object to receive the response, then create one to
+    // use/return.
+    //
+    std::unique_ptr<HttpResponse> new_response;
+    if (context.get_response_object() == nullptr) {
+        new_response = std::make_unique<HttpResponse>();
+        context.set_response_object(new_response.get());
     }
 
+    // The request is now ready to go!
+    //
     Status submitted = context.submit();
     BATT_REQUIRE_OK(submitted);
 
-    Status request_consumed = context.request_.state().await_equal(HttpRequest::kConsumed);
+    //----- --- -- -  -  -   -
+    // Before we can return, we must make sure that the context object is not in use by the HttpClient.
+    //----- --- -- -  -  -   -
+
+    HttpRequest* const request = context.get_request_object();
+    HttpResponse* const response = context.get_response_object();
+
+    // Await notification from the HttpClient that our request has been fully consumed.
+    //
+    Status request_consumed = request->state().await_equal(HttpRequest::kConsumed);
     if (!request_consumed.ok()) {
-        BATT_REQUIRE_OK(context.request_.get_status());
+        BATT_REQUIRE_OK(request->get_status());
     }
     BATT_REQUIRE_OK(request_consumed);
 
-    Status response_received = context.response_->state().await_equal(HttpResponse::kInitialized);
+    // Await notification from the HttpClient that the response has been read and parsed; this is not required
+    // for object/reference lifetime issues (like `request` above), but rather so that any errors in the
+    // response can be reported via StatusCode from this function.
+    //
+    // TODO [tastolfi 2022-05-06] Should we provide an option to skip this step?
+    //
+    Status response_received = response->state().await_equal(HttpResponse::kInitialized);
     if (!response_received.ok()) {
-        BATT_REQUIRE_OK(context.response_->get_status());
+        BATT_REQUIRE_OK(response->get_status());
     }
     BATT_REQUIRE_OK(response_received);
 
-    return response;
+    // Return the response that was created on behalf of the caller, if there was one.  NOTE: if this is
+    // nullptr, that isn't an error, it just means that the caller supplied their own HttpResponse object
+    // pointer.
+    //
+    return new_response;
 }
 
 template <typename... Params>

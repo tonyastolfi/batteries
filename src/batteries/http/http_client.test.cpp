@@ -8,12 +8,18 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <batteries/env.hpp>
+
 namespace {
 
-constexpr bool kInteractiveTesting = false;
+const bool kInteractiveTesting = batt::getenv_as<int>("BATT_INTERACTIVE").value_or(0);
 
 TEST(HttpClientTest, Test)
 {
+    if (!kInteractiveTesting) {
+        return;
+    }
+
     batt::StatusOr<std::unique_ptr<batt::HttpResponse>> result =
         batt::http_get("http://www.google.com/", batt::HttpHeader{"Connection", "close"});
 

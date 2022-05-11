@@ -192,7 +192,7 @@ TEST(AsyncFakeExecutor, Equality)
     EXPECT_NE(ex1_1, ex2);
 }
 
-TEST(AsyncFakeExecutor, WorkCount)
+TEST(AsyncFakeExecutor, WorkCountDeath)
 {
     batt::FakeExecutionContext context;
 
