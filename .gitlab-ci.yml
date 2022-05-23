@@ -8,24 +8,21 @@ default:
   retry:
     max: 2
     when: runner_system_failure
-
+  before_script:
+    - "test -d /local/gitlab-runner-local-cache || { echo \"FATAL: no local docker cache volume mapped\"; false; }"
+    - "if [ ! -d /local/gitlab-runner-local-cache/.conan ]; then rm -rf /local/gitlab-runner-local-cache/.conan.IN_PROGRESS && cp -r ~/.conan /local/gitlab-runner-local-cache/.conan.IN_PROGRESS && mv /local/gitlab-runner-local-cache/.conan.IN_PROGRESS /local/gitlab-runner-local-cache/.conan; fi"
+    - export CONAN_USER_HOME=/local/gitlab-runner-local-cache
+    - echo "CI_DEPLOY_USER=${CI_DEPLOY_USER}"
+    - echo "CI_DEPLOY_PASSWORD=${CI_DEPLOY_PASSWORD}"
+    - env | grep 'RELEASE_CONAN'
+    - env | grep -v 'RELEASE_CONAN'
+    
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 stages:
-  - debug_env
   - install
   - build
   - test
   - release
-
-debug_env:
-  stage: debug_env
-  variables:
-    RELEASE_CONAN_LOGIN_USERNAME: "${CI_DEPLOY_USER}"
-    RELEASE_CONAN_PASSWORD: "${CI_DEPLOY_PASSWORD}"
-  script:
-    - echo "CI_DEPLOY_USER=${CI_DEPLOY_USER}"
-    - echo "CI_DEPLOY_PASSWORD=${CI_DEPLOY_PASSWORD}"
-    - env
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 install:
@@ -37,10 +34,6 @@ install:
       - conanfile.py
       - .gitlab-ci.yml
   cache:
-    - key: conan-cache
-      paths:
-        - .conan/
-      policy: push
     - key: build-cache
       paths:
         - build/
@@ -55,10 +48,6 @@ build:
     paths:
       - build/
   cache:
-    - key: conan-cache
-      paths:
-        - .conan/
-      policy: pull
     - key: build-cache
       paths:
         - build/
@@ -75,10 +64,6 @@ test:
         - build/Release/test-results.xml
         - build/Release/death-test-results.xml
   cache:
-    - key: conan-cache
-      paths:
-        - .conan/
-      policy: pull
     - key: build-cache
       paths:
         - build/
@@ -87,6 +72,9 @@ test:
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 release:
   stage: release
+  variables:
+    RELEASE_CONAN_LOGIN_USERNAME: "${CI_DEPLOY_USER}"
+    RELEASE_CONAN_PASSWORD: "${CI_DEPLOY_PASSWORD}"
   script:
     - script/publish-release.sh
   release:
@@ -95,10 +83,6 @@ release:
   rules:
     - if: $CI_COMMIT_TAG
   cache:
-    - key: conan-cache
-      paths:
-        - .conan/
-      policy: pull
     - key: build-cache
       paths:
         - build/
