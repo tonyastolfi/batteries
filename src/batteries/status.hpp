@@ -124,17 +124,13 @@ class Status : private detail::StatusBase
     {
         const usize index_of_group = get_index_of_group(value);
         const usize index_within_group = get_index_within_group(value);
-        {
-            std::unique_lock<std::mutex> lock{global_mutex()};
+        const auto& all_groups = registered_groups();
 
-            const auto& all_groups = registered_groups();
+        BATT_CHECK_LT(index_of_group, all_groups.size());
+        BATT_CHECK_LT(index_within_group, all_groups[index_of_group]->entries.size())
+            << BATT_INSPECT(index_of_group) << BATT_INSPECT(value);
 
-            BATT_CHECK_LT(index_of_group, all_groups.size());
-            BATT_CHECK_LT(index_within_group, all_groups[index_of_group]->entries.size())
-                << BATT_INSPECT(index_of_group) << BATT_INSPECT(value);
-
-            return all_groups[index_of_group]->entries[index_within_group].message;
-        }
+        return all_groups[index_of_group]->entries[index_within_group].message;
     }
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -157,17 +153,17 @@ class Status : private detail::StatusBase
     /*implicit*/ Status(EnumT enum_value) noexcept
     {
         const CodeGroup& group = code_group_for_type<EnumT>();
-        BATT_CHECK_GE(static_cast<int>(enum_value), group.min_enum_value);
+        BATT_ASSERT_GE(static_cast<int>(enum_value), group.min_enum_value);
 
         const int index_within_enum = static_cast<int>(enum_value) - group.min_enum_value;
-        BATT_CHECK_LT(index_within_enum, static_cast<int>(group.enum_value_to_code.size()))
+        BATT_ASSERT_LT(index_within_enum, static_cast<int>(group.enum_value_to_code.size()))
             << BATT_INSPECT(group.index) << BATT_INSPECT(group.enum_type_index.name());
 
         this->value_ = group.enum_value_to_code[index_within_enum];
 
-        BATT_CHECK_NOT_NULLPTR(message_from_code(this->value_).data());
+        BATT_ASSERT_NOT_NULLPTR(message_from_code(this->value_).data());
 
-#ifdef BATT_STATUS_CUSTOM_MESSSAGES
+#ifdef BATT_ASSERT_CUSTOM_MESSSAGES
         const usize index_within_group = get_index_within_group(this->value_);
 
         this->message_ = group.entries[index_within_group].message;
@@ -204,16 +200,12 @@ class Status : private detail::StatusBase
     const CodeGroup& group() const
     {
         const usize index_of_group = get_index_of_group(this->value_);
-        {
-            std::unique_lock<std::mutex> lock{global_mutex()};
+        const auto& all_groups = registered_groups();
 
-            const auto& all_groups = registered_groups();
+        BATT_ASSERT_LT(index_of_group, all_groups.size());
+        BATT_ASSERT_NOT_NULLPTR(all_groups[index_of_group]);
 
-            BATT_ASSERT_LT(index_of_group, all_groups.size());
-            BATT_ASSERT_NOT_NULLPTR(all_groups[index_of_group]);
-
-            return *all_groups[index_of_group];
-        }
+        return *all_groups[index_of_group];
     }
 
     void IgnoreError() const noexcept
@@ -232,6 +224,7 @@ class Status : private detail::StatusBase
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
     friend class detail::StatusBase;
 
+    static constexpr usize kMaxGroupCount = 256;
     static constexpr i32 kMaxCodeNumericRange = 0xffff;
     static constexpr i32 kLocalMask = (i32{1} << kGroupSizeBits) - 1;
     static constexpr i32 kGroupMask = ~kLocalMask;
@@ -241,18 +234,14 @@ class Status : private detail::StatusBase
     static usize next_group_index()
     {
         static std::atomic<i32> next_index{0};
-        return next_index.fetch_add(1);
+        const usize i = next_index.fetch_add(1);
+        BATT_CHECK_LT(i, kMaxGroupCount);
+        return i;
     }
 
-    static std::mutex& global_mutex()
+    static std::array<CodeGroup*, kMaxGroupCount>& registered_groups()
     {
-        static std::mutex m;
-        return m;
-    }
-
-    static std::vector<CodeGroup*>& registered_groups()
-    {
-        static std::vector<CodeGroup*> all_groups;
+        static std::array<CodeGroup*, kMaxGroupCount> all_groups;
         return all_groups;
     }
 
@@ -1025,20 +1014,15 @@ inline bool Status::register_codes_internal(const std::vector<std::pair<EnumT, s
                 CodeEntry{next_code, max_enum_value + 1, unknown_enum_value_message()});
 
             // Atomically insert the new code group.
-            {
-                std::unique_lock<std::mutex> lock{Status::global_mutex()};
+            //
+            CodeGroup& global_group = Status::code_group_for_type_internal<EnumT>();
+            BATT_CHECK(global_group.entries.empty()) << "A status code group may only be registered once!";
+            global_group = std::move(group);
 
-                CodeGroup& global_group = Status::code_group_for_type_internal<EnumT>();
-                BATT_CHECK(global_group.entries.empty())
-                    << "A status code group may only be registered once!";
-                global_group = std::move(group);
+            /*std::array<CodeGroup*, ...>*/ auto& all_groups = Status::registered_groups();
+            BATT_CHECK_LT(global_group.index, all_groups.size());
 
-                std::vector<CodeGroup*>& all_groups = Status::registered_groups();
-                if (all_groups.size() < global_group.index + 1) {
-                    all_groups.resize(global_group.index + 1);
-                }
-                all_groups[global_group.index] = &global_group;
-            }
+            all_groups[global_group.index] = &global_group;
 
             // Done!
         }();

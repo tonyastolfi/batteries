@@ -92,15 +92,17 @@ inline bool lock_fail_check_mutex()
     static std::aligned_storage_t<sizeof(std::mutex), alignof(std::mutex)> storage_;
     static std::mutex* m = new (&storage_) std::mutex{};
     m->lock();
-    return false;
+    return true;
 }
 
 #define BATT_CHECK_RELATION(left, op, right)                                                                 \
-    for (; !BATT_HINT_TRUE(((left)op(right)) || ::batt::lock_fail_check_mutex()); ::batt::fail_check_exit()) \
+    for (; !BATT_HINT_TRUE((left)op(right)) && BATT_HINT_TRUE(::batt::lock_fail_check_mutex());              \
+         ::batt::fail_check_exit())                                                                          \
     BATT_FAIL_CHECK_MESSAGE(#left, (left), #op, #right, (right), __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
 #define BATT_CHECK_IMPLIES(p, q)                                                                             \
-    for (; !BATT_HINT_TRUE(!(p) || (q)); ::batt::fail_check_exit())                                          \
+    for (; !BATT_HINT_TRUE(!(p) || (q)) && BATT_HINT_TRUE(::batt::lock_fail_check_mutex());                  \
+         ::batt::fail_check_exit())                                                                          \
     BATT_FAIL_CHECK_MESSAGE(#p, (p), "implies", #q, (q), __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
 #define BATT_CHECK(x) BATT_CHECK_RELATION(bool{x}, ==, true)
