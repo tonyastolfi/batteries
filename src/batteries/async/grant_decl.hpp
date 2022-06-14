@@ -38,7 +38,7 @@ class Grant
 
         StatusOr<Grant> issue_grant(u64 count, WaitForResource wait_for_resource);
 
-        void recycle(u64 count);
+        void grow(u64 count);
 
         void close();
 
@@ -48,8 +48,10 @@ class Grant
         }
 
        private:
+        void recycle(u64 count);
+
         Watch<u64> available_{0};
-        std::atomic<i64> ref_count_{0};
+        std::atomic<u64> total_size_{0};
     };
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

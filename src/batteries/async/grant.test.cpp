@@ -178,7 +178,7 @@ TEST_F(AsyncGrantWaitTest, IssueGrantWaitForPoolIncrease)
 {
     // This will cause the pending `issue_grant` to resolve.
     //
-    this->issuer_.recycle(1);
+    this->issuer_.grow(1);
 
     // Unblock the operation.
     //
@@ -539,7 +539,7 @@ TEST(AsyncGrantTest, DeathIssuerDestroyedTooSoon)
     batt::StatusOr<batt::Grant> grant = issuer->issue_grant(3, batt::WaitForResource::kFalse);
     ASSERT_TRUE(grant.ok());
 
-    EXPECT_DEATH(issuer = batt::None, "[As]sert.*[Ff]ail.*ref_count");
+    EXPECT_DEATH(issuer = batt::None, "[As]sert.*[Ff]ail.*This may indicate a Grant is still active");
 }
 
 // Death Tests:

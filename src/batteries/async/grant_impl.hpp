@@ -9,7 +9,9 @@ namespace batt {
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-BATT_INLINE_IMPL Grant::Issuer::Issuer(u64 initial_count) noexcept : available_{initial_count}
+BATT_INLINE_IMPL Grant::Issuer::Issuer(u64 initial_count) noexcept
+    : available_{initial_count}
+    , total_size_{initial_count}
 {
 }
 
@@ -17,7 +19,8 @@ BATT_INLINE_IMPL Grant::Issuer::Issuer(u64 initial_count) noexcept : available_{
 //
 BATT_INLINE_IMPL Grant::Issuer::~Issuer() noexcept
 {
-    BATT_CHECK_EQ(this->ref_count_.load(), 0);
+    BATT_CHECK_EQ(this->total_size_.load(), this->available_.get_value())
+        << "This may indicate a Grant is still active!";
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -28,6 +31,15 @@ BATT_INLINE_IMPL StatusOr<Grant> Grant::Issuer::issue_grant(u64 count, WaitForRe
 
     return transfer_impl(/*issuer=*/this, /*source=*/this->available_, /*count=*/count,
                          /*wait_for_resource=*/wait_for_resource);
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL void Grant::Issuer::grow(u64 count)
+{
+    [[maybe_unused]] const u64 old_size = this->total_size_.fetch_add(count);
+    BATT_ASSERT_GT(u64{old_size + count}, old_size) << "Integer overflow detected!";
+    this->recycle(count);
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -51,7 +63,6 @@ BATT_INLINE_IMPL void Grant::Issuer::close()
 BATT_INLINE_IMPL Grant::Grant(Issuer* issuer, u64 size) noexcept : issuer_{issuer}, size_{size}
 {
     BATT_CHECK_NOT_NULLPTR(issuer);
-    issuer->ref_count_.fetch_add(1);
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -68,9 +79,6 @@ BATT_INLINE_IMPL Grant::Grant(Grant&& that) noexcept
 BATT_INLINE_IMPL Grant::~Grant() noexcept
 {
     this->revoke();
-    if (this->issuer_) {
-        this->issuer_->ref_count_.fetch_sub(1);
-    }
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
