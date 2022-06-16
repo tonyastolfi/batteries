@@ -68,7 +68,7 @@ verbose "Publishing ${conan_recipe}..."
 # we continue.
 #
 #( cd "${project_dir}" && make BUILD_TYPE=Release install build test create )
-( cd "${project_dir}" && make BUILD_TYPE=Release install )
+( cd "${project_dir}" && make BUILD_TYPE=Release install create )
 
 # Create the release package...
 #
