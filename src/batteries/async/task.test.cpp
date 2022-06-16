@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #include <batteries/async/task.hpp>
 //
@@ -7,14 +8,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <batteries/assert.hpp>
 #include <batteries/async/io_result.hpp>
 #include <batteries/buffer.hpp>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
-
-#include <batteries/assert.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/segv.hpp>
 
 #ifdef __clang__
@@ -204,13 +201,8 @@ TEST(TaskTest, ClientServerAsio)
                 try {
                     io.run();
                 } catch (...) {
-#ifdef BATT_GLOG_AVAILABLE
-                    LOG(ERROR)
-#else
-                    std::cerr
-#endif
-                        << "unhandled exception: "
-                        << boost::diagnostic_information(boost::current_exception());
+                    BATT_LOG(ERROR) << "unhandled exception: "
+                                    << boost::diagnostic_information(boost::current_exception());
                 }
             });
         }

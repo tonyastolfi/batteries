@@ -9,11 +9,8 @@
 #include <batteries/async/watch.hpp>
 #include <batteries/config.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/pointers.hpp>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
 
 #include <atomic>
 

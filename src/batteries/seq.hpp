@@ -45,10 +45,6 @@
 
 #include <boost/range/iterator_range.hpp>
 
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
-
 #include <algorithm>
 #include <ostream>
 #include <string_view>

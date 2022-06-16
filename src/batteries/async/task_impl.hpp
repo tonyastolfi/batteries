@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_ASYNC_TASK_IMPL_HPP
@@ -11,7 +12,9 @@
 #include <batteries/async/fake_time_service.hpp>
 #include <batteries/async/future.hpp>
 #include <batteries/async/watch.hpp>
+
 #include <batteries/config.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/stream_util.hpp>
 
 namespace batt {
@@ -132,9 +135,7 @@ BATT_INLINE_IMPL Task::~Task() noexcept
 //
 BATT_INLINE_IMPL void Task::pre_body_fn_entry(Continuation&& scheduler) noexcept
 {
-#ifdef BATT_GLOG_AVAILABLE
-    VLOG(1) << "Task{.name=" << this->name_ << ",} created on thread " << this_thread_id();
-#endif
+    BATT_VLOG(1) << "Task{.name=" << this->name_ << ",} created on thread " << this_thread_id();
 
     // Save the base address of the call stack.
     //
@@ -146,9 +147,7 @@ BATT_INLINE_IMPL void Task::pre_body_fn_entry(Continuation&& scheduler) noexcept
     //
     this->scheduler_ = scheduler.resume();
 
-#ifdef BATT_GLOG_AVAILABLE
-    VLOG(1) << "Task{.name=" << this->name_ << ",} started on thread " << this_thread_id();
-#endif
+    BATT_VLOG(1) << "Task{.name=" << this->name_ << ",} started on thread " << this_thread_id();
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -295,9 +294,7 @@ BATT_INLINE_IMPL void Task::handle_event(u32 event_mask)
         BATT_CHECK(!this->self_);
         BATT_CHECK(!this->scheduler_);
 
-#ifdef BATT_GLOG_AVAILABLE
-        VLOG(1) << "[Task] " << this->name_ << " exiting";
-#endif  // BATT_GLOG_AVAILABLE
+        BATT_VLOG(1) << "[Task] " << this->name_ << " exiting";
 
         this->run_completion_handlers();
         //

@@ -10,11 +10,8 @@
 #include <batteries/async/task_decl.hpp>
 
 #include <batteries/int_types.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/suppress.hpp>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
 
 BATT_SUPPRESS_IF_GCC("-Wswitch-enum")
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -137,11 +134,9 @@ inline Result with_retry_policy(RetryPolicy&& policy, std::string_view action_na
             if (status_is_retryable(status)) {
                 update_retry_state(state, policy);
                 if (state.should_retry) {
-#ifdef BATT_GLOG_AVAILABLE
-                    VLOG(1) << "operation '" << action_name << "' failed with status=" << status
-                            << "; retrying after " << state.next_delay_usec << "us (" << state.n_attempts
-                            << " of " << policy.max_attempts << ")";
-#endif  // BATT_GLOG_AVAILABLE
+                    BATT_VLOG(1) << "operation '" << action_name << "' failed with status=" << status
+                                 << "; retrying after " << state.next_delay_usec << "us (" << state.n_attempts
+                                 << " of " << policy.max_attempts << ")";
 
                     sleep_impl(boost::posix_time::microseconds(state.next_delay_usec));
                     continue;

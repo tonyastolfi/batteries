@@ -15,14 +15,11 @@
 #include <batteries/config.hpp>
 #include <batteries/finally.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/segv.hpp>
 #include <batteries/status.hpp>
 #include <batteries/utility.hpp>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -428,13 +425,8 @@ class Task
                 try {
                     (*body_fn)();
                 } catch (...) {
-#ifdef BATT_GLOG_AVAILABLE
-                    LOG(WARNING)
-#else
-                    std::cerr
-#endif  // BATT_GLOG_AVAILABLE
-                        << "task fn exited via unhandled exception [task='" << this->name_
-                        << "']: " << boost::current_exception_diagnostic_information();
+                    BATT_LOG(WARNING) << "task fn exited via unhandled exception [task='" << this->name_
+                                      << "']: " << boost::current_exception_diagnostic_information();
                 }
                 body_fn = None;
 

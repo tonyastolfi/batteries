@@ -7,15 +7,11 @@
 
 #include <batteries/async/worker_pool.hpp>
 
-#include <batteries/config.hpp>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILALBE
-
 #include <batteries/assert.hpp>
 #include <batteries/async/task.hpp>
+#include <batteries/config.hpp>
 #include <batteries/finally.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/utility.hpp>
 
 #include <thread>

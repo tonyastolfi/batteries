@@ -7,6 +7,7 @@
 
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/stream_util.hpp>
 #include <batteries/strong_typedef.hpp>
 #include <batteries/utility.hpp>
@@ -22,10 +23,6 @@
 #include <typeindex>
 #include <typeinfo>
 #include <vector>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
 
 namespace batt {
 
