@@ -17,7 +17,9 @@ BATT_INLINE_IMPL MetricRegistry& global_metric_registry()
     return instance_;
 }
 
-MetricLabelSet normalize_labels(MetricLabelSet&& labels)
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+BATT_INLINE_IMPL MetricLabelSet normalize_labels(MetricLabelSet&& labels)
 {
     std::sort(labels.begin(), labels.end(), [](const MetricLabel& left, const MetricLabel& right) {
         return left.key < right.key;

@@ -10,6 +10,7 @@
 #include <batteries/async/task.hpp>
 #include <batteries/async/task_scheduler.hpp>
 
+#include <batteries/cpu_align.hpp>
 #include <batteries/hash.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/logging.hpp>
