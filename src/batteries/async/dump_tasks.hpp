@@ -14,9 +14,11 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <functional>
 #include <thread>
+#include <type_traits>
 
 namespace batt {
 
@@ -36,6 +38,13 @@ class SigInfoHandler
     using WorkGuard =
         batt::Optional<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>>;
 
+    static SigInfoHandler& instance()
+    {
+        static std::aligned_storage_t<sizeof(SigInfoHandler)> storage_;
+        static SigInfoHandler* instance_ = new (&storage_) SigInfoHandler;
+        return *instance_;
+    }
+
     SigInfoHandler()
     {
         this->sig_info_thread_.detach();
@@ -47,10 +56,33 @@ class SigInfoHandler
         this->sig_info_->async_wait(std::ref(*this));
     }
 
+    void halt()
+    {
+        const bool halted_prior = this->halted_.exchange(true);
+        if (halted_prior) {
+            return;
+        }
+
+        {
+            batt::ErrorCode ec;
+            this->sig_info_->cancel(ec);
+        }
+        this->sig_info_work_guard_ = None;
+        this->sig_info_io_.stop();
+        BATT_LOG(INFO) << "signal handlers cancelled";
+    }
+
+    void join()
+    {
+        if (this->sig_info_thread_.joinable()) {
+            this->sig_info_thread_.join();
+        }
+    }
+
     void operator()(const boost::system::error_code& ec, int signal_n)
     {
         this->sig_info_->async_wait([this](const batt::ErrorCode& ec, int n) {
-            if (ec) {
+            if (ec || this->halted_.load()) {
                 return;
             }
 
@@ -67,6 +99,8 @@ class SigInfoHandler
     }
 
    private:
+    std::atomic<bool> halted_{false};
+
     boost::asio::io_context sig_info_io_;
 
     Optional<WorkGuard> sig_info_work_guard_{this->sig_info_io_.get_executor()};
@@ -85,8 +119,7 @@ class SigInfoHandler
 inline bool enable_dump_tasks()
 {
     static bool initialized_ = [] {
-        static detail::SigInfoHandler* handler_ = new detail::SigInfoHandler;
-        handler_->start();
+        detail::SigInfoHandler::instance().start();
         return true;
     }();
 
