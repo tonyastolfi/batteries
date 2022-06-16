@@ -28,7 +28,8 @@ stages:
 install:
   stage: install
   script:
-    - script/ci-make.sh install
+    - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
+    - make BUILD_TYPE=Release install
   rules:
     - changes:
       - conanfile.py
@@ -43,7 +44,8 @@ install:
 build:
   stage: build
   script:
-    - script/ci-make.sh build
+    - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
+    - make BUILD_TYPE=Release build
   artifacts:
     paths:
       - build/
@@ -57,7 +59,8 @@ build:
 test:
   stage: test
   script:
-    - script/ci-make.sh test
+    - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
+    - make BUILD_TYPE=Release test
   artifacts:
     reports:
       junit:
