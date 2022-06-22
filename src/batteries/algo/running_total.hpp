@@ -2,8 +2,8 @@
 // Copyright 2022 Anthony Paul Astolfi
 //
 #pragma once
-#ifndef TURTLE_UTIL_ALGO_RUNNING_TOTAL_HPP
-#define TURTLE_UTIL_ALGO_RUNNING_TOTAL_HPP
+#ifndef BATTERIES_ALGO_RUNNING_TOTAL_HPP
+#define BATTERIES_ALGO_RUNNING_TOTAL_HPP
 
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
@@ -24,6 +24,32 @@ namespace batt {
 BATT_STRONG_TYPEDEF(usize, PartsCount);
 BATT_STRONG_TYPEDEF(usize, PartSize);
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// A parallel-friendly cummulative running total of `usize` values.
+//
+// This collection is structured as a series of adjacent 'parts' (or shards/partitions) plus a 'summary' that
+// records the running totals of the parts.  For example, if the input array (on which we wish to compute the
+// running total) is:
+//
+// `{2, 1, 3, 1, 1, 2, 1, 2, 3, 3, 1, 2}`
+//
+// We might divide this into three (logical) parts whose running totals can be computed independently in
+// parallel:
+//
+// input parts: `{{2, 1, 3, 1}, {1, 2, 1, 2}, {3, 3, 1, 2}}`
+// part totals: `{{2, 3, 6, 7}, {1, 3, 4, 6}, {3, 6, 7, 9}}`
+//
+// And then the summary is computed as the running total of the individual part totals plus leading zero:
+//
+// summary: `{0, 7, 13, 22}`
+//
+// So the overall set of values stored internally by `RunningTotal` for this input would be:
+//
+// <part-0> + <part-1> + <part-2> + <summary> => `{2, 3, 6, 7, 1, 3, 4, 6, 3, 6, 7, 9, 0, 7, 13, 22}`
+//
+// This allows a fast O(1) calculation of the overall running total at any point; just add the part-local
+// total to the summary for that part.
+//
 class RunningTotal
 {
    public:
@@ -359,4 +385,4 @@ inline auto RunningTotal::slice(Interval<usize> interval) const -> slice_type
 
 }  // namespace batt
 
-#endif  // TURTLE_UTIL_ALGO_RUNNING_TOTAL_HPP
+#endif  // BATTERIES_ALGO_RUNNING_TOTAL_HPP
