@@ -1,3 +1,6 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_ASYNC_BUFFER_SOURCE_IMPL_HPP
 #define BATTERIES_ASYNC_BUFFER_SOURCE_IMPL_HPP
