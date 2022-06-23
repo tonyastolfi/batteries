@@ -151,7 +151,7 @@ class Runtime::DefaultScheduler : public TaskScheduler
    public:
     explicit DefaultScheduler() noexcept
     {
-        BATT_LOG(INFO) << "cpu_count == " << cpu_count_;
+        BATT_VLOG(1) << "cpu_count == " << cpu_count_;
 
         for (usize i = 0; i < cpu_count_; ++i) {
             this->io_.emplace_back(std::make_unique<boost::asio::io_context>());
@@ -190,17 +190,17 @@ class Runtime::DefaultScheduler : public TaskScheduler
         if (halted_prior) {
             return;
         }
-        BATT_LOG(INFO) << "halting Runtime::DefaultScheduler...";
+        BATT_VLOG(1) << "halting Runtime::DefaultScheduler...";
 
         for (auto& work_ptr : this->work_guards_) {
             work_ptr.reset();
         }
-        BATT_LOG(INFO) << "work guards released";
+        BATT_VLOG(1) << "work guards released";
 
         for (auto& io_ptr : this->io_) {
             io_ptr->stop();
         }
-        BATT_LOG(INFO) << "io contexts stopped";
+        BATT_VLOG(1) << "io contexts stopped";
     }
 
     void join() override
@@ -215,7 +215,7 @@ class Runtime::DefaultScheduler : public TaskScheduler
             }
             this->thread_pool_.pop_back();
         }
-        BATT_LOG(INFO) << "threads joined";
+        BATT_VLOG(1) << "threads joined";
     }
 
    private:

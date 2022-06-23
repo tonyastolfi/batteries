@@ -16,6 +16,7 @@
 #define BATT_LOG LOG
 #define BATT_VLOG VLOG
 #define BATT_DLOG DLOG
+#define BATT_DVLOG DLOG
 
 #else  // ==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
@@ -28,6 +29,7 @@
 #define BATT_LOG BATT_LOG_DISABLED
 #define BATT_VLOG BATT_LOG_DISABLED
 #define BATT_DLOG BATT_LOG_DISABLED
+#define BATT_DVLOG BATT_LOG_DISABLED
 
 #endif  // BATT_GLOG_AVAILABLE
 
