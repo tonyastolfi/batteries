@@ -70,7 +70,7 @@ class BatteriesConan(ConanFile):
         self.copy("*.sh", dst="script", src="script")
 
     def package_info(self):
-        self.cpp_info.cxxflags = ["-std=c++17 -D_GNU_SOURCE"]
+        self.cpp_info.cxxflags = ["-D_GNU_SOURCE"]
         self.cpp_info.system_libs = ["dl"]
 
     def package_id(self):

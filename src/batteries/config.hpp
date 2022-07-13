@@ -5,6 +5,10 @@
 #ifndef BATTERIES_CONFIG_HPP
 #define BATTERIES_CONFIG_HPP
 
+#if __cplusplus < 201703L
+#error Batteries requires C++17 or later!
+#endif
+
 namespace batt {
 
 #ifndef BATT_HEADER_ONLY
