@@ -396,6 +396,17 @@ class Task
         return current_task->get_priority();
     }
 
+    static bool& inside_work_fn()
+    {
+        auto ptr = Task::current_ptr();
+        if (ptr) {
+            return ptr->is_inside_work_fn_;
+        }
+
+        thread_local bool b_ = false;
+        return b_;
+    }
+
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
     Task(const Task&) = delete;
@@ -722,6 +733,8 @@ class Task
     const volatile u8* stack_base_ = nullptr;
 
     bool is_preempted_ = false;
+
+    bool is_inside_work_fn_ = false;
 };
 
 }  // namespace batt

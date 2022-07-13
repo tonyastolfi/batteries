@@ -58,11 +58,7 @@ class WorkContext
 
     void await_done()
     {
-        // TODO [tastolfi 2021-10-06] - do this in a way that can differentiate between WorkerPools so
-        // we can have work fns in one WorkerPool wait on the completion of work in a deeper-level
-        // WorkerPool.
-        //
-        BATT_CHECK(!Worker::inside_work_fn());
+        BATT_CHECK(!batt::Task::inside_work_fn());
 
         BATT_DEBUG_INFO("work_count=" << this->work_count_.get_value());
         this->work_count_
