@@ -79,3 +79,11 @@ RUN curl --location --output /usr/local/bin/release-cli \
       "https://release-cli-downloads.s3.amazonaws.com/latest/release-cli-linux-amd64" && \
     chmod +x /usr/local/bin/release-cli && \
     release-cli -v
+
+#=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+# Install Clang Toolchain
+#
+RUN apt update && apt install -y lsb-release wget software-properties-common
+RUN wget https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh && chmod +x /tmp/llvm.sh
+RUN /tmp/llvm.sh 14 all
+
