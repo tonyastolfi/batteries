@@ -61,6 +61,9 @@ class BatteriesConan(ConanFile):
         #          % (self.source_folder, cmake.command_line))
         # self.run("cmake --build . %s" % cmake.build_config)
 
+    def export(self):
+        self.copy("*.sh", src="script", dst="script")
+
     def package(self):
         self.copy("*.hpp", dst="include", src="src")
         self.copy("*.ipp", dst="include", src="src")
