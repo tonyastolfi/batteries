@@ -305,13 +305,13 @@ inline std::ostream& operator<<(std::ostream& out, const HexByteDumper& t)
     out << std::endl;
     boost::io::ios_flags_saver saver{out};
 
-    const char* bytes = t.bytes.data();
+    const char* const bytes = t.bytes.data();
     const usize len = t.bytes.size();
     for (usize i = 0; i < len; ++i) {
         if (i % 16 == 0) {
             out << std::hex << std::setw(8) << std::setfill('0') << i << ": ";
         }
-        out << std::hex << std::setw(2) << std::setfill('0') << ((int)bytes[i]);
+        out << std::hex << std::setw(2) << std::setfill('0') << (((unsigned)bytes[i]) & 0xfful);
         if (i % 16 == 15) {
             out << std::endl;
         } else if (i % 2 == 1) {

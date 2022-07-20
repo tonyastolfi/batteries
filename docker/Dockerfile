@@ -23,11 +23,11 @@ RUN apt-get update && apt-get install --no-install-recommends -y -q dialog apt-u
 
 # Basic CLI tools.
 #
-RUN apt-get update && apt-get install --no-install-recommends -y nano sed locales
+RUN apt-get update && apt-get install --no-install-recommends -y nano sed locales time
 
 # Developer/Build tools.
 #
-RUN apt-get update && apt-get install --no-install-recommends -y git gcc g++ make cmake gdb
+RUN apt-get update && apt-get install --no-install-recommends -y git gcc g++ make cmake gdb valgrind
 
 # Some libraries.
 #

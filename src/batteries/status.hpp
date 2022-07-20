@@ -210,12 +210,7 @@ class Status : private detail::StatusBase
         // do nothing
     }
 
-    void Update(const Status& new_status)
-    {
-        if (this->ok()) {
-            *this = new_status;
-        }
-    }
+    void Update(const Status& new_status);
 
    private:
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -288,6 +283,13 @@ bool operator!=(const Status& l, const Status& r);
 // Returns a Status value `s` for which `s.ok() == true`.
 //
 Status OkStatus();
+
+inline void Status::Update(const Status& new_status)
+{
+    if (this->ok() || *this == Status{StatusCode::kUnknown}) {
+        *this = new_status;
+    }
+}
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
