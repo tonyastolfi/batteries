@@ -131,7 +131,7 @@ Ref<const T> into_cref(const T* ptr)
 }
 
 template <typename T>
-T& unwrap_ref(const Ref<T>&& wrapper)
+T& unwrap_ref(const Ref<T>& wrapper)
 {
     return wrapper.get();
 }
