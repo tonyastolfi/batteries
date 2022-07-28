@@ -218,7 +218,7 @@ class RateMetric
     std::atomic<i64> start_time_{
         std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - base_time())
             .count()};
-    std::atomic<T> start_value_;
+    std::atomic<T> start_value_{0};
     std::atomic<T> current_value_;
 };
 
