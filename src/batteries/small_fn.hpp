@@ -1,9 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_SMALL_FUNCTION_HPP
 #define BATTERIES_SMALL_FUNCTION_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/cpu_align.hpp>
 #include <batteries/hint.hpp>

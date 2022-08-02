@@ -5,6 +5,8 @@
 #ifndef BATTERIES_SEQ_PRINTABLE_HPP
 #define BATTERIES_SEQ_PRINTABLE_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/seq/print_out.hpp>

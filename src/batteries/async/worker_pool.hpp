@@ -5,10 +5,11 @@
 #ifndef BATTERIES_ASYNC_WORKER_POOL_HPP
 #define BATTERIES_ASYNC_WORKER_POOL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/task_scheduler.hpp>
 #include <batteries/async/worker.hpp>
 
-#include <batteries/config.hpp>
 #include <batteries/int_types.hpp>
 
 #include <atomic>

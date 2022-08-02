@@ -5,8 +5,9 @@
 #ifndef BATTERIES_SEQ_GROUP_BY_HPP
 #define BATTERIES_SEQ_GROUP_BY_HPP
 
-#include <batteries/assert.hpp>
 #include <batteries/config.hpp>
+//
+#include <batteries/assert.hpp>
 #include <batteries/hint.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/seq/consume.hpp>

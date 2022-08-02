@@ -5,6 +5,9 @@
 #ifndef BATTERIES_SYSCALL_RETRY_HPP
 #define BATTERIES_SYSCALL_RETRY_HPP
 
+#include <batteries/config.hpp>
+//
+
 #include <unistd.h>
 
 namespace batt {

@@ -5,6 +5,9 @@
 #ifndef BATTERIES_TOKEN_HPP
 #define BATTERIES_TOKEN_HPP
 
+#include <batteries/config.hpp>
+//
+
 #include <boost/flyweight.hpp>
 #include <boost/flyweight/no_tracking.hpp>
 

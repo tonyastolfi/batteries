@@ -5,6 +5,8 @@
 #ifndef BATTERIES_METRICS_METRIC_REGISTRY_HPP
 #define BATTERIES_METRICS_METRIC_REGISTRY_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/metrics/metric_collectors.hpp>
 
 #include <batteries/async/queue.hpp>

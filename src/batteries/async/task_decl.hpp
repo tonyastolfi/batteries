@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_TASK_HPP
 #define BATTERIES_ASYNC_TASK_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/async/continuation.hpp>
 #include <batteries/async/debug_info_decl.hpp>
@@ -12,7 +14,6 @@
 #include <batteries/async/handler.hpp>
 #include <batteries/async/io_result.hpp>
 #include <batteries/case_of.hpp>
-#include <batteries/config.hpp>
 #include <batteries/finally.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/logging.hpp>

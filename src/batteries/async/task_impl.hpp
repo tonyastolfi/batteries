@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_TASK_IMPL_HPP
 #define BATTERIES_ASYNC_TASK_IMPL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/task.hpp>
 //
 

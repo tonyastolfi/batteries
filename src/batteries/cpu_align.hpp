@@ -5,6 +5,8 @@
 #ifndef BATT_CPU_ALIGN_HPP
 #define BATT_CPU_ALIGN_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/hint.hpp>
 #include <batteries/int_types.hpp>

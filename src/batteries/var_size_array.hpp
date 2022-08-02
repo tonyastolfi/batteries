@@ -1,9 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_VAR_SIZE_ARRAY_HPP
 #define BATTERIES_VAR_SIZE_ARRAY_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/int_types.hpp>
 
 #include <memory>

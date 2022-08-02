@@ -5,6 +5,8 @@
 #ifndef BATTERIES_METRICS_METRIC_FORMATTER_HPP
 #define BATTERIES_METRICS_METRIC_FORMATTER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/metrics/metric_registry.hpp>
 
 #include <ostream>

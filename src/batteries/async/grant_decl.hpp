@@ -5,9 +5,10 @@
 #ifndef BATTERIES_ASYNC_GRANT_DECL_HPP
 #define BATTERIES_ASYNC_GRANT_DECL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/types.hpp>
 #include <batteries/async/watch.hpp>
-#include <batteries/config.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/logging.hpp>
 #include <batteries/pointers.hpp>

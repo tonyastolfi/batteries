@@ -5,6 +5,8 @@
 #ifndef BATTERIES_TYPE_ERASURE_HPP
 #define BATTERIES_TYPE_ERASURE_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/buffer.hpp>
 #include <batteries/type_traits.hpp>

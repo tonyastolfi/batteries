@@ -4,9 +4,10 @@
 #ifndef BATTERIES_ASYNC_FAKE_EXECUTION_CONTEXT_IMPL_HPP
 #define BATTERIES_ASYNC_FAKE_EXECUTION_CONTEXT_IMPL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/fake_execution_context_decl.hpp>
 #include <batteries/async/fake_executor.hpp>
-#include <batteries/config.hpp>
 
 namespace batt {
 

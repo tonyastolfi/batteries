@@ -5,6 +5,8 @@
 #ifndef BATTERIES_SMALL_VEC_HPP
 #define BATTERIES_SMALL_VEC_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/int_types.hpp>
 #include <batteries/suppress.hpp>
 

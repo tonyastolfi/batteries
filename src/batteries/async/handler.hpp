@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_HANDLER_HPP
 #define BATTERIES_ASYNC_HANDLER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/static_assert.hpp>

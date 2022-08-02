@@ -5,11 +5,12 @@
 #ifndef BATTERIES_ASYNC_WORK_CONTEXT_HPP
 #define BATTERIES_ASYNC_WORK_CONTEXT_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/worker_pool.hpp>
 
 #include <batteries/assert.hpp>
 #include <batteries/async/task.hpp>
-#include <batteries/config.hpp>
 #include <batteries/finally.hpp>
 #include <batteries/logging.hpp>
 #include <batteries/utility.hpp>

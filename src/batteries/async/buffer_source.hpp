@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_BUFFER_SOURCE_HPP
 #define BATTERIES_ASYNC_BUFFER_SOURCE_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/io_result.hpp>
 #include <batteries/async/task_decl.hpp>
 

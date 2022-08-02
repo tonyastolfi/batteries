@@ -5,6 +5,8 @@
 #ifndef BATTERIES_OPTIONAL_HPP
 #define BATTERIES_OPTIONAL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/hint.hpp>
 

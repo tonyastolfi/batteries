@@ -5,6 +5,8 @@
 #ifndef BATTERIES_CONSTANTS_HPP
 #define BATTERIES_CONSTANTS_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/int_types.hpp>
 
 namespace batt {

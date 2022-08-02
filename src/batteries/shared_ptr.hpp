@@ -5,6 +5,8 @@
 #ifndef BATTERIES_SHARED_PTR_HPP
 #define BATTERIES_SHARED_PTR_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/utility.hpp>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>

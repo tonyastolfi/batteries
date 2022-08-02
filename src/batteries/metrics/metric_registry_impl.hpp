@@ -5,6 +5,8 @@
 #ifndef BATTERIES_METRICS_METRIC_REGISTRY_IMPL_HPP
 #define BATTERIES_METRICS_METRIC_REGISTRY_IMPL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/metrics/metric_registry.hpp>
 
 namespace batt {

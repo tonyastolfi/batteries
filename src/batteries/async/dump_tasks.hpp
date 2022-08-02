@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_DUMP_TASKS_HPP
 #define BATTERIES_ASYNC_DUMP_TASKS_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/task.hpp>
 
 #include <batteries/assert.hpp>

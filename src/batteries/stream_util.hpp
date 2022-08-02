@@ -3,6 +3,8 @@
 //
 #pragma once
 
+#include <batteries/config.hpp>
+//
 #include <batteries/finally.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/optional.hpp>

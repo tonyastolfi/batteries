@@ -5,10 +5,11 @@
 #ifndef BATTERIES_METRIC_CSV_FORMATTER_HPP
 #define BATTERIES_METRIC_CSV_FORMATTER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/metrics/metric_formatter.hpp>
 #include <batteries/metrics/metric_registry.hpp>
 
-#include <batteries/config.hpp>
 #include <batteries/int_types.hpp>
 
 #include <chrono>

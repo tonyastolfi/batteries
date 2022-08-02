@@ -1,9 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_POINTERS_HPP
 #define BATTERIES_POINTERS_HPP
 
+#include <batteries/config.hpp>
+//
 #include <memory>
 
 namespace batt {

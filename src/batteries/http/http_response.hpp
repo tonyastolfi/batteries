@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_RESPONSE_HPP
 #define BATTERIES_HTTP_RESPONSE_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/http/http_message_base.hpp>
 
 #include <batteries/pico_http/parser.hpp>

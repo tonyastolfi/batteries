@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_RUNTIME_HPP
 #define BATTERIES_ASYNC_RUNTIME_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/dump_tasks.hpp>
 #include <batteries/async/io_result.hpp>
 #include <batteries/async/task.hpp>

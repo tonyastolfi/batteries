@@ -5,6 +5,8 @@
 #ifndef BATTERIES_CHECKED_CAST_HPP
 #define BATTERIES_CHECKED_CAST_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
 

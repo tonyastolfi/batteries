@@ -1,9 +1,13 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_ASYNC_FAKE_EXECUTOR_IMPL_HPP
 #define BATTERIES_ASYNC_FAKE_EXECUTOR_IMPL_HPP
 
-#include <batteries/async/fake_executor_decl.hpp>
 #include <batteries/config.hpp>
+//
+#include <batteries/async/fake_executor_decl.hpp>
 
 namespace batt {
 

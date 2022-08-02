@@ -5,6 +5,9 @@
 #ifndef BATTERIES_SEQ_PREPEND_HPP
 #define BATTERIES_SEQ_PREPEND_HPP
 
+#include <batteries/config.hpp>
+//
+
 #include <type_traits>
 
 namespace batt {

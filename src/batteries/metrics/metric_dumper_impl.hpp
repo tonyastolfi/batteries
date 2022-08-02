@@ -5,6 +5,8 @@
 #ifndef BATTERIES_METRICS_METRIC_DUMPER_IMPL_HPP
 #define BATTERIES_METRICS_METRIC_DUMPER_IMPL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/metrics/metric_dumper.hpp>
 
 #include <algorithm>

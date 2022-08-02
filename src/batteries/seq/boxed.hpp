@@ -4,6 +4,8 @@
 #ifndef BATTERIES_SEQ_BOXED_HPP
 #define BATTERIES_SEQ_BOXED_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/hint.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/seq/requirements.hpp>

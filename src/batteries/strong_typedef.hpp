@@ -1,7 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #ifndef BATT_STRONG_TYPEDEF_HPP
 #define BATT_STRONG_TYPEDEF_HPP
+
+#include <batteries/config.hpp>
+//
 
 #include <functional>
 #include <type_traits>

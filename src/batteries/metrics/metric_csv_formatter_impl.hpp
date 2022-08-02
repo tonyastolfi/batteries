@@ -5,6 +5,8 @@
 #ifndef BATTERIES_METRICS_METRIC_CSV_FORMATTER_HPP
 #define BATTERIES_METRICS_METRIC_CSV_FORMATTER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/metrics/metric_csv_formatter.hpp>
 
 #include <batteries/suppress.hpp>

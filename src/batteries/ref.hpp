@@ -5,6 +5,8 @@
 #ifndef BATTERIES_REF_HPP
 #define BATTERIES_REF_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/seq.hpp>
 #include <batteries/seq/requirements.hpp>
 #include <batteries/seq/seq_item.hpp>

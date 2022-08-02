@@ -4,6 +4,8 @@
 #ifndef BATTERIES_SEQ_CACHE_NEXT_HPP
 #define BATTERIES_SEQ_CACHE_NEXT_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/optional.hpp>
 #include <batteries/seq/seq_item.hpp>
 #include <batteries/utility.hpp>

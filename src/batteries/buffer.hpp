@@ -5,6 +5,8 @@
 #ifndef BATTERIES_BUFFER_HPP
 #define BATTERIES_BUFFER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/shared_ptr.hpp>

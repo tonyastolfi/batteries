@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_HTTP_CLIENT_HOST_CONTEXT_IMPL_HPP
 #define BATTERIES_HTTP_HTTP_CLIENT_HOST_CONTEXT_IMPL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/http/http_client.hpp>
 #include <batteries/http/http_client_host_context.hpp>
 

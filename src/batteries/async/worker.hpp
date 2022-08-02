@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_WORKER_HPP
 #define BATTERIES_ASYNC_WORKER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/debug_info.hpp>
 #include <batteries/async/queue.hpp>
 #include <batteries/async/task.hpp>

@@ -1,9 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_INTERVAL_TRAITS_HPP
 #define BATTERIES_INTERVAL_TRAITS_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/bounds.hpp>
 #include <batteries/seq/natural_equals.hpp>
 #include <batteries/seq/natural_order.hpp>

@@ -8,6 +8,8 @@
 #ifndef BATTERIES_SEQ_HPP
 #define BATTERIES_SEQ_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/case_of.hpp>
 #include <batteries/optional.hpp>

@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_CHANNEL_HPP
 #define BATTERIES_ASYNC_CHANNEL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/watch.hpp>
 
 #include <batteries/optional.hpp>

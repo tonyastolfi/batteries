@@ -5,6 +5,9 @@
 #ifndef BATTERIES_ASYNC_GRANT_IMPL_HPP
 #define BATTERIES_ASYNC_GRANT_IMPL_HPP
 
+#include <batteries/config.hpp>
+//
+
 namespace batt {
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

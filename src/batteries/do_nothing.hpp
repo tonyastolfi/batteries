@@ -5,6 +5,9 @@
 #ifndef BATTERIES_DO_NOTHING_HPP
 #define BATTERIES_DO_NOTHING_HPP
 
+#include <batteries/config.hpp>
+//
+
 namespace batt {
 
 template <typename... Args>

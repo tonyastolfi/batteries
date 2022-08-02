@@ -5,6 +5,8 @@
 #ifndef BATTERIES_STATE_MACHINE_MODEL_HPP
 #define BATTERIES_STATE_MACHINE_MODEL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/debug_info.hpp>
 #include <batteries/async/fake_executor.hpp>
 #include <batteries/async/mutex.hpp>

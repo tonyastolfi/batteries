@@ -5,6 +5,8 @@
 #ifndef BATTERIES_STATUS_HPP
 #define BATTERIES_STATUS_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/logging.hpp>

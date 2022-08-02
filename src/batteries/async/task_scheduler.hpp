@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_TASK_SCHEDULER_HPP
 #define BATTERIES_ASYNC_TASK_SCHEDULER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 
 #include <boost/asio/any_io_executor.hpp>
