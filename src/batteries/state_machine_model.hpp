@@ -317,11 +317,22 @@ class StateMachineModel
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
+    // Returns an integer `i` non-deterministically, such that `i >= min_value && i <= max_value`.
+    //
     usize pick_int(usize min_value, usize max_value)
     {
         BATT_CHECK_NOT_NULLPTR(this->checker_);
 
         return this->checker_->pick_int(min_value, max_value);
+    }
+
+    // Returns one of the items in `values`, using `pick_int`.
+    //
+    template <typename T>
+    T pick_one_of(std::initializer_list<T> values)
+    {
+        const usize index = this->pick_int(0, values.size() - 1);
+        return *(values.begin() + index);
     }
 
     // If there is at least one runnable completion handler in `context`, one such handler is selected (via
@@ -339,6 +350,9 @@ class StateMachineModel
         return true;
     }
 
+    // Performs one of the passed action functions.  Each `Fn` in `actions...` must be callable with no
+    // arguments and its return type must be ignorable.
+    //
     template <typename... Fn>
     void do_one_of(Fn&&... actions)
     {
@@ -1032,6 +1046,8 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::Checker::visit(const Stat
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 /* TEMPLATE FOR NEW STATE MACHINE MODEL IMPLS:
 
+#include <batteries/state_machine_model.hpp>
+
 #include <boost/functional/hash.hpp>
 #include <boost/operators.hpp>
 
@@ -1101,6 +1117,15 @@ class $ImplModel : public batt::StateMachineModel<$ImplState, $ImplState::Hash>
    private:
     $ImplState state_;
 };
+
+TEST($ImplTest, StateMachineSimulation)
+{
+    $ImplModel model;
+
+    $ImplModel::Result result = model.check_model();
+    EXPECT_TRUE(result.ok());
+}
+
  */
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 

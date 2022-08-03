@@ -241,7 +241,7 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
         }
         BATT_STATE_MACHINE_VERBOSE() << " No winner.  Generating moves...";
 
-        usize i = this->pick_int(0, 2);
+        usize i = this->pick_one_of({0, 1, 2});
         usize j = 9999;
         this->do_one_of(
             [&] {
