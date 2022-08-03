@@ -326,6 +326,13 @@ class StateMachineModel
         return this->checker_->pick_int(min_value, max_value);
     }
 
+    // Returns false or true.
+    //
+    bool pick_branch()
+    {
+        return this->pick_int(0, 1) == 0;
+    }
+
     // Returns one of the items in `values`, using `pick_int`.
     //
     template <typename T>
