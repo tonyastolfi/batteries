@@ -4,6 +4,12 @@
 image: registry.gitlab.com/tonyastolfi/batteries@sha256:35d588457d1884bb11e9e9152f9df6f7d2f67dffffd86646229fe44591b38974
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+#+++++++++++-+-+--+----- --- -- -  -  -   -
 default:
   retry:
     max: 2
