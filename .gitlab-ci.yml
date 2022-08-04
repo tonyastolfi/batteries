@@ -14,8 +14,6 @@ default:
     - export CONAN_USER_HOME=/local/gitlab-runner-local-cache
     - echo "CI_DEPLOY_USER=${CI_DEPLOY_USER}"
     - echo "CI_DEPLOY_PASSWORD=${CI_DEPLOY_PASSWORD}"
-    - env | grep 'RELEASE_CONAN'
-    - env | grep -v 'RELEASE_CONAN'
     
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 stages:
@@ -79,6 +77,8 @@ release:
     RELEASE_CONAN_LOGIN_USERNAME: "${CI_DEPLOY_USER}"
     RELEASE_CONAN_PASSWORD: "${CI_DEPLOY_PASSWORD}"
   script:
+    - env | grep 'RELEASE_CONAN'
+    - env | grep -v 'RELEASE_CONAN'
     - script/publish-release.sh
   release:
     tag_name: $CI_COMMIT_TAG
