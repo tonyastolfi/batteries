@@ -241,11 +241,18 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
         }
         BATT_STATE_MACHINE_VERBOSE() << " No winner.  Generating moves...";
 
-        usize i = this->pick_one_of({0, 1, 2});
+        batt::StateMachineEntropySource entropy = this->entropy();
+
+        // Verify that `entropy` can be copied.
+        //
+        batt::StateMachineEntropySource entropy_copy;
+        entropy_copy = entropy;
+
+        usize i = entropy.pick_one_of({0, 1, 2});
         usize j = 9999;
         this->do_one_of(
             [&] {
-                j = this->pick_int(100, 102) - 100;
+                j = entropy_copy.pick_int(100, 102) - 100;
             },
             [&] {
                 j = 0;

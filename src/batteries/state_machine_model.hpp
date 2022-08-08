@@ -173,6 +173,84 @@ inline usize hash_value(const StateMachineBranch<StateT, StateHash, StateEqual>&
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 //
+template <typename Fn>
+class BasicStateMachineEntropySource
+{
+   public:
+    using PickIntFn = Fn;
+
+    // Allow default construction if `Fn` permits.
+    //
+    BasicStateMachineEntropySource() = default;
+
+    // Constructs a new entropy source from the given `pick_int` function.
+    //
+    explicit BasicStateMachineEntropySource(PickIntFn&& pick_int_fn) noexcept
+        : pick_int_{BATT_FORWARD(pick_int_fn)}
+    {
+    }
+
+    // Returns an integer `i` non-deterministically, such that `i >= min_value && i <= max_value`.
+    //
+    usize pick_int(usize min_value, usize max_value) const
+    {
+        return this->pick_int_(min_value, max_value);
+    }
+
+    // Returns false or true.
+    //
+    bool pick_branch()
+    {
+        return this->pick_int(0, 1) == 0;
+    }
+
+    // Returns one of the items in `values`, using `pick_int`.
+    //
+    template <typename T>
+    T pick_one_of(std::initializer_list<T> values)
+    {
+        const usize index = this->pick_int(0, values.size() - 1);
+        return *(values.begin() + index);
+    }
+
+    // If there is at least one runnable completion handler in `context`, one such handler is selected (via
+    // `pick_int`) and invoked, and this function returns true.  Else false is returned.
+    //
+    bool run_one(FakeExecutionContext& context)
+    {
+        UniqueHandler<> handler = context.pop_ready_handler([this](usize count) {
+            return this->pick_int(0, count - 1);
+        });
+        if (!handler) {
+            return false;
+        }
+        handler();
+        return true;
+    }
+
+    // Performs one of the passed action functions.  Each `Fn` in `actions...` must be callable with no
+    // arguments and its return type must be ignorable.
+    //
+    template <typename... ActionFn>
+    void do_one_of(ActionFn&&... actions)
+    {
+        auto actions_tuple = std::forward_as_tuple(BATT_FORWARD(actions)...);
+
+        static_dispatch<usize, 0, sizeof...(ActionFn)>(
+            this->pick_int(0, sizeof...(ActionFn) - 1), [&](auto kI) {
+                std::get<decltype(kI)::value>(std::move(actions_tuple))();
+            });
+    }
+
+   private:
+    PickIntFn pick_int_;
+};
+
+using StateMachineEntropySource =
+    BasicStateMachineEntropySource<std::function<usize(usize min_value, usize max_value)>>;
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+//
 template <typename StateT, typename StateHash = std::hash<StateT>,
           typename StateEqual = std::equal_to<StateT>>
 class StateMachineModel
@@ -330,7 +408,7 @@ class StateMachineModel
     //
     bool pick_branch()
     {
-        return this->pick_int(0, 1) == 0;
+        return this->entropy_impl().pick_branch();
     }
 
     // Returns one of the items in `values`, using `pick_int`.
@@ -338,8 +416,7 @@ class StateMachineModel
     template <typename T>
     T pick_one_of(std::initializer_list<T> values)
     {
-        const usize index = this->pick_int(0, values.size() - 1);
-        return *(values.begin() + index);
+        return this->entropy_impl().pick_one_of(values);
     }
 
     // If there is at least one runnable completion handler in `context`, one such handler is selected (via
@@ -347,14 +424,7 @@ class StateMachineModel
     //
     bool run_one(FakeExecutionContext& context)
     {
-        UniqueHandler<> handler = context.pop_ready_handler([this](usize count) {
-            return this->pick_int(0, count - 1);
-        });
-        if (!handler) {
-            return false;
-        }
-        handler();
-        return true;
+        return this->entropy_impl().run_one(context);
     }
 
     // Performs one of the passed action functions.  Each `Fn` in `actions...` must be callable with no
@@ -363,16 +433,33 @@ class StateMachineModel
     template <typename... Fn>
     void do_one_of(Fn&&... actions)
     {
-        auto actions_tuple = std::forward_as_tuple(BATT_FORWARD(actions)...);
+        this->entropy_impl().do_one_of(BATT_FORWARD(actions)...);
+    }
 
-        static_dispatch<usize, 0, sizeof...(Fn)>(this->pick_int(0, sizeof...(Fn) - 1), [&](auto kI) {
-            std::get<decltype(kI)::value>(std::move(actions_tuple))();
-        });
+    // Returns a generic entropy source that can be passed around by state machine implementations to
+    // implement modular simulations.  No copy of the returned object may outlive `this`, or behavior is
+    // undefined!
+    //
+    StateMachineEntropySource entropy()
+    {
+        return StateMachineEntropySource{[this](usize min_value, usize max_value) {
+            return this->pick_int(min_value, max_value);
+        }};
     }
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
    private:
     using VisitedBranchMap = std::unordered_map<state_type, Branch, StateHash, StateEqual>;
+
+    // Returns a BasicStateMachineEntropySource with no type-erasure/indirect calls for maximum efficiency.
+    //
+    auto entropy_impl()
+    {
+        auto pick_int_fn = [this](usize min_value, usize max_value) {
+            return this->pick_int(min_value, max_value);
+        };
+        return BasicStateMachineEntropySource<decltype(pick_int_fn)>{std::move(pick_int_fn)};
+    }
 
     VisitedBranchMap visited_;
     Checker* checker_ = nullptr;
