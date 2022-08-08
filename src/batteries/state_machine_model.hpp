@@ -120,6 +120,11 @@ template <typename Branch>
 struct ParallelModelCheckState;
 }
 
+template <typename StateT>
+struct StateMachineRadixQueueSize {
+    static constexpr usize kValue = 256;
+};
+
 template <typename StateT, typename StateHash, typename StateEqual>
 struct StateMachineBranch {
     using state_type = StateT;
@@ -127,7 +132,7 @@ struct StateMachineBranch {
     using state_equal_type = StateEqual;
 
     state_type snapshot;
-    RadixQueue<256> delta;
+    RadixQueue<StateMachineRadixQueueSize<StateT>::kValue> delta;
 };
 
 template <typename StateT, typename StateHash, typename StateEqual>
@@ -299,7 +304,7 @@ class StateMachineModel
         detail::ParallelModelCheckState<Branch>& mesh_;
         const usize shard_i_;
         Optional<Branch> current_branch_;
-        RadixQueue<256> history_;
+        RadixQueue<StateMachineRadixQueueSize<StateT>::kValue> history_;
         std::deque<Branch> queue_;
         Result result_;
         usize progress_reports_ = 0;
@@ -1028,7 +1033,7 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::Checker::run() -> Result
         this->explore(
             Branch{
                 .snapshot = std::move(s),
-                .delta = RadixQueue<256>{},
+                .delta = RadixQueue<StateMachineRadixQueueSize<StateT>::kValue>{},
             },
             ForceSend{true});
     }
@@ -1108,7 +1113,7 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::Checker::run() -> Result
             //
             this->explore(Branch{
                 .snapshot = after,
-                .delta = RadixQueue<256>{},
+                .delta = RadixQueue<StateMachineRadixQueueSize<StateT>::kValue>{},
             });
         } else {
             BATT_STATE_MACHINE_VERBOSE() << "state already visited; pruning";
