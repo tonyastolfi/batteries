@@ -199,7 +199,7 @@ class BasicStateMachineEntropySource
 
     // Returns false or true.
     //
-    bool pick_branch()
+    bool pick_branch() const
     {
         return this->pick_int(0, 1) == 0;
     }
@@ -207,7 +207,7 @@ class BasicStateMachineEntropySource
     // Returns one of the items in `values`, using `pick_int`.
     //
     template <typename T>
-    T pick_one_of(std::initializer_list<T> values)
+    T pick_one_of(std::initializer_list<T> values) const
     {
         const usize index = this->pick_int(0, values.size() - 1);
         return *(values.begin() + index);
@@ -216,7 +216,7 @@ class BasicStateMachineEntropySource
     // If there is at least one runnable completion handler in `context`, one such handler is selected (via
     // `pick_int`) and invoked, and this function returns true.  Else false is returned.
     //
-    bool run_one(FakeExecutionContext& context)
+    bool run_one(FakeExecutionContext& context) const
     {
         UniqueHandler<> handler = context.pop_ready_handler([this](usize count) {
             return this->pick_int(0, count - 1);
@@ -232,7 +232,7 @@ class BasicStateMachineEntropySource
     // arguments and its return type must be ignorable.
     //
     template <typename... ActionFn>
-    void do_one_of(ActionFn&&... actions)
+    void do_one_of(ActionFn&&... actions) const
     {
         auto actions_tuple = std::forward_as_tuple(BATT_FORWARD(actions)...);
 
