@@ -122,7 +122,7 @@ class StochasticModelChecker
 
             BATT_CHECK_EQ(this->branch_delta_ == BranchDelta{}, this->branch_delta_.empty());
             BATT_CHECK_IMPLIES(this->branch_delta_.empty(), current_state == next_state)
-                << BATT_INSPECT(next_state) << BATT_INSPECT(current_state);
+                << BATT_INSPECT(make_printable(next_state)) << BATT_INSPECT(make_printable(current_state));
 
             if (terminal_state_reached) {
                 current_state = initial_state;
