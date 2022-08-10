@@ -435,7 +435,7 @@ inline std::ostream& operator<<(std::ostream& out, const Optional<T>& t)
     if (!t) {
         return out << "--";
     }
-    return out << *t;
+    return out << make_printable(*t);
 }
 
 inline std::ostream& operator<<(std::ostream& out, const NoneType&)
