@@ -110,7 +110,7 @@ class StochasticModelChecker
                                    }) == VisitResult::kFirstTime) {
                 BATT_STATE_MACHINE_VERBOSE()
                     << BATT_INSPECT(this->n_shards_) << BATT_INSPECT(min_running_time_ms)
-                    << BATT_INSPECT(seed) << BATT_INSPECT(next_state);
+                    << BATT_INSPECT(seed) << BATT_INSPECT(make_printable(next_state));
                 result.state_count += 1;
             }
 
