@@ -214,6 +214,7 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
     bool prune_won_games = true;
     bool prune_symmetries = true;
     usize n_threads = 1;
+    usize min_running_time_ms = 100;
 
     GameState initialize() override
     {
@@ -333,6 +334,13 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
         return std::make_unique<TicTacToeModel>(*this);
     }
 
+    AdvancedOptions advanced_options() const override
+    {
+        auto options = AdvancedOptions::with_default_values();
+        options.min_running_time_ms = this->min_running_time_ms;
+        return options;
+    }
+
    private:
     GameState state_;
 };
@@ -383,6 +391,69 @@ TEST(StateMachineModelTest, Basic)
     EXPECT_EQ(r.branch_push_count, kExpectedBranchCount);
     EXPECT_EQ(r.branch_pop_count, kExpectedBranchCount);
     EXPECT_EQ(r.self_branch_count, kExpectedSelfBranchCount);
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+TEST(StateMachineModelTest, StochasticCheck)
+{
+    for (usize n_threads : {1, 2, 4, 8, 16}) {
+        for (usize running_time_ms : {125, 250, 500, 1000, 2000, 4000, 8000}) {
+            TicTacToeModel t;
+            t.n_threads = n_threads;
+            t.min_running_time_ms = running_time_ms;
+
+            TicTacToeModel::Result r =
+                t.check_model(batt::StaticType<batt::StochasticModelChecker<TicTacToeModel>>{});
+
+            if (r.state_count < kExpectedStateCount) {
+                ASSERT_LT(running_time_ms, 8000u);
+                continue;
+            }
+
+            std::cerr << "DONE with check_model; result=" << r << std::endl;
+
+            std::vector<std::pair<int, int>> coords;
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    coords.emplace_back(i, j);
+                }
+            }
+            EXPECT_EQ(coords.size(), 9u);
+            usize positions = 0;
+            std::unordered_set<GameState, GameState::Hash> checked_states;
+            checked_states.emplace(t.normalize(t.initialize()));
+            do {
+                GameState g;
+                auto g_packed = g.pack();
+                for (const auto& p : coords) {
+                    g.board[p.first][p.second] = square_from_player(g.to_move);
+                    g.to_move = flip_player(g.to_move);
+                    auto s = t.normalize(g);
+                    if (!checked_states.count(s)) {
+                        checked_states.emplace(s);
+                        EXPECT_TRUE(t.state_visited(s))
+                            << g << " " << g_packed << " (" << p.first << "," << p.second << ")";
+                    }
+                    g_packed = g.pack();
+                    if (t.prune_won_games && get_winner(g) != Square::Empty) {
+                        break;
+                    }
+                }
+                positions += 1;
+            } while (std::next_permutation(coords.begin(), coords.end()));
+
+            EXPECT_EQ(positions, usize(9 * 8 * 7 * 6 * 5 * 4 * 3 * 2 * 1));
+
+            EXPECT_TRUE(r.ok);
+            EXPECT_EQ(r.state_count, kExpectedStateCount);
+            EXPECT_EQ(checked_states.size(), kExpectedStateCount);
+            EXPECT_GE(r.branch_push_count, kExpectedBranchCount);
+            EXPECT_GE(r.branch_pop_count, kExpectedBranchCount);
+            EXPECT_GE(r.self_branch_count, kExpectedSelfBranchCount);
+
+            break;
+        }
+    }
 }
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
