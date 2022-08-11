@@ -26,7 +26,7 @@ inline LogLevel& thread_default_log_level()
     for (auto values = std::make_tuple((left), (right));                                                     \
          !BATT_HINT_TRUE(std::get<0>(values) op std::get<1>(values));)                                       \
     return ::batt::detail::NotOkStatusWrapper{__FILE__, __LINE__, {::batt::StatusCode::kFailedPrecondition}} \
-           << ::batt::thread_default_log_level() << "Failed Requirement:\n\n  Expected:\n\n    "             \
+           << ::batt::thread_default_log_level() << "\n\n  Expected:\n\n    "                                \
            << BOOST_PP_STRINGIZE(left) << " "                                                                               \
                         << BOOST_PP_STRINGIZE(op) << " "                                                                    \
                                    << BOOST_PP_STRINGIZE(right)                                              \
