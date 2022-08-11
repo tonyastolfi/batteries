@@ -891,10 +891,12 @@ inline Status to_status(const T& ec)
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
 #define BATT_REQUIRE_OK(expr)                                                                                \
-    if (!::batt::is_ok_status(expr))                                                                         \
+    for (decltype(auto) BOOST_PP_CAT(BATTERIES_temp_status_result_, __LINE__) = (expr);                      \
+         !::batt::is_ok_status(BOOST_PP_CAT(BATTERIES_temp_status_result_, __LINE__));)                      \
         return ::batt::detail::NotOkStatusWrapper                                                            \
         {                                                                                                    \
-            __FILE__, __LINE__, ::batt::to_status(BATT_FORWARD(expr))                                        \
+            __FILE__, __LINE__,                                                                              \
+                ::batt::to_status(BATT_FORWARD(BOOST_PP_CAT(BATTERIES_temp_status_result_, __LINE__)))       \
         }
 
 #define BATT_ASSIGN_OK_RESULT(lvalue_expr, statusor_expr)                                                    \
@@ -907,11 +909,19 @@ inline Status to_status(const T& ec)
         BATT_CHECK(::batt::is_ok_status(expr_value))                                                         \
             << BOOST_PP_STRINGIZE(expr) << ".status == " << ::batt::to_status(expr_value);                   \
         return std::move(*BATT_FORWARD(expr_value));                                                         \
-    }(expr)
+    }((expr))
 
 #define BATT_CHECK_OK(expr)                                                                                  \
-    BATT_CHECK(::batt::is_ok_status(expr))                                                                   \
-        << BOOST_PP_STRINGIZE(expr) << ".status == " << ::batt::to_status(expr) << "; "
+    if (bool BOOST_PP_CAT(BATTERIES_check_ok_flag_, __LINE__) = true)                                        \
+        for (decltype(auto) BOOST_PP_CAT(BATTERIES_check_expr_value_, __LINE__) = (expr);                    \
+             BOOST_PP_CAT(BATTERIES_check_ok_flag_, __LINE__);                                               \
+             BOOST_PP_CAT(BATTERIES_check_ok_flag_, __LINE__) = false)                                       \
+            for (; !BATT_HINT_TRUE(                                                                          \
+                       ::batt::is_ok_status(BOOST_PP_CAT(BATTERIES_check_expr_value_, __LINE__))) &&         \
+                   BATT_HINT_TRUE(::batt::lock_fail_check_mutex());                                          \
+                 ::batt::fail_check_exit())                                                                  \
+    BATT_FAIL_CHECK_MESSAGE("batt::to_status(" BOOST_PP_STRINGIZE(expr) ")", ::batt::to_status(BOOST_PP_CAT(BATTERIES_check_expr_value_, __LINE__)),                   \
+        "==", "batt::OkStatus()", ::batt::OkStatus(), __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
 inline Status status_from_errno(int code)
 {

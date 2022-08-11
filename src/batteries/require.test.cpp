@@ -381,4 +381,52 @@ TEST(RequireTest, RequireFalseFail)
               batt::StatusCode::kFailedPrecondition);
 }
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+TEST(RequireTest, RequireOkExprEvalOnce)
+{
+    int called = 0;
+
+    auto fn = [&called]() -> batt::StatusOr<int> {
+        ++called;
+        return {batt::StatusCode::kInternal};
+    };
+
+    batt::Status status = [&]() -> batt::Status {
+        BATT_REQUIRE_OK(fn());
+        return batt::OkStatus();
+    }();
+
+    EXPECT_EQ(status, batt::StatusCode::kInternal);
+    EXPECT_EQ(called, 1);
+
+    fn().IgnoreError();
+
+    EXPECT_EQ(called, 2);
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+TEST(RequireTest, CheckOkExprEvalOnceDeath)
+{
+    int called = 0;
+
+    auto fn = [&called]() -> batt::StatusOr<const char*> {
+        ++called;
+        if (called == 1) {
+            std::cerr << "First time called." << std::endl;
+            return {batt::StatusCode::kInternal};
+        }
+        std::cerr << "NOT THE FIRST TIME" << std::endl;
+        return {"Called multiple times!"};
+    };
+
+    EXPECT_DEATH(BATT_CHECK_OK(fn()) << "Custom message.",
+                 "First time called\\..*"
+                 "FATAL: .*Assertion failed: batt::to_status\\(fn\\(\\)\\) == batt::OkStatus\\(\\)"
+                 ".*batt::to_status\\(fn\\(\\)\\) == 13:Internal\n"
+                 "\n"
+                 " *batt::OkStatus\\(\\) == 0:Ok\n"
+                 "\n"
+                 "Custom message\\.");
+}
+
 }  // namespace
