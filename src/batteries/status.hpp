@@ -770,6 +770,12 @@ bool is_ok_status(const T& val)
 
 enum struct LogLevel { kFatal, kError, kWarning, kInfo, kDebug, kVerbose };
 
+inline LogLevel& require_fail_thread_default_log_level()
+{
+    thread_local LogLevel log_level_ = LogLevel::kVerbose;
+    return log_level_;
+}
+
 namespace detail {
 
 class NotOkStatusWrapper
@@ -851,7 +857,7 @@ class NotOkStatusWrapper
     const char* file_;
     int line_;
     Status status_;
-    LogLevel level_{LogLevel::kVerbose};
+    LogLevel level_{require_fail_thread_default_log_level()};
     std::ostringstream output_;
 };
 
