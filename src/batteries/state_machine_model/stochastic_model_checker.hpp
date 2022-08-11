@@ -28,6 +28,7 @@ class StochasticModelChecker
         : model_{model}
         , n_shards_{mesh.shard_count}
         , shard_i_{shard_i}
+        , starting_seed_{model.advanced_options().starting_seed.value_or(shard_i)}
     {
         this->model_.set_entropy(StateMachineEntropySource{[this](usize min_value, usize max_value) -> usize {
             if (min_value == max_value) {
@@ -62,7 +63,7 @@ class StochasticModelChecker
             return elapsed_ms >= min_running_time_ms;
         };
 
-        usize seed = this->shard_i_;
+        usize seed = this->starting_seed_;
         this->rng_.seed(seed);
 
         StateMachineResult result;
@@ -94,6 +95,7 @@ class StochasticModelChecker
             // Make sure invariants are OK.
             //
             if (!this->model_.check_invariants()) {
+                result.seed = seed;
                 result.ok = false;
                 break;
             }
@@ -146,6 +148,7 @@ class StochasticModelChecker
 
     usize n_shards_;
     usize shard_i_;
+    usize starting_seed_;
     BranchDelta branch_delta_;
 
     std::default_random_engine rng_{this->shard_i_};

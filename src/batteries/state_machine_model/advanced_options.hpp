@@ -9,6 +9,7 @@
 #include <batteries/config.hpp>
 //
 #include <batteries/int_types.hpp>
+#include <batteries/optional.hpp>
 
 namespace batt {
 
@@ -19,6 +20,7 @@ struct StateMachineModelCheckAdvancedOptions {
     usize max_loop_iterations_between_flush;
     usize max_loop_iterations_between_update;
     i64 min_running_time_ms;
+    Optional<usize> starting_seed;
 
     static Self with_default_values()
     {
@@ -27,6 +29,7 @@ struct StateMachineModelCheckAdvancedOptions {
             .max_loop_iterations_between_flush = 16,
             .max_loop_iterations_between_update = 4096,
             .min_running_time_ms = 1000,
+            .starting_seed = None,
         };
     }
 };

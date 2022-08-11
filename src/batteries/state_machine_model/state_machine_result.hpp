@@ -30,6 +30,7 @@ struct StateMachineResult {
     double branch_pop_per_second = 0.0;
     double branch_push_per_second = 0.0;
     std::bitset<64> shards{0};
+    Optional<usize> seed;
 
     void update_elapsed_time()
     {
@@ -67,6 +68,12 @@ inline StateMachineResult combine_results(const StateMachineResult& a, const Sta
     c.shards = a.shards | b.shards;
     c.update_rates();
 
+    if (a.seed) {
+        c.seed = a.seed;
+    } else {
+        c.seed = b.seed;
+    }
+
     return c;
 }
 
@@ -86,6 +93,7 @@ inline std::ostream& operator<<(std::ostream& out, const StateMachineResult& r)
                << ", .branch_pop_per_second=" << r.branch_pop_per_second    //
                << ", .elapsed_ms=" << r.elapsed_ms                          //
                << ", .shards=" << r.shards                                  //
+               << ", .seed=" << r.seed                                      //
                << ",}";
 }
 
