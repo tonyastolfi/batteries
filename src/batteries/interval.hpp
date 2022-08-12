@@ -8,6 +8,7 @@
 //
 #include <batteries/interval_traits.hpp>
 #include <batteries/seq/reverse.hpp>
+#include <batteries/small_vec.hpp>
 
 #include <cstddef>
 #include <ostream>
@@ -80,6 +81,53 @@ struct BasicInterval {
 
         return BasicInterval{std::min(this->lower_bound, that.lower_bound),
                              std::max(this->upper_bound, that.upper_bound)};
+    }
+
+    template <typename ThatTraits>
+    bool overlaps(const BasicInterval<ThatTraits>& that) const
+    {
+        static_assert(interval_traits_compatible<Traits, ThatTraits>(), "");
+        return !Traits::empty(that.lower_bound, this->upper_bound) &&
+               !ThatTraits::empty(this->lower_bound, that.upper_bound);
+    }
+
+    template <typename ThatTraits>
+    BasicInterval intersection_with(const BasicInterval<ThatTraits>& that) const
+    {
+        static_assert(interval_traits_compatible<Traits, ThatTraits>(), "");
+
+        BasicInterval i{
+            .lower_bound = Traits::max(this->lower_bound, that.lower_bound),
+            .upper_bound = Traits::min(this->upper_bound, that.upper_bound),
+        };
+        if (i.empty()) {
+            return BasicInterval{this->lower_bound, this->lower_bound};
+        }
+        return i;
+    }
+
+    SmallVec<BasicInterval, 2> without(const BasicInterval& that) const
+    {
+        if (this->empty()) {
+            return {};
+        }
+
+        BasicInterval first{this->lower_bound, Traits::min(this->upper_bound, that.lower_bound)};
+        BasicInterval second{Traits::max(this->lower_bound, that.upper_bound), this->upper_bound};
+
+        if (first.adjacent_to(second)) {
+            return {*this};
+        }
+
+        SmallVec<BasicInterval, 2> diff;
+        if (!first.empty()) {
+            diff.emplace_back(first);
+        }
+        if (!second.empty()) {
+            diff.emplace_back(second);
+        }
+
+        return diff;
     }
 
     template <typename TraitsL, typename TraitsR>

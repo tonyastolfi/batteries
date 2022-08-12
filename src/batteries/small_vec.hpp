@@ -19,6 +19,8 @@ BATT_UNSUPPRESS_IF_GCC()
 //+++++++++++-+-+--+----- --- -- -  -  -   -
 #include <boost/container/small_vector.hpp>
 
+#include <string_view>
+
 namespace batt {
 
 constexpr usize kDefaultSmallVecSize = 4;
