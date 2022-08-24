@@ -174,7 +174,6 @@ template <typename T>
 using DerivedMetric = std::function<T()>;
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
-
 template <typename T, i64 kIntervalSeconds>
 class RateMetric
 {

@@ -272,7 +272,7 @@ class Task
     // boost::asio::ip::tcp::socket s;
     //
     // using ReadResult = std::pair<boost::system::error_code, std::size_t>;
-
+    //
     // ReadResult r = Task::await<ReadResult>([&](auto&& handler) {
     //     s.async_read_some(buffers, BATT_FORWARD(handler));
     //   });
@@ -677,7 +677,7 @@ class Task
     //
     void activate_via_post();
 
-    // Activate this task via boost::asio::dispatchx.
+    // Activate this task via boost::asio::dispatch.
     //
     void activate_via_dispatch();
 

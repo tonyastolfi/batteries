@@ -67,13 +67,20 @@ std::string make_printable(T&& obj)
                         << "  " << right_str << " == " << ::batt::make_printable(right_val) << ::std::endl   \
                         << ::std::endl
 
-#ifdef __GNUC__
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#if defined(__GNUC__)
 #define BATT_NORETURN __attribute__((noreturn))
 #define BATT_UNREACHABLE __builtin_unreachable
+
+#elif defined(__clang__)
+#define BATT_NORETURN _Noreturn
+#define BATT_UNREACHABLE __builtin_unreachable
+
 #else
 #define BATT_NORETURN
 #define BATT_UNREACHABLE() (void)
 #endif
+//+++++++++++-+-+--+----- --- -- -  -  -   -
 
 BATT_NORETURN inline void fail_check_exit()
 {
@@ -106,7 +113,11 @@ inline bool lock_fail_check_mutex()
          ::batt::fail_check_exit())                                                                          \
     BATT_FAIL_CHECK_MESSAGE(#p, (p), "implies", #q, (q), __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
+/*! \brief This is only a test...
+ * \param x The expression to test.
+ */
 #define BATT_CHECK(x) BATT_CHECK_RELATION(bool{x}, ==, true)
+
 #define BATT_CHECK_EQ(x, y) BATT_CHECK_RELATION(x, ==, y)
 #define BATT_CHECK_NE(x, y) BATT_CHECK_RELATION(x, !=, y)
 #define BATT_CHECK_GE(x, y) BATT_CHECK_RELATION(x, >=, y)

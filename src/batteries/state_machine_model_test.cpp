@@ -211,11 +211,6 @@ BATT_MAYBE_UNUSED Square get_winner(const GameState& s)
 class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash>
 {
    public:
-    bool prune_won_games = true;
-    bool prune_symmetries = true;
-    usize n_threads = 1;
-    usize min_running_time_ms = 100;
-
     GameState initialize() override
     {
         return GameState{/*board*/ {{
@@ -331,7 +326,13 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
 
     std::unique_ptr<StateMachineModel<GameState, GameState::Hash>> clone() const override
     {
-        return std::make_unique<TicTacToeModel>(*this);
+        auto cloned_this = std::make_unique<TicTacToeModel>();
+        cloned_this->prune_won_games = this->prune_won_games;
+        cloned_this->prune_symmetries = this->prune_symmetries;
+        cloned_this->n_threads = this->n_threads;
+        cloned_this->min_running_time_ms = this->min_running_time_ms;
+        cloned_this->state_ = this->state_;
+        return cloned_this;
     }
 
     AdvancedOptions advanced_options() const override
@@ -340,6 +341,11 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
         options.min_running_time_ms = this->min_running_time_ms;
         return options;
     }
+
+    bool prune_won_games = true;
+    bool prune_symmetries = true;
+    usize n_threads = 1;
+    usize min_running_time_ms = 100;
 
    private:
     GameState state_;

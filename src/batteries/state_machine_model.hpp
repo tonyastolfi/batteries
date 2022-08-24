@@ -63,6 +63,15 @@ class StateMachineModel
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
+    StateMachineModel(const StateMachineModel&) = delete;
+    StateMachineModel& operator=(const StateMachineModel&) = delete;
+
+    virtual ~StateMachineModel() = default;
+
+    StateMachineModel() = default;
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
     template <typename Checker = ExhaustiveModelChecker<StateMachineModel>>
     Result check_model(StaticType<Checker> = {});
 

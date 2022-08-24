@@ -96,6 +96,7 @@ BATT_INLINE_IMPL usize FakeExecutionContext::poll()
 BATT_INLINE_IMPL usize FakeExecutionContext::run()
 {
     BATT_PANIC() << "TODO [tastolfi 2022-01-19] implement me";
+    BATT_UNREACHABLE();
     /*
     usize count = 0;
     i64 observed_push_count = this->push_ready_count_.get_value();

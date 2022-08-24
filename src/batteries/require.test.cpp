@@ -341,7 +341,7 @@ TEST(RequireTest, RequireTrueOk)
     EXPECT_EQ(([]() -> batt::Status {
                   int i = 1;
                   int* ptr = &i;
-                  BATT_REQUIRE_TRUE(ptr);
+                  BATT_REQUIRE_TRUE((bool)ptr);
                   return batt::OkStatus();
               }()),
               batt::OkStatus());
@@ -352,7 +352,7 @@ TEST(RequireTest, RequireTrueFail)
 {
     EXPECT_EQ(([]() -> batt::Status {
                   int* ptr = nullptr;
-                  BATT_REQUIRE_TRUE(ptr);
+                  BATT_REQUIRE_TRUE((bool)ptr);
                   return batt::OkStatus();
               }()),
               batt::StatusCode::kFailedPrecondition);
@@ -363,7 +363,7 @@ TEST(RequireTest, RequireFalseOk)
 {
     EXPECT_EQ(([]() -> batt::Status {
                   int* ptr = nullptr;
-                  BATT_REQUIRE_FALSE(ptr);
+                  BATT_REQUIRE_FALSE((bool)ptr);
                   return batt::OkStatus();
               }()),
               batt::OkStatus());
@@ -375,7 +375,7 @@ TEST(RequireTest, RequireFalseFail)
     EXPECT_EQ(([]() -> batt::Status {
                   int i = 1;
                   int* ptr = &i;
-                  BATT_REQUIRE_FALSE(ptr);
+                  BATT_REQUIRE_FALSE((bool)ptr);
                   return batt::OkStatus();
               }()),
               batt::StatusCode::kFailedPrecondition);

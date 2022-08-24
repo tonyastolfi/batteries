@@ -137,7 +137,7 @@ class ParallelModelCheckState
 
         this->metrics(shard_i).recv_count += 1;
 
-        const auto transfer_batch = [this, &local_queue, &src_queue, shard_i](auto& maybe_next_batch) {
+        const auto transfer_batch = [this, &local_queue, shard_i](auto& maybe_next_batch) {
             std::vector<Branch>& next_batch = *maybe_next_batch;
             this->queue_pop_count.fetch_add(1);
 

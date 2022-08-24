@@ -23,11 +23,11 @@ RUN apt-get update && apt-get install --no-install-recommends -y -q dialog apt-u
 
 # Basic CLI tools.
 #
-RUN apt-get update && apt-get install --no-install-recommends -y nano sed locales time
+RUN apt-get update && apt-get install --no-install-recommends -y nano sed locales time unzip
 
 # Developer/Build tools.
 #
-RUN apt-get update && apt-get install --no-install-recommends -y git gcc g++ make cmake gdb valgrind
+RUN apt-get update && apt-get install --no-install-recommends -y git gcc g++ make cmake gdb valgrind jq
 
 # Some libraries.
 #
@@ -86,4 +86,15 @@ RUN curl --location --output /usr/local/bin/release-cli \
 RUN apt update && apt install -y lsb-release wget software-properties-common
 RUN wget https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh && chmod +x /tmp/llvm.sh
 RUN /tmp/llvm.sh 14 all
+RUN ln -s /usr/lib/llvm-14/lib/libclang.so /usr/lib/libclang.so
+RUN ln -s /usr/bin/clang++-14 /usr/bin/clang++
+RUN ln -s /usr/bin/clang-format-14 /usr/bin/clang-format
+RUN ln -s /usr/bin/clang-doc-14 /usr/bin/clang-doc
 
+RUN pip install mkdocs mkdocs-material mkdocs-autorefs
+
+RUN apt-get update && apt-get install --no-install-recommends -y doxygen
+RUN curl -L https://github.com/matusnovak/doxybook2/releases/download/v1.4.0/doxybook2-linux-amd64-v1.4.0.zip -o /tmp/doxybook2.zip -s
+RUN cd /tmp/ && unzip doxybook2.zip && mv bin/* /usr/bin/ && mv include/* /usr/include/ && mv lib/* /usr/lib/
+
+RUN rm -rf /tmp/*

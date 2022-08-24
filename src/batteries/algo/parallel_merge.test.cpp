@@ -80,7 +80,7 @@ class ParallelMergeTest : public ::testing::Test
 
     auto first_below_second()
     {
-        return [this](usize i, bool is_first) -> int {
+        return [](usize i, bool is_first) -> int {
             if (is_first) {
                 return -int(i);
             }
@@ -90,7 +90,7 @@ class ParallelMergeTest : public ::testing::Test
 
     auto second_below_first()
     {
-        return [this](usize i, bool is_first) -> int {
+        return [](usize i, bool is_first) -> int {
             if (!is_first) {
                 return -int(i);
             }

@@ -1,2 +1,0 @@
-{{ $path := printf "/reference/classes/class%s" ((replace (replace (.Get 0) "." "_8") ":" "_1") | urlize) }}
-<a href="{{ $path }}">{{ .Get 0 }}</a>
