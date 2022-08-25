@@ -1,3 +1,4 @@
+//#=##=##=#==#=#==#===#+==#+==========+==+=+=+=+=+=++=+++=+++++=-++++=-+++++++++++
 // Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
@@ -90,8 +91,7 @@ class AbstractMoveFn
     // fit the stored function, otherwise this method will assert-crash.
     // Invalidates `this`; `invoke` must not be called after `move`.
     //
-    virtual auto move(void* storage, std::size_t size) noexcept
-        -> AbstractFn<kMoveOnly, Result, Args...>* = 0;
+    virtual auto move(void* storage, usize size) noexcept -> AbstractFn<kMoveOnly, Result, Args...>* = 0;
 };
 
 // Adds copy semantics to the basic type-erased concept.
@@ -105,13 +105,12 @@ class AbstractCopyFn : public AbstractMoveFn<false, Result, Args...>
     // Copy construct from `this` into `storage`.  `size` MUST be big enough to
     // fit the stored function, otherwise this method will assert-crash.
     //
-    virtual auto copy(void* memory, std::size_t size) const noexcept
-        -> AbstractFn<false, Result, Args...>* = 0;
+    virtual auto copy(void* memory, usize size) const noexcept -> AbstractFn<false, Result, Args...>* = 0;
 
     // Same as `copy`, but the returned type-erased object drops the ability to
     // copy in favor of a move-only interface.
     //
-    virtual auto copy_to_move_only(void* memory, std::size_t size) const noexcept
+    virtual auto copy_to_move_only(void* memory, usize size) const noexcept
         -> AbstractFn<true, Result, Args...>* = 0;
 };
 
@@ -134,7 +133,7 @@ class MoveFnImpl : public AbstractFn<kMoveOnly, Result, Args...>
         return fn_(BATT_FORWARD(args)...);
     }
 
-    AbstractFn<kMoveOnly, Result, Args...>* move(void* memory, std::size_t size) noexcept override
+    AbstractFn<kMoveOnly, Result, Args...>* move(void* memory, usize size) noexcept override
     {
         BATT_CHECK_LE(sizeof(self_type), size);
 
@@ -156,15 +155,14 @@ class CopyFnImpl : public MoveFnImpl<Fn, /*kMoveOnly=*/false, Result, Args...>
 
     using MoveFnImpl<Fn, /*kMoveOnly=*/false, Result, Args...>::MoveFnImpl;
 
-    AbstractFn<false, Result, Args...>* copy(void* memory, std::size_t size) const noexcept override
+    AbstractFn<false, Result, Args...>* copy(void* memory, usize size) const noexcept override
     {
         BATT_CHECK_LE(sizeof(self_type), size);
 
         return new (memory) FnImpl<Fn, /*kMoveOnly=*/false, Result, Args...>(this->fn_);
     }
 
-    AbstractFn<true, Result, Args...>* copy_to_move_only(void* memory,
-                                                         std::size_t size) const noexcept override
+    AbstractFn<true, Result, Args...>* copy_to_move_only(void* memory, usize size) const noexcept override
     {
         BATT_CHECK_LE(sizeof(self_type), size);
 
@@ -174,7 +172,7 @@ class CopyFnImpl : public MoveFnImpl<Fn, /*kMoveOnly=*/false, Result, Args...>
 
 }  // namespace detail
 
-template <typename... Args, typename Result, std::size_t kMaxSize, bool kMoveOnly>
+template <typename... Args, typename Result, usize kMaxSize, bool kMoveOnly>
 class SmallFn<auto(Args...)->Result, kMaxSize, kMoveOnly>
 {
     template <typename, usize, bool>

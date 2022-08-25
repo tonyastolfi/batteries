@@ -9,6 +9,7 @@
 //
 #include <batteries/assert.hpp>
 #include <batteries/buffer.hpp>
+#include <batteries/cpu_align.hpp>
 #include <batteries/type_traits.hpp>
 
 #include <memory>
@@ -66,7 +67,7 @@ class AbstractValuePointer : public AbstractValue<T>
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 //
 template <typename AbstractType, template <typename> class TypedImpl,
-          usize kReservedSize = kCpuCacheLineSize - sizeof(void*)>
+          usize kReservedSize = kCpuCacheLineSize - sizeof(void*), usize kAlignment = kCpuCacheLineSize>
 class TypeErasedStorage
 {
    public:
@@ -204,7 +205,7 @@ class TypeErasedStorage
         return this->impl_;
     }
 
-    std::aligned_storage_t<kReservedSize, 8> storage_;
+    std::aligned_storage_t<kReservedSize, kAlignment> storage_;
     AbstractType* impl_ = nullptr;
 };
 
