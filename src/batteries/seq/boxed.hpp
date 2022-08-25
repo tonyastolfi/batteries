@@ -29,6 +29,13 @@ template <typename ItemT>
 class BoxedSeq
 {
    public:
+    class AbstractSeq;
+
+    template <typename T>
+    class SeqImpl;
+
+    using storage_type = TypeErasedStorage<AbstractSeq, SeqImpl>;
+
     class AbstractSeq : public AbstractValue<AbstractSeq>
     {
        public:
@@ -45,40 +52,27 @@ class BoxedSeq
     };
 
     template <typename T>
-    class SeqImpl : public AbstractSeq
+    class SeqImpl : public AbstractValueImpl<AbstractSeq, SeqImpl, T>
     {
        public:
+        using Super = AbstractValueImpl<AbstractSeq, SeqImpl, T>;
+
         static_assert(std::is_same_v<std::decay_t<T>, T>, "BoxedSeq<T&> is not supported");
 
-        explicit SeqImpl(T&& seq) noexcept : seq_(BATT_FORWARD(seq))
+        explicit SeqImpl(T&& seq) noexcept : Super{BATT_FORWARD(seq)}
         {
-        }
-
-        AbstractSeq* copy_to(MutableBuffer memory) override
-        {
-            return new (memory.data()) SeqImpl{batt::make_copy(this->seq_)};
-        }
-
-        AbstractSeq* move_to(MutableBuffer memory) override
-        {
-            return new (memory.data()) SeqImpl{std::move(this->seq_)};
         }
 
         Optional<ItemT> peek() override
         {
-            return this->seq_.peek();
+            return this->obj_.peek();
         }
 
         Optional<ItemT> next() override
         {
-            return this->seq_.next();
+            return this->obj_.next();
         }
-
-       private:
-        T seq_;
     };
-
-    using storage_type = TypeErasedStorage<AbstractSeq, SeqImpl>;
 
     using Item = ItemT;
 

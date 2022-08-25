@@ -15,6 +15,8 @@
 
 namespace {
 
+using namespace batt::int_types;
+
 BATT_STRONG_TYPEDEF(int, Val);
 BATT_STRONG_TYPEDEF(int, Gen);
 
@@ -27,6 +29,7 @@ struct MockValue {
     MOCK_METHOD(void, move_assign, (Val old_val, Gen old_gen, Val new_val, Gen new_gen), ());
 };
 
+template <usize kExtraBytes>
 class ValueWrapper
 {
    public:
@@ -34,6 +37,7 @@ class ValueWrapper
 
     Val val;
     Gen gen{0};
+    std::array<char, kExtraBytes + 1> extra_;
 
     ValueWrapper(Val val, ::testing::StrictMock<MockValue>& mock) : val{val}, impl_{&mock}
     {
@@ -84,125 +88,147 @@ class AbstractMockValue : public batt::AbstractValue<AbstractMockValue>
 };
 
 template <typename T>
-class MockValueImpl : public AbstractMockValue
+class MockValueImpl : public batt::AbstractValueImpl<AbstractMockValue, MockValueImpl, T>
 {
    public:
-    explicit MockValueImpl(T&& obj) : impl_{std::move(obj)}
-    {
-    }
+    using Super = batt::AbstractValueImpl<AbstractMockValue, MockValueImpl, T>;
 
-    AbstractMockValue* copy_to(batt::MutableBuffer memory)
+    explicit MockValueImpl(T&& obj) : Super{std::move(obj)}
     {
-        return new (memory.data()) MockValueImpl{batt::make_copy(this->impl_)};
-    }
-
-    AbstractMockValue* move_to(batt::MutableBuffer memory)
-    {
-        return new (memory.data()) MockValueImpl{std::move(this->impl_)};
     }
 
     Val get_val() const override
     {
-        return this->impl_.val;
+        return this->obj_.val;
     }
 
     Gen get_gen() const override
     {
-        return this->impl_.gen;
+        return this->obj_.gen;
     }
-
-   private:
-    T impl_;
 };
+
+template <usize kExtraBytes>
+void run_basic_tests()
+{
+    using Storage = batt::TypeErasedStorage<AbstractMockValue, MockValueImpl>;
+
+    ::testing::StrictMock<MockValue> mock;
+    ::testing::Sequence s;
+    {
+        EXPECT_CALL(mock, default_construct(Val{0}))  //
+            .InSequence(s)
+            .WillOnce(::testing::Return());
+
+        ValueWrapper<kExtraBytes> value{Val{0}, mock};
+        static_assert(sizeof(value) > kExtraBytes, "");
+
+        const bool is_small_object = sizeof(value) <= Storage::reserved_size;
+
+        EXPECT_EQ(value.val, Val{0});
+        EXPECT_EQ(value.gen, Gen{0});
+        {
+            Storage storage5;
+
+            EXPECT_FALSE(storage5.is_valid());
+            EXPECT_EQ(storage5.get(), nullptr);
+
+            storage5 = [&] {
+                EXPECT_CALL(mock, copy_construct(Val{0}, Gen{1}))  // The temporary arg
+                    .InSequence(s)
+                    .WillOnce(::testing::Return())
+                    .RetiresOnSaturation();
+
+                EXPECT_CALL(mock, move_construct(Val{0}, Gen{2}))  // The copy in `storage1`
+                    .InSequence(s)
+                    .WillOnce(::testing::Return())
+                    .RetiresOnSaturation();
+
+                EXPECT_CALL(mock, destruct(Val{0}, Gen{1}))  // The temporary arg
+                    .InSequence(s)
+                    .WillOnce(::testing::Return())
+                    .RetiresOnSaturation();
+                {
+                    Storage storage2{batt::StaticType<ValueWrapper<kExtraBytes>>{}, batt::make_copy(value)};
+                    {
+                        EXPECT_EQ(storage2->get_val(), Val{0});
+                        EXPECT_EQ(storage2->get_gen(), Gen{2});
+
+                        if (is_small_object) {
+                            EXPECT_CALL(mock, move_construct(Val{0}, Gen{3}))  // The copy in `storage3`
+                                .InSequence(s)
+                                .WillOnce(::testing::Return())
+                                .RetiresOnSaturation();
+
+                            EXPECT_CALL(mock, destruct(Val{0}, Gen{2}))  // The copy in `storage2`
+                                .InSequence(s)
+                                .WillOnce(::testing::Return())
+                                .RetiresOnSaturation();
+                        }
+
+                        Storage storage3 = std::move(storage2);
+
+                        EXPECT_EQ(storage3->get_val(), Val{0});
+
+                        if (is_small_object) {
+                            EXPECT_EQ(storage3->get_gen(), Gen{3});
+
+                            EXPECT_CALL(mock, move_construct(Val{0}, Gen{4}))  // The returned value
+                                .InSequence(s)
+                                .WillOnce(::testing::Return())
+                                .RetiresOnSaturation();
+
+                            EXPECT_CALL(mock, destruct(Val{0}, Gen{3}))  // The copy in `storage3`
+                                .InSequence(s)
+                                .WillOnce(::testing::Return())
+                                .RetiresOnSaturation();
+
+                            EXPECT_CALL(mock, move_construct(Val{0}, Gen{5}))  // The copy in storage5
+                                .InSequence(s)
+                                .WillOnce(::testing::Return())
+                                .RetiresOnSaturation();
+
+                            EXPECT_CALL(mock, destruct(Val{0}, Gen{4}))  // The returned value
+                                .InSequence(s)
+                                .WillOnce(::testing::Return())
+                                .RetiresOnSaturation();
+
+                        } else {
+                            EXPECT_EQ(storage3->get_gen(), Gen{2});
+                        }
+
+                        // The parens suppress copy elision.
+                        //
+                        return (storage3);
+                    }
+                }
+            }();
+
+            EXPECT_TRUE(storage5.is_valid());
+
+            Gen expected_gen{is_small_object ? 5 : 2};
+
+            EXPECT_EQ(storage5->get_val(), Val{0});
+            EXPECT_EQ(storage5->get_gen(), expected_gen);
+
+            EXPECT_CALL(mock, destruct(Val{0}, expected_gen))  //
+                .InSequence(s)
+                .WillOnce(::testing::Return());
+        }
+
+        EXPECT_CALL(mock, destruct(Val{0}, Gen{0}))  //
+            .InSequence(s)
+            .WillOnce(::testing::Return());
+    }
+}
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 TEST(TypeErasureTest, Basic)
 {
-    ::testing::StrictMock<MockValue> mock;
-    ::testing::Sequence s;
-
-    EXPECT_CALL(mock, default_construct(Val{0}))  //
-        .InSequence(s)
-        .WillOnce(::testing::Return());
-
-    ValueWrapper value{Val{0}, mock};
-
-    EXPECT_EQ(value.val, Val{0});
-    EXPECT_EQ(value.gen, Gen{0});
-    {
-        batt::TypeErasedStorage<AbstractMockValue, MockValueImpl> storage5;
-
-        EXPECT_FALSE(storage5.is_valid());
-        EXPECT_EQ(storage5.get(), nullptr);
-
-        storage5 = [&] {
-            EXPECT_CALL(mock, copy_construct(Val{0}, Gen{1}))  // The temporary arg
-                .InSequence(s)
-                .WillOnce(::testing::Return());
-
-            EXPECT_CALL(mock, move_construct(Val{0}, Gen{2}))  // The copy in `storage1`
-                .InSequence(s)
-                .WillOnce(::testing::Return());
-
-            EXPECT_CALL(mock, destruct(Val{0}, Gen{1}))  // The temporary arg
-                .InSequence(s)
-                .WillOnce(::testing::Return());
-            {
-                batt::TypeErasedStorage<AbstractMockValue, MockValueImpl> storage2{
-                    batt::StaticType<ValueWrapper>{}, batt::make_copy(value)};
-                {
-                    EXPECT_EQ(storage2->get_val(), Val{0});
-                    EXPECT_EQ(storage2->get_gen(), Gen{2});
-
-                    EXPECT_CALL(mock, move_construct(Val{0}, Gen{3}))  // The copy in `storage3`
-                        .InSequence(s)
-                        .WillOnce(::testing::Return());
-
-                    batt::TypeErasedStorage<AbstractMockValue, MockValueImpl> storage3 = std::move(storage2);
-
-                    EXPECT_EQ(storage3->get_val(), Val{0});
-                    EXPECT_EQ(storage3->get_gen(), Gen{3});
-
-                    EXPECT_CALL(mock, move_construct(Val{0}, Gen{4}))  // The returned value
-                        .InSequence(s)
-                        .WillOnce(::testing::Return());
-
-                    EXPECT_CALL(mock, destruct(Val{0}, Gen{3}))  // The copy in `storage3`
-                        .InSequence(s)
-                        .WillOnce(::testing::Return());
-
-                    EXPECT_CALL(mock, destruct(Val{0}, Gen{2}))  // The copy in `storage2`
-                        .InSequence(s)
-                        .WillOnce(::testing::Return());
-
-                    EXPECT_CALL(mock, move_construct(Val{0}, Gen{5}))  // The copy in storage5
-                        .InSequence(s)
-                        .WillOnce(::testing::Return());
-
-                    EXPECT_CALL(mock, destruct(Val{0}, Gen{4}))  // The returned value
-                        .InSequence(s)
-                        .WillOnce(::testing::Return());
-
-                    // The parens suppress copy elision.
-                    //
-                    return (storage3);
-                }
-            }
-        }();
-
-        EXPECT_TRUE(storage5.is_valid());
-
-        EXPECT_EQ(storage5->get_val(), Val{0});
-        EXPECT_EQ(storage5->get_gen(), Gen{5});
-
-        EXPECT_CALL(mock, destruct(Val{0}, Gen{5}))  //
-            .InSequence(s)
-            .WillOnce(::testing::Return());
-    }
-
-    EXPECT_CALL(mock, destruct(Val{0}, Gen{0}))  //
-        .InSequence(s)
-        .WillOnce(::testing::Return());
+    run_basic_tests<0>();
+    run_basic_tests<39>();
+    run_basic_tests<40>();
+    run_basic_tests<2000>();
 }
 
 }  // namespace

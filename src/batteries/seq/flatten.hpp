@@ -20,11 +20,11 @@ namespace seq {
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 // flatten - turns Seq<Seq<T>> into Seq<T> by concatenating
 //
-template <typename OuterSeq>
+template <typename OuterSeq, typename InnerSeqT = std::decay_t<SeqItem<OuterSeq>>>
 class Flatten
 {
    public:
-    using InnerSeq = std::decay_t<SeqItem<OuterSeq>>;
+    using InnerSeq = InnerSeqT;
     using Item = SeqItem<InnerSeq>;
 
     explicit Flatten(OuterSeq&& outer) noexcept : outer_(BATT_FORWARD(outer)), inner_(outer_.next())
