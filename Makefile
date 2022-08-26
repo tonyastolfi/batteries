@@ -74,3 +74,8 @@ clean-docs:
 	rm -rf "$(PROJECT_DIR)/build/mkdocs"
 	rm -rf "$(PROJECT_DIR)/build/doxybook2"
 	rm -rf "$(PROJECT_DIR)/build/doxygen"
+
+.PHONY: deploy-docs
+deploy-docs: mkdocs
+	cd "$(PROJECT_DIR)/build/mkdocs" && mkdocs build
+	"$(PROJECT_DIR)/script/deploy-docs.sh" "$(PROJECT_DIR)/build/mkdocs/site" "$(PROJECT_DIR)/build/mkdocs-deploy"
