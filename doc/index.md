@@ -16,3 +16,5 @@ Features:
      - [Fast, User-Space Asynchronous Tasks](/async)
      - [batt::case_of, An Ergonomic Replacement For std::visit](/case_of.hpp)
      - [Support for Exception-Free Coding in C++](/status.hpp)
+
+ @copy; 2019-2022 Anthony Paul Astolfi, et al.
