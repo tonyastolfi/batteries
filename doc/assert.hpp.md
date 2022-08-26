@@ -95,7 +95,7 @@ Even on Release builds, all expressions that appear in a `BATT_ASSERT_*` stateme
 
 | Name | Description |
 | :--- | :---------- |
-| [BATT_PANIC()][batt_panic]| Forces the program to exit immediately, printing a full stack trace and any message `<<`-inserted to the [BATT_PANIC()` statement. Example:  [BATT_PANIC() << "Something has gone horribly wrong!  x = " << x;`  |
+| [BATT_PANIC()][batt_panic]| Forces the program to exit immediately, printing a full stack trace and any message `<<`-inserted to the `BATT_PANIC()` statement. <br>Example:<br>`BATT_PANIC() << "Something has gone horribly wrong!  x = " << x;`  |
 | [BATT_UNREACHABLE()][batt_unreachable]| Statement that tells the compiler this point in the code should be unreachable; for example, it is right after a call to `std::abort()` or `std::terminate()`.  Use this to silence spurious warnings about dead code. |
 | [BATT_NORETURN][batt_noreturn]| When added to a function declaration (before the return type), tells the compiler that a function never returns.  Use this to silence spurious warnings. <br>Example:<br>  `BATT_NORETURN void print_stuff_and_exit();`  |
 | [batt::make_printable(obj)][function-make_printable]| Makes any expression printable, even if it doesn't have an overloaded  `std::ostream& operator<<(std::ostream&, T)` .  If the type of `obj` does define such an operator, however, that will be invoked when using `batt::make_printable`.  `obj` is passed/forwarded by reference only; no copy of the original object/value is made. |
