@@ -11,9 +11,11 @@ Now a package ref to your Conan project requirements (conanfile.py):
 ```
     requires = [
         ...
-        "batteries/0.8.0@tonyastolfi+batteries/stable",
+        "batteries/0.8.21@tonyastolfi+batteries/stable",
     ]
 
 ```
+
+You can find the available [release versions here](https://gitlab.com/tonyastolfi/batteries/-/packages).
 
 Check out the [documentation](https://batteriescpp.github.io/)!

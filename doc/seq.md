@@ -44,8 +44,8 @@ The total length of strings under 5 is: 14
  - `Seq<T>` must be copy-constructible, copy-assignable, and publically destructible
  - `Seq<T>` must have a public type member or type alias/typedef named `Item`, equivalent to `T`
  - Given an object `seq` of type `Seq<T>`:
-   - `seq.peek()` must return a value of type `batt::Optional<T>`; if the sequence is empty or at its end, `batt::None` is returned, otherwise the next item in the sequence is returned
-   - `seq.next()` is the same in terms of returned value, but it additionally has the side effect of consuming the returned item from the sequence
+    - `seq.peek()` must return a value of type `batt::Optional<T>`; if the sequence is empty or at its end, `batt::None` is returned, otherwise the next item in the sequence is returned
+    - `seq.next()` is the same in terms of returned value, but it additionally has the side effect of consuming the returned item from the sequence
 
 ## STL Ranges to Sequences
 

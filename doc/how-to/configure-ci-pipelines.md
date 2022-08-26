@@ -1,7 +1,5 @@
 # How to Configure CI Pipelines for Batteries in GitLab
 
-[[_TOC_]]
-
 ## Create a Deploy Token for the Repository
 
 This step is necessary to allow Conan to access the Package Registry for your project so releases can be published.

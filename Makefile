@@ -75,6 +75,10 @@ clean-docs:
 	rm -rf "$(PROJECT_DIR)/build/doxybook2"
 	rm -rf "$(PROJECT_DIR)/build/doxygen"
 
+.PHONY: serve-docs
+serve-docs: mkdocs
+	cd "$(PROJECT_DIR)/build/mkdocs" && mkdocs serve
+
 .PHONY: deploy-docs
 deploy-docs: mkdocs
 	cd "$(PROJECT_DIR)/build/mkdocs" && mkdocs build

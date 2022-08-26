@@ -4,6 +4,8 @@ This document describes the coding conventions to be followed in this library.
 
 ## File Names
 
+All source code files live under `batteries/src`.
+
 - Source, header, inline/implementation, and test sources should be colocated within the same directory.
 - Source files should use the `.cpp` extension.
 - Header files should use the `.hpp` extension.
@@ -19,38 +21,40 @@ For example, if you have a header file: `src/some_namespace/myutils.hpp`, then y
 
 To enhance readability, all implicit uses of `this` within a class should be made explicit.  For example:
 
+**DO NOT** write:
+
 ```c++
-// DO NOT write:
-//
 class MyClass {
  public:
   void my_method()
   {
-    internal_method();
+    internal_method();  // BAD!
   }
  
  private:
   void internal_method() 
   {
-    ++counter_;
+    ++counter_;  // BAD!
   }
   
   int counter_;
 };
+```
 
-// Instead, DO write:
-//
+Instead, **DO** write:
+
+```c++
 class MyClass {
  public:
   void my_method()
   {
-    this->internal_method();
+    this->internal_method();  // GOOD!
   }
  
  private:
   void internal_method() 
   {
-    ++this->counter_;
+    ++this->counter_;  // GOOD!
   }
   
   int counter_;
