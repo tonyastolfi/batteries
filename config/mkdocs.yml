@@ -11,6 +11,7 @@ nav:
     - batteries/async/*: /async
     - batteries/case_of.hpp: /case_of.hpp
     - batteries/cpu_align.hpp: /cpu_align.hpp
+    - batteries/seq.hpp: /seq
     - batteries/status.hpp: /status.hpp
   - Reference:
     - Files: /_autogen/Files/
