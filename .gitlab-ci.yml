@@ -87,7 +87,6 @@ release:
     - env | grep 'RELEASE_CONAN'
     - env | grep -v 'RELEASE_CONAN'
     - script/publish-release.sh
-    - make deploy-docs
   release:
     tag_name: $CI_COMMIT_TAG
     description: $CI_COMMIT_MESSAGE
@@ -98,3 +97,17 @@ release:
       paths:
         - build/
       policy: pull
+
+#+++++++++++-+-+--+----- --- -- -  -  -   -
+docs:
+  stage: release
+  script:
+      - make deploy-docs
+  rules:
+    - if: $CI_COMMIT_TAG
+  cache:
+    - key: build-cache
+      paths:
+        - build/
+      policy: pull
+
