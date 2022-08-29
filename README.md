@@ -18,4 +18,4 @@ Now a package ref to your Conan project requirements (conanfile.py):
 
 You can find the available [release versions here](https://gitlab.com/tonyastolfi/batteries/-/packages).
 
-Check out the [documentation](https://batteriescpp.github.io/)!
+Check out the [documentation](https://batteriescpp.github.Io/)!

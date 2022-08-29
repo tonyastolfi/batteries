@@ -417,4 +417,20 @@ TEST(IntervalTest, Difference)
     }
 }
 
+TEST(IntervalTest, Shift)
+{
+    batt::Interval<int> a{1, 8};
+
+    EXPECT_EQ(a.shift_up(4), (batt::Interval<int>{5, 12}));
+    EXPECT_EQ(a.shift_up(-1), (batt::Interval<int>{0, 7}));
+    EXPECT_EQ(a.shift_up(0), (batt::Interval<int>{1, 8}));
+
+    EXPECT_EQ(a.shift_down(4), (batt::Interval<int>{-3, 4}));
+    EXPECT_EQ(a.shift_down(-1), (batt::Interval<int>{2, 9}));
+    EXPECT_EQ(a.shift_down(0), (batt::Interval<int>{1, 8}));
+
+    EXPECT_EQ(a.lower_bound, 1);
+    EXPECT_EQ(a.upper_bound, 8);
+}
+
 }  // namespace

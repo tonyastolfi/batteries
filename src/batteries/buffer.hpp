@@ -9,6 +9,7 @@
 //
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/interval.hpp>
 #include <batteries/shared_ptr.hpp>
 #include <batteries/utility.hpp>
 
@@ -47,6 +48,30 @@ inline ConstBuffer resize_buffer(const ConstBuffer& b, usize s)
 inline MutableBuffer resize_buffer(const MutableBuffer& b, usize s)
 {
     return MutableBuffer{b.data(), std::min(s, b.size())};
+}
+
+template <typename SizeT>
+inline ConstBuffer slice_buffer(const ConstBuffer& b, const Interval<SizeT>& slice)
+{
+    if (slice.empty()) {
+        return ConstBuffer{};
+    }
+    const u8* bytes = static_cast<const u8*>(b.data());
+    const u8* first = bytes + std::min<SizeT>(slice.lower_bound, b.size());
+    const u8* last = bytes + std::min<SizeT>(slice.upper_bound, b.size());
+    return ConstBuffer{first, last - first};
+}
+
+template <typename SizeT>
+inline MutableBuffer slice_buffer(const MutableBuffer& b, const Interval<SizeT>& slice)
+{
+    if (slice.empty()) {
+        return MutableBuffer{};
+    }
+    u8* bytes = static_cast<u8*>(b.data());
+    u8* first = bytes + std::min<SizeT>(slice.lower_bound, b.size());
+    u8* last = bytes + std::min<SizeT>(slice.upper_bound, b.size());
+    return MutableBuffer{first, last - first};
 }
 
 template <typename VecT>
