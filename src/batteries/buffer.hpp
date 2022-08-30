@@ -8,12 +8,15 @@
 #include <batteries/config.hpp>
 //
 #include <batteries/assert.hpp>
+#include <batteries/checked_cast.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/interval.hpp>
 #include <batteries/shared_ptr.hpp>
 #include <batteries/utility.hpp>
 
 #include <boost/asio/buffer.hpp>
+
+#include <type_traits>
 
 namespace batt {
 
@@ -50,28 +53,36 @@ inline MutableBuffer resize_buffer(const MutableBuffer& b, usize s)
     return MutableBuffer{b.data(), std::min(s, b.size())};
 }
 
+namespace detail {
+
+template <typename BufferT, typename SizeT>
+inline BufferT slice_buffer_impl(const BufferT& buffer, const Interval<SizeT>& slice)
+{
+    using ByteT = std::conditional_t<std::is_same_v<BufferT, ConstBuffer>, const u8, u8>;
+
+    ByteT* const bytes = static_cast<ByteT*>(buffer.data());
+    const SizeT begin_i = std::clamp<SizeT>(slice.lower_bound, 0, static_cast<SizeT>(buffer.size()));
+    const SizeT end_i = std::clamp<SizeT>(slice.upper_bound, 0, static_cast<SizeT>(buffer.size()));
+    ByteT* const first = bytes + begin_i;
+    ByteT* const last = bytes + end_i;
+    if (first < last) {
+        return BufferT{first, BATT_CHECKED_CAST(usize, last - first)};
+    }
+    return BufferT{first, 0};
+}
+
+}  // namespace detail
+
 template <typename SizeT>
 inline ConstBuffer slice_buffer(const ConstBuffer& b, const Interval<SizeT>& slice)
 {
-    if (slice.empty()) {
-        return ConstBuffer{};
-    }
-    const u8* bytes = static_cast<const u8*>(b.data());
-    const u8* first = bytes + std::min<SizeT>(slice.lower_bound, b.size());
-    const u8* last = bytes + std::min<SizeT>(slice.upper_bound, b.size());
-    return ConstBuffer{first, last - first};
+    return detail::slice_buffer_impl<ConstBuffer>(b, slice);
 }
 
 template <typename SizeT>
 inline MutableBuffer slice_buffer(const MutableBuffer& b, const Interval<SizeT>& slice)
 {
-    if (slice.empty()) {
-        return MutableBuffer{};
-    }
-    u8* bytes = static_cast<u8*>(b.data());
-    u8* first = bytes + std::min<SizeT>(slice.lower_bound, b.size());
-    u8* last = bytes + std::min<SizeT>(slice.upper_bound, b.size());
-    return MutableBuffer{first, last - first};
+    return detail::slice_buffer_impl<MutableBuffer>(b, slice);
 }
 
 template <typename VecT>
