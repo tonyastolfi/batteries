@@ -73,12 +73,22 @@ inline BufferT slice_buffer_impl(const BufferT& buffer, const Interval<SizeT>& s
 
 }  // namespace detail
 
+/*! \brief Select a subset of the passed buffer according to the passed interval.
+ *
+ * \param b The buffer to slice
+ * \param slice Defines the start (inclusive) and end (non-inclusive) of the slice within buffer
+ */
 template <typename SizeT>
 inline ConstBuffer slice_buffer(const ConstBuffer& b, const Interval<SizeT>& slice)
 {
     return detail::slice_buffer_impl<ConstBuffer>(b, slice);
 }
 
+/*! \brief Select a subset of the passed buffer according to the passed interval.
+ *
+ * \param b The buffer to slice
+ * \param slice Defines the start (inclusive) and end (non-inclusive) of the slice within buffer
+ */
 template <typename SizeT>
 inline MutableBuffer slice_buffer(const MutableBuffer& b, const Interval<SizeT>& slice)
 {
