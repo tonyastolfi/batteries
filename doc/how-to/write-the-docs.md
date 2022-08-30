@@ -23,7 +23,7 @@ Now you should be able to navigate to [http://localhost:8000/](http://localhost:
 make mkdocs
 ```
 
-_** NOTE: ** The shell commands in this document assume you have the documentation tools installed.  If you want to do install them on your machine natively, you can check `batteries/docker/Dockerfile` to see how they are installed for CI pipelines.  The recommended method, however, is do run all commands inside a Docker container using the batteries/script/run-with-docker.sh script.  Example:_
+_** NOTE: ** The shell commands in this document assume you have the documentation tools installed.  If you want to do install them on your machine natively, you can check `batteries/docker/Dockerfile` to see how they are installed for CI pipelines.  The recommended method, however, is do run all commands inside a Docker container using the `batteries/script/run-with-docker.sh` script.  Example:_
 
 ```shell
 script/run-with-docker.sh make serve-docs
@@ -60,7 +60,13 @@ At the top level, the site is statically generated using [MkDocs](https://www.mk
         - stylesheets/  <br> _Base directory for CSS style sheets_
     - overrides/  <br> _Theme partial layout overrides_
 
-The MkDocs project for Batteries is generated inside `batteries/build/mkdocs/` by the Makefile target 'mkdocs'.
+The MkDocs project for Batteries is generated inside `batteries/build/mkdocs/` by the Makefile target `mkdocs`:
+
+```shell
+make mkdocs
+```
+
+_** NOTE: ** The `mkdocs` target depends on the `doxygen` and `doxybook2` targets, so you don't need to run those separately._
 
 #### mkdocs.yml
 
@@ -89,6 +95,8 @@ To run just the Doxygen tool, you can run the Makefile like this:
 ```shell
 make doxygen
 ```
+
+_** NOTE: ** The `doxygen` target depends on the `doxybook2` target, so you don't need to run it separately._
 
 The default Doxygen HTML output looks much worse than what MkDocs produces, and it isn't styled according to the [Material](https://squidfunk.github.io/mkdocs-material/) theme.  To bridge the gap, we use [Doxybook2](https://github.com/matusnovak/doxybook2#doxybook2).  Doxybook2 takes the XML output of Doxygen and produces MarkDown files which can be formatted and styled in a manner consistent with the rest of the site.
 
