@@ -19,7 +19,10 @@ namespace batt {
 #define BATT_REQUIRE_RELATION(left, op, right)                                                               \
     for (auto values = std::make_tuple((left), (right));                                                     \
          !BATT_HINT_TRUE(std::get<0>(values) op std::get<1>(values));)                                       \
-    return ::batt::detail::NotOkStatusWrapper{__FILE__, __LINE__, {::batt::StatusCode::kFailedPrecondition}} \
+    return ::batt::detail::NotOkStatusWrapper{__FILE__,                                                      \
+                                              __LINE__,                                                      \
+                                              {::batt::StatusCode::kFailedPrecondition},                     \
+                                              BATT_VLOG_IS_ON(1)}                                            \
            << "\n\n  Expected:\n\n    "                                                                      \
            << BOOST_PP_STRINGIZE(left) << " "                                                                               \
                         << BOOST_PP_STRINGIZE(op) << " "                                                                    \

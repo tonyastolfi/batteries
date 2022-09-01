@@ -770,29 +770,43 @@ bool is_ok_status(const T& val)
 
 enum struct LogLevel { kFatal, kError, kWarning, kInfo, kDebug, kVerbose };
 
+inline std::atomic<LogLevel>& require_fail_global_default_log_level()
+{
+    static std::atomic<LogLevel> global_default_{LogLevel::kVerbose};
+    return global_default_;
+}
+
 inline LogLevel& require_fail_thread_default_log_level()
 {
-    thread_local LogLevel log_level_ = LogLevel::kVerbose;
-    return log_level_;
+    thread_local LogLevel per_thread_default_ = require_fail_global_default_log_level();
+    return per_thread_default_;
 }
+
+#ifdef BATT_GLOG_AVAILABLE
+#define BATT_VLOG_IS_ON(level) VLOG_IS_ON(level)
+#else
+#define BATT_VLOG_IS_ON(level) false
+#endif
 
 namespace detail {
 
 class NotOkStatusWrapper
 {
    public:
-    explicit NotOkStatusWrapper(const char* file, int line, Status&& status) noexcept
+    explicit NotOkStatusWrapper(const char* file, int line, Status&& status, bool vlog_is_on) noexcept
         : file_{file}
         , line_{line}
         , status_(std::move(status))
+        , vlog_is_on_{vlog_is_on}
     {
         *this << this->status_ << "; ";
     }
 
-    explicit NotOkStatusWrapper(const char* file, int line, const Status& status) noexcept
+    explicit NotOkStatusWrapper(const char* file, int line, const Status& status, bool vlog_is_on) noexcept
         : file_{file}
         , line_{line}
         , status_(status)
+        , vlog_is_on_{vlog_is_on}
     {
 #ifndef BATT_GLOG_AVAILABLE
         *this << "(" << this->file_ << ":" << this->line_ << ") ";
@@ -823,7 +837,10 @@ class NotOkStatusWrapper
             DLOG(INFO) << " [" << this->file_ << ":" << this->line_ << "] " << this->output_.str();
             break;
         case LogLevel::kVerbose:
-            VLOG(1) << " [" << this->file_ << ":" << this->line_ << "] " << this->output_.str();
+            if (this->vlog_is_on_) {
+                ::google::LogMessage(this->file_, this->line_, google::GLOG_INFO).stream()
+                    << this->output_.str();
+            }
             break;
         }
 #endif  // BATT_GLOG_AVAILABLE
@@ -857,6 +874,7 @@ class NotOkStatusWrapper
     const char* file_;
     int line_;
     Status status_;
+    bool vlog_is_on_;
     LogLevel level_{require_fail_thread_default_log_level()};
     std::ostringstream output_;
 };
@@ -902,7 +920,8 @@ inline Status to_status(const T& ec)
         return ::batt::detail::NotOkStatusWrapper                                                            \
         {                                                                                                    \
             __FILE__, __LINE__,                                                                              \
-                ::batt::to_status(BATT_FORWARD(BOOST_PP_CAT(BATTERIES_temp_status_result_, __LINE__)))       \
+                ::batt::to_status(BATT_FORWARD(BOOST_PP_CAT(BATTERIES_temp_status_result_, __LINE__))),      \
+                BATT_VLOG_IS_ON(1)                                                                           \
         }
 
 #define BATT_ASSIGN_OK_RESULT(lvalue_expr, statusor_expr)                                                    \
