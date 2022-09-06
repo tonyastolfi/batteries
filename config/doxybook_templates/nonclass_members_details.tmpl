@@ -18,7 +18,7 @@
 {% endfor %}{% endif %}
 {% if exists("defines") %}## Macro Documentation
 
-{% for child in defines %}### {{child.name}}
+{% for child in defines %}### <a name="{{child.fullname}}"></a> {{child.kind}} {{child.name}}
 
 {{ render("member_details", child) }}
 {% endfor %}{% endif %}

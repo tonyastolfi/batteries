@@ -56,7 +56,7 @@ doxygen:
 doxybook2: doxygen
 	rm -rf "$(PROJECT_DIR)/build/doxybook2"
 	mkdir -p "$(PROJECT_DIR)/build/doxybook2/output"
-	doxybook2 --config "$(PROJECT_DIR)/config/doxybook_config.json" --input "$(PROJECT_DIR)/build/doxygen/xml" --output "$(PROJECT_DIR)/build/doxybook2/output" --templates "$(PROJECT_DIR)/config/doxybook_templates" >"$(PROJECT_DIR)/build/doxybook2.log" 2>&1 || cat "$(PROJECT_DIR)/build/doxybook2.log"
+	doxybook2 --config "$(PROJECT_DIR)/config/doxybook_config.json" --input "$(PROJECT_DIR)/build/doxygen/xml" --output "$(PROJECT_DIR)/build/doxybook2/output" --templates "$(PROJECT_DIR)/config/doxybook_templates" --debug-templates >"$(PROJECT_DIR)/build/doxybook2.log" 2>&1 || cat "$(PROJECT_DIR)/build/doxybook2.log"
 
 
 .PHONY: mkdocs
