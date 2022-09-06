@@ -193,4 +193,85 @@ TEST(CStrLiteral, OptionalStr)
                 ::testing::StrEq("\"hello, world\\n\""));
 }
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+//
+TEST(SizeDumper, Test)
+{
+    EXPECT_THAT(batt::to_string(batt::dump_size(0)), ::testing::StrEq("0B"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(0)), ::testing::StrEq("0B"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(791)), ::testing::StrEq("791B"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(791)), ::testing::StrEq("791B"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(1000)), ::testing::StrEq("1KB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(1000)), ::testing::StrEq("1KB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(1001)), ::testing::StrEq("~1KB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(1001)), ::testing::StrEq("1001B"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(1024)), ::testing::StrEq("1KiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(1024)), ::testing::StrEq("1KiB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(79 * 1000)), ::testing::StrEq("79KB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(79 * 1000)), ::testing::StrEq("79KB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(79 * 1024)), ::testing::StrEq("79KiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(79 * 1024)), ::testing::StrEq("79KiB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(79 * 1024 * 1024)), ::testing::StrEq("79MiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(79 * 1024 * 1024)), ::testing::StrEq("79MiB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(79 * 1000 * 1000)), ::testing::StrEq("79MB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(79 * 1000 * 1000)), ::testing::StrEq("79MB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(79ull * 1024 * 1024 * 1024)), ::testing::StrEq("79GiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(79ull * 1024 * 1024 * 1024)),
+                ::testing::StrEq("79GiB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(79ull * 1000 * 1000 * 1000)), ::testing::StrEq("79GB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(79ull * 1000 * 1000 * 1000)), ::testing::StrEq("79GB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(79ull * 1024 * 1024 * 1024 * 1024)),
+                ::testing::StrEq("79TiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(79ull * 1024 * 1024 * 1024 * 1024)),
+                ::testing::StrEq("79TiB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(79ull * 1000 * 1000 * 1000 * 1000)),
+                ::testing::StrEq("79TB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(79ull * 1000 * 1000 * 1000 * 1000)),
+                ::testing::StrEq("79TB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(79ull * 1024 * 1024 * 1024 * 1024 * 1024)),
+                ::testing::StrEq("79PiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(79ull * 1024 * 1024 * 1024 * 1024 * 1024)),
+                ::testing::StrEq("79PiB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(79ull * 1000 * 1000 * 1000 * 1000 * 1000)),
+                ::testing::StrEq("79PB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(79ull * 1000 * 1000 * 1000 * 1000 * 1000)),
+                ::testing::StrEq("79PB"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(123)), ::testing::StrEq("123B"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(123)), ::testing::StrEq("123B"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(1234)), ::testing::StrEq("~1KiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(1234)), ::testing::StrEq("1KiB+210B"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(12345)), ::testing::StrEq("~12KiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(12345)), ::testing::StrEq("12KiB+57B"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(12001)), ::testing::StrEq("11KiB+737B"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(123456)), ::testing::StrEq("~120KiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(123456)), ::testing::StrEq("120KiB+576B"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(1234567)), ::testing::StrEq("~1MiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(1234567)), ::testing::StrEq("1MiB+181KiB+647B"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(12345678)), ::testing::StrEq("~11MiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(12345678)), ::testing::StrEq("11MiB+792KiB+334B"));
+
+    EXPECT_THAT(batt::to_string(batt::dump_size(123456789)), ::testing::StrEq("~117MiB"));
+    EXPECT_THAT(batt::to_string(batt::dump_size_exact(123456789)), ::testing::StrEq("117MiB+755KiB+277B"));
+}
+
 }  // namespace

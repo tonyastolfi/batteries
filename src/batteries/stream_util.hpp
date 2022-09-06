@@ -5,6 +5,7 @@
 
 #include <batteries/config.hpp>
 //
+#include <batteries/constants.hpp>
 #include <batteries/finally.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/optional.hpp>
@@ -326,6 +327,126 @@ inline std::ostream& operator<<(std::ostream& out, const HexByteDumper& t)
 inline HexByteDumper dump_hex(const void* ptr, usize size)
 {
     return HexByteDumper{std::string_view{static_cast<const char*>(ptr), size}};
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+
+/*! \brief Wrapper around `usize` (`std::size_t`) that prints as human-readable sizes.
+ */
+struct SizeDumper {
+    enum struct UnitBase {
+        kLog2 = 2,
+        kLog10 = 10,
+    };
+
+    std::string format(UnitBase base, i32& parts, i32& ord, usize& error) const
+    {
+        std::ostringstream oss;
+
+        parts = 0;
+        ord = 0;
+        error = 0;
+
+        bool first_part = true;
+        usize n = this->value;
+        usize unit_ord = 7;
+
+        auto format_impl = [&](const std::array<std::pair<u64, const char*>, 7>& units) {
+            for (auto [div, unit_str] : units) {
+                const usize q = n / div;
+                const usize r = n % div;
+                if (q != 0 || (div == 1 && first_part)) {
+                    if (first_part) {
+                        ord = unit_ord;
+                    }
+                    parts += 1;
+                    oss << (first_part ? "" : "+") << q << unit_str;
+                    if (!this->exact) {
+                        error = r;
+                        break;
+                    }
+                    first_part = false;
+                }
+                n = r;
+                unit_ord -= 1;
+            }
+        };
+
+        switch (base) {
+        case UnitBase::kLog2:
+            format_impl({
+                std::make_pair(kEiB, "EiB"),
+                std::make_pair(kPiB, "PiB"),
+                std::make_pair(kTiB, "TiB"),
+                std::make_pair(kGiB, "GiB"),
+                std::make_pair(kMiB, "MiB"),
+                std::make_pair(kKiB, "KiB"),
+                std::make_pair(u64{1}, "B"),
+            });
+            break;
+
+        case UnitBase::kLog10:
+            format_impl({
+                std::make_pair(kEB, "EB"),
+                std::make_pair(kPB, "PB"),
+                std::make_pair(kTB, "TB"),
+                std::make_pair(kGB, "GB"),
+                std::make_pair(kMB, "MB"),
+                std::make_pair(kKB, "KB"),
+                std::make_pair(u64{1}, "B"),
+            });
+            break;
+
+        default:
+            BATT_PANIC() << "Invalid value for `base`: " << int(base);
+        }
+
+        return std::move(oss).str();
+    }
+
+    /*! \brief The size value to be printed.
+     */
+    usize value;
+
+    /*! \brief If false, then `value` will be printed rounded off to the nearest human-friendly unit (mb,
+     * kb, etc.); if true, then a longer string will be printed to capture the exact value.
+     */
+    bool exact;
+};
+
+inline std::ostream& operator<<(std::ostream& out, SizeDumper t)
+{
+    i32 base2_parts = 0, base10_parts = 0, base2_ord = 0, base10_ord = 0;
+    usize base2_error = 0, base10_error = 0;
+    const std::string base2_str = t.format(SizeDumper::UnitBase::kLog2, base2_parts, base2_ord, base2_error);
+    const std::string base10_str =
+        t.format(SizeDumper::UnitBase::kLog10, base10_parts, base10_ord, base10_error);
+
+    if (base10_parts < base2_parts           //
+        || (base10_parts == base2_parts      //
+            && (base2_ord < base10_ord       //
+                || (base2_ord == base10_ord  //
+                    && (base2_error != 0 && base10_error == 0))))) {
+        return out << ((base10_error == 0) ? "" : "~") << base10_str;
+    } else {
+        return out << ((base2_error == 0) ? "" : "~") << base2_str;
+    }
+}
+
+inline SizeDumper dump_size(usize n)
+{
+    return SizeDumper{
+        .value = n,
+        .exact = false,
+    };
+}
+
+inline SizeDumper dump_size_exact(usize n)
+{
+    return SizeDumper{
+        .value = n,
+        .exact = true,
+    };
 }
 
 // =============================================================================
