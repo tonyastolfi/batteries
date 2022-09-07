@@ -84,4 +84,35 @@ TEST(Metrics, RateMetricTest)
     EXPECT_THAT(actual_rate, testing::DoubleNear(expect_rate, 0.4 * expect_rate));  // 40% for robustness
 }
 
+TEST(Metrics, BasicRegistryTest)
+{
+    const batt::MetricLabel label_1{batt::Token("Instance"), batt::Token("localhost")};
+    const batt::MetricLabel label_2{batt::Token("Job"), batt::Token("batteries")};
+
+    batt::CountMetric<double> counter;
+    batt::LatencyMetric latency;
+    counter.set(3.14);
+    latency.update(std::chrono::microseconds(10000), 42);
+
+    batt::MetricRegistry& registry = ::batt::global_metric_registry();
+    registry.add("test_pi_counter", counter, batt::MetricLabelSet{label_1, label_2});
+    registry.add("test_pi_latency", latency, batt::MetricLabelSet{label_1, label_2});
+
+    std::ostringstream oss;
+    batt::MetricCsvFormatter csv;
+    csv.initialize(registry, oss);
+    EXPECT_THAT(
+        oss.str(),
+        testing::StrEq(
+            "id,time_usec,date_time,test_pi_counter,test_pi_latency_count,test_pi_latency_total_usec\n"));
+
+    csv.format_values(registry, oss);
+    const auto& actual = oss.str();
+    EXPECT_THAT(
+        actual,
+        testing::StartsWith(
+            "id,time_usec,date_time,test_pi_counter,test_pi_latency_count,test_pi_latency_total_usec\n1,"));
+    EXPECT_THAT(actual, testing::EndsWith(/* skip time_usec,date_time timestamps */ ",3.14,42,10000\n"));
+}
+
 }  // namespace
