@@ -18,6 +18,7 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 
 #include <atomic>
+#include <charconv>
 #include <iomanip>
 #include <optional>
 #include <ostream>
@@ -447,6 +448,106 @@ inline SizeDumper dump_size_exact(usize n)
         .value = n,
         .exact = true,
     };
+}
+
+/*! \brief Parse a byte size string with optional units.
+ *
+ * Units can be any of:
+ *  - 'b': bytes
+ *  - 'kb': kilobytes (=1024 bytes)
+ *  - 'mb': megabytes (=1024 kilobytes)
+ *  - 'gb': gigabytes (=1024 megabytes)
+ *  - 'tb': terabytes (=1024 gigabytes)
+ *  - 'pb': petabytes (=1024 terabtyes)
+ *  - 'eb': eitabytes (=1024 petabytes)
+ *
+ * The unit string may be upper or lower case, and only the first character is considered, so the string "45k"
+ * will parse the same as "45KILOBYTES" or "45Kb", etc.
+ *
+ * Simple addition and subtraction will also be evaluated, so for example, the string "16mb-1" will parse to
+ * the value `16 * 1024 * 1024 - 1`.  No space is allowed between additive terms when using this notation.
+ *
+ * \return The parse size in bytes if successful, None otherwise.
+ */
+inline Optional<usize> parse_byte_size(std::string_view s)
+{
+    if (s.empty()) {
+        return None;
+    }
+
+    usize result_value = 0;
+    bool have_result = false;
+
+    while (!s.empty()) {
+        if (s.front() == '+') {
+            s.remove_prefix(1);
+            continue;
+        }
+        if (s.front() == '-') {
+            if (!have_result) {
+                return None;
+            }
+            s.remove_prefix(1);
+            Optional<usize> delta = parse_byte_size(s);
+            if (!delta) {
+                return None;
+            }
+            result_value -= *delta;
+            break;
+        }
+        std::string_view num_chars = s;
+        while (!s.empty() && s.front() >= '0' && s.front() <= '9') {
+            s.remove_prefix(1);
+        }
+        num_chars.remove_suffix(s.size());
+
+        usize num_value = 0;
+        std::from_chars_result int_parse =
+            std::from_chars(num_chars.data(), num_chars.data() + num_chars.size(), num_value);
+
+        if (int_parse.ec != std::errc{}) {
+            return None;
+        }
+
+        const usize unit_value = [&]() -> usize {
+            if (s.empty()) {
+                return 1ull;
+            }
+            switch (std::tolower(s.front())) {
+            case 'b':
+                return 1ull;
+            case 'k':
+                return kKiB;
+            case 'm':
+                return kMiB;
+            case 'g':
+                return kGiB;
+            case 't':
+                return kTiB;
+            case 'p':
+                return kPiB;
+            case 'e':
+                return kEiB;
+            default:
+                return 1ull;
+            }
+        }();
+        while (!s.empty() &&
+               ((s.front() >= 'a' && s.front() <= 'z') || (s.front() >= 'A' && s.front() <= 'Z'))) {
+            s.remove_prefix(1);
+        }
+
+        have_result = true;
+        result_value += num_value * unit_value;
+
+        // After the unit string, only '-' or '+' are allowed.
+        //
+        if (!s.empty() && s.front() != '+' && s.front() != '-') {
+            return None;
+        }
+    }
+
+    return result_value;
 }
 
 // =============================================================================

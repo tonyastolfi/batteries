@@ -274,4 +274,33 @@ TEST(SizeDumper, Test)
     EXPECT_THAT(batt::to_string(batt::dump_size_exact(123456789)), ::testing::StrEq("117MiB+755KiB+277B"));
 }
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+TEST(ParseByteSize, Test)
+{
+    EXPECT_EQ(batt::parse_byte_size("24"), batt::make_optional<usize>(24));
+    EXPECT_EQ(batt::parse_byte_size("24k"), batt::make_optional<usize>(24 * 1024));
+    EXPECT_EQ(batt::parse_byte_size("24K"), batt::make_optional<usize>(24 * 1024));
+    EXPECT_EQ(batt::parse_byte_size("24KB"), batt::make_optional<usize>(24 * 1024));
+    EXPECT_EQ(batt::parse_byte_size("24kb"), batt::make_optional<usize>(24 * 1024));
+    EXPECT_EQ(batt::parse_byte_size("2kb2kb"), batt::None);
+    EXPECT_EQ(batt::parse_byte_size("2kb+2kb"), batt::make_optional<usize>(4 * 1024));
+
+    EXPECT_EQ(batt::parse_byte_size("24kb+7"), batt::make_optional<usize>(24 * 1024 + 7));
+    EXPECT_EQ(batt::parse_byte_size("24kb-7"), batt::make_optional<usize>(24 * 1024 - 7));
+
+    EXPECT_EQ(batt::parse_byte_size("5mb"), batt::make_optional<usize>(5ull * 1024 * 1024));
+    EXPECT_EQ(batt::parse_byte_size("5mb-84kb"), batt::make_optional<usize>(5ull * 1024 * 1024 - 84 * 1024));
+    EXPECT_EQ(batt::parse_byte_size("5mb+84kb"), batt::make_optional<usize>(5ull * 1024 * 1024 + 84 * 1024));
+
+    EXPECT_EQ(batt::parse_byte_size("123gb"), batt::make_optional<usize>(123ull << 30));
+    EXPECT_EQ(batt::parse_byte_size("123tb"), batt::make_optional<usize>(123ull << 40));
+    EXPECT_EQ(batt::parse_byte_size("123pb"), batt::make_optional<usize>(123ull << 50));
+    EXPECT_EQ(batt::parse_byte_size("13eb"), batt::make_optional<usize>(13ull << 60));
+
+    EXPECT_EQ(batt::parse_byte_size("-7"), batt::None);
+    EXPECT_EQ(batt::parse_byte_size("7-"), batt::None);
+    EXPECT_EQ(batt::parse_byte_size("banana"), batt::None);
+    EXPECT_EQ(batt::parse_byte_size(""), batt::None);
+}
+
 }  // namespace
