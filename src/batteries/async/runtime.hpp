@@ -9,6 +9,7 @@
 //
 #include <batteries/async/dump_tasks.hpp>
 #include <batteries/async/io_result.hpp>
+#include <batteries/async/mutex.hpp>
 #include <batteries/async/task.hpp>
 #include <batteries/async/task_scheduler.hpp>
 
@@ -106,7 +107,7 @@ class Runtime
     }
 
     template <typename... Ts>
-    void notify(const Ts&... objs) const
+    void notify(const Ts&... objs)
     {
         WeakNotifySlot& slot = this->get_weak_notify_slot(objs...);
         slot.counter.fetch_add(1);
@@ -119,20 +120,15 @@ class Runtime
     }
 
     template <typename CheckCondition, typename... Ts>
-    auto await_condition(const CheckCondition& check_condition, const Ts&... objs) const
+    auto await_condition(const CheckCondition& check_condition, const Ts&... objs)
     {
         WeakNotifySlot& slot = this->get_weak_notify_slot(objs...);
 
         u64 observed_ts = slot.counter.get_value();
         Optional<Mutex<NoneType>::Lock> locked = slot.mutex.lock();
 
-        auto last_result = check_condition(objs...);
-        if (last_result) {
-            return last_result;
-        }
-
         for (;;) {
-            last_result = check_condition(objs...);
+            auto last_result = check_condition(objs...);
             if (last_result) {
                 return last_result;
             }
@@ -162,15 +158,13 @@ class Runtime
     std::atomic<TaskScheduler*> scheduler_;
 
     const usize n_weak_notify_slots_ = std::thread::hardware_concurrency() * 1024;
-    const std::unique_ptr<batt::Watch<u64>[]> weak_notify_slot_ {
-        [this] {
-            auto* slots = new batt::Watch<u64>[this->n_weak_notify_slots_];
-            for (usize i = 0; i < this->n_weak_notify_slots_; ++i) {
-                slots[i].set_value(0);
-            }
-            return slots;
-        }()
-    };
+    const std::unique_ptr<WeakNotifySlot[]> weak_notify_slot_{[this] {
+        auto* slots = new WeakNotifySlot[this->n_weak_notify_slots_];
+        for (usize i = 0; i < this->n_weak_notify_slots_; ++i) {
+            slots[i].counter.set_value(0);
+        }
+        return slots;
+    }()};
 };
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
