@@ -42,6 +42,11 @@ class Runtime
    public:
     class DefaultScheduler;
 
+    struct WeakNotifySlot {
+        Watch<u64> counter;
+        Mutex<NoneType> mutex;
+    };
+
     static Runtime& instance()
     {
         // Intentionally leaked to avoid any potential static deinit order issues.
@@ -89,33 +94,55 @@ class Runtime
     }
 
     template <typename... Ts>
+    usize get_weak_notify_slot_index(const Ts&... objs) const
+    {
+        return batt::hash(objs...) % this->n_weak_notify_slots_;
+    }
+
+    template <typename... Ts>
+    WeakNotifySlot& get_weak_notify_slot(const Ts&... objs)
+    {
+        return this->weak_notify_slot_[this->get_weak_notify_slot_index(objs...)];
+    }
+
+    template <typename... Ts>
     void notify(const Ts&... objs) const
     {
-        batt::Watch<u64>& watch = this->weak_notify_slot_[batt::hash(objs...) % this->n_weak_notify_slots_];
-        watch.fetch_add(1);
+        WeakNotifySlot& slot = this->get_weak_notify_slot(objs...);
+        slot.counter.fetch_add(1);
+    }
+
+    template <typename... Ts>
+    Mutex<NoneType>::Lock lock(const Ts&... objs)
+    {
+        return this->get_weak_notify_slot(objs...).mutex.lock();
     }
 
     template <typename CheckCondition, typename... Ts>
     auto await_condition(const CheckCondition& check_condition, const Ts&... objs) const
     {
+        WeakNotifySlot& slot = this->get_weak_notify_slot(objs...);
+
+        u64 observed_ts = slot.counter.get_value();
+        Optional<Mutex<NoneType>::Lock> locked = slot.mutex.lock();
+
         auto last_result = check_condition(objs...);
         if (last_result) {
             return last_result;
         }
 
-        batt::Watch<u64>& watch = this->weak_notify_slot_[batt::hash(objs...) % this->n_weak_notify_slots_];
-
-        u64 observed_ts = watch.get_value();
         for (;;) {
             last_result = check_condition(objs...);
             if (last_result) {
                 return last_result;
             }
-            StatusOr<u64> updated_ts = watch.await_not_equal(observed_ts);
+            locked = None;
+            StatusOr<u64> updated_ts = slot.counter.await_not_equal(observed_ts);
             if (!updated_ts.ok()) {
                 return last_result;
             }
             observed_ts = *updated_ts;
+            locked.emplace(slot.mutex.lock());
         }
     }
 
