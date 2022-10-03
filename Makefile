@@ -7,6 +7,9 @@ endif
 PROJECT_DIR := $(shell pwd)
 BUILD_DIR := build/$(BUILD_TYPE)
 DOC_DIR := $(BUILD_DIR)/doc
+DOCKER_TAG_PREFIX := registry.gitlab.com/tonyastolfi/batteries
+DOCKER_TAG_VERSION := $(DOCKER_TAG_PREFIX):v$(shell "$(PROJECT_DIR)/script/get-version.sh")
+DOCKER_TAG_LATEST := $(DOCKER_TAG_PREFIX):latest
 
 build: | install
 	mkdir -p "$(BUILD_DIR)"
@@ -36,10 +39,13 @@ publish: | test build
 
 
 docker-build:
-	(cd docker && docker build -t registry.gitlab.com/tonyastolfi/batteries .)
+	(cd docker && docker build -t $(DOCKER_TAG_VERSION) .)
+	docker tag $(DOCKER_TAG_VERSION) $(DOCKER_TAG_LATEST)
+
 
 docker-push: | docker-build
-	(cd docker && docker push registry.gitlab.com/tonyastolfi/batteries)
+	docker push $(DOCKER_TAG_VERSION)
+	docker push $(DOCKER_TAG_LATEST)
 
 
 docker: docker-build docker-push

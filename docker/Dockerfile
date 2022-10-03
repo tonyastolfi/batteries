@@ -36,7 +36,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y libc-dev libssl
 # Conan.
 #
 RUN apt-get update && apt-get install --no-install-recommends -y python3 python3-pip
-RUN pip3 install conan
+RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade conan
 
 # Clean up apt caches.
 #

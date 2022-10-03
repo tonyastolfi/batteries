@@ -236,6 +236,11 @@ class Status : private detail::StatusBase
     static std::array<CodeGroup*, kMaxGroupCount>& registered_groups()
     {
         static std::array<CodeGroup*, kMaxGroupCount> all_groups;
+        [[maybe_unused]] static bool initialized = [] {
+            all_groups.fill(nullptr);
+            return true;
+        }();
+
         return all_groups;
     }
 
