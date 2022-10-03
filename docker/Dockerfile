@@ -99,3 +99,7 @@ RUN curl -L https://github.com/matusnovak/doxybook2/releases/download/v1.4.0/dox
 RUN cd /tmp/ && unzip doxybook2.zip && mv bin/* /usr/bin/ && mv include/* /usr/include/ && mv lib/* /usr/lib/
 
 RUN rm -rf /tmp/*
+
+# Allow all users to see the default .conan config files.
+#
+RUN chmod a+x /root && chmod a+r -R /root/.conan
