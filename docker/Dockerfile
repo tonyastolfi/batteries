@@ -103,3 +103,7 @@ RUN rm -rf /tmp/*
 # Allow all users to see the default .conan config files.
 #
 RUN chmod a+x /root && chmod a+r -R /root/.conan
+
+# Needed for some downstream applications...
+#
+RUN apt update && apt install -y libcap-dev libxt-dev
