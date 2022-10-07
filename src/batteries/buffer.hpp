@@ -16,6 +16,8 @@
 
 #include <boost/asio/buffer.hpp>
 
+#include <array>
+#include <string_view>
 #include <type_traits>
 
 namespace batt {
@@ -35,6 +37,24 @@ template <typename T>
 inline ConstBuffer buffer_from_struct(const T& val)
 {
     return ConstBuffer{&val, sizeof(T)};
+}
+
+/*! \brief Converts a ConstBuffer into an equivalent std::string_view.
+ */
+inline std::string_view as_str(const ConstBuffer& buffer)
+{
+    return std::string_view{static_cast<const char*>(buffer.data()), buffer.size()};
+}
+
+/*! \brief Returns a std::string_view with the same size and data address as the passed object, as if the
+ * address of `val` had been reinterpret_cast to type `const char*`.
+ *
+ * Should only be used for types used to define serialized data layouts.
+ */
+template <typename T>
+inline std::string_view bytes_from_struct(const T& val)
+{
+    return as_str(buffer_from_struct(val));
 }
 
 template <typename T>
@@ -375,6 +395,26 @@ inline ConstBufferView& ConstBufferView::operator=(MutableBufferView&& other)
 inline bool ConstBufferView::append(MutableBufferView&& next)
 {
     return this->impl_.append(std::move(next.impl_));
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+/*! \brief Converts a compile-time string constant to std::array<char>, automatically inferring the string
+ * length (*without* the null-terminator).
+ */
+template <usize kLength, usize... kIndex>
+constexpr std::array<char, kLength - 1> array_from_c_str(const char (&c_str)[kLength],
+                                                         std::index_sequence<kIndex...>)
+{
+    return {{c_str[kIndex]...}};
+}
+
+/*! \brief Converts a compile-time string constant to std::array<char>, automatically inferring the string
+ * length (*without* the null-terminator).
+ */
+template <usize kLength>
+constexpr std::array<char, kLength - 1> array_from_c_str(const char (&c_str)[kLength])
+{
+    return array_from_c_str(c_str, std::make_index_sequence<kLength - 1>());
 }
 
 }  // namespace batt

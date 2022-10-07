@@ -73,12 +73,65 @@ void run_buffer_slice_tests()
     }
 }
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+//
 TEST(BufferTest, Slice)
 {
     run_buffer_slice_tests<batt::ConstBuffer, usize>();
     run_buffer_slice_tests<batt::ConstBuffer, isize>();
     run_buffer_slice_tests<batt::MutableBuffer, usize>();
     run_buffer_slice_tests<batt::MutableBuffer, isize>();
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+//
+TEST(BufferTest, ConstBufferAsStr)
+{
+    const char* const test_data = "0123456789";
+    {
+        std::string_view s = batt::as_str(batt::ConstBuffer{nullptr, 0});
+        EXPECT_THAT(s, ::testing::StrEq(""));
+        EXPECT_EQ((void*)s.data(), (void*)nullptr);
+    }
+    {
+        std::string_view s = batt::as_str(batt::ConstBuffer{test_data, 0});
+        EXPECT_THAT(s, ::testing::StrEq(""));
+        EXPECT_EQ((void*)s.data(), (void*)test_data);
+    }
+    {
+        std::string_view s = batt::as_str(batt::ConstBuffer{test_data, 1});
+        EXPECT_THAT(s, ::testing::StrEq("0"));
+        EXPECT_EQ((void*)s.data(), (void*)test_data);
+    }
+    {
+        std::string_view s = batt::as_str(batt::ConstBuffer{test_data, 10});
+        EXPECT_THAT(s, ::testing::StrEq("0123456789"));
+        EXPECT_EQ((void*)s.data(), (void*)test_data);
+    }
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+//
+TEST(BufferTest, ArrayFromCStr)
+{
+    {
+        std::array<char, 1> a = batt::array_from_c_str("a");
+        EXPECT_EQ(a.size(), 1u);
+        EXPECT_EQ(a[0], 'a');
+    }
+    {
+        std::array<char, 3> a = batt::array_from_c_str("123");
+        EXPECT_EQ(a.size(), 3u);
+        EXPECT_EQ(a[0], '1');
+        EXPECT_EQ(a[1], '2');
+        EXPECT_EQ(a[2], '3');
+    }
+    {
+        auto a = batt::array_from_c_str("Neither a borrower nor a lender be.");
+        EXPECT_EQ(sizeof(a), 35u);
+        EXPECT_EQ(a.size(), 35u);
+        EXPECT_TRUE((std::is_same_v<decltype(a), std::array<char, 35>>));
+    }
 }
 
 }  // namespace
