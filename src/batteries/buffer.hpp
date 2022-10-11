@@ -417,6 +417,60 @@ constexpr std::array<char, kLength - 1> array_from_c_str(const char (&c_str)[kLe
     return array_from_c_str(c_str, std::make_index_sequence<kLength - 1>());
 }
 
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+
+inline ConstBuffer as_const_buffer(const ConstBuffer& buffer)
+{
+    return buffer;
+}
+
+inline ConstBuffer as_const_buffer(const MutableBuffer& buffer)
+{
+    return buffer;
+}
+
+inline ConstBuffer as_const_buffer(const std::string_view& str)
+{
+    return ConstBuffer{str.data(), str.size()};
+}
+
+inline ConstBuffer as_const_buffer(const std::string& str)
+{
+    return ConstBuffer{str.data(), str.size()};
+}
+
+template <usize kSize>
+inline ConstBuffer as_const_buffer(const std::array<char, kSize>& arr)
+{
+    return ConstBuffer{arr.data(), arr.size()};
+}
+
+template <usize kSize>
+inline ConstBuffer as_const_buffer(const std::array<u8, kSize>& arr)
+{
+    return ConstBuffer{arr.data(), arr.size()};
+}
+
+inline ConstBuffer as_const_buffer(const std::vector<char>& vec)
+{
+    return ConstBuffer{vec.data(), vec.size()};
+}
+
+inline ConstBuffer as_const_buffer(const std::vector<u8>& vec)
+{
+    return ConstBuffer{vec.data(), vec.size()};
+}
+
+inline ConstBuffer as_const_buffer(const SmallVecBase<char>& vec)
+{
+    return ConstBuffer{vec.data(), vec.size()};
+}
+
+inline ConstBuffer as_const_buffer(const SmallVecBase<u8>& vec)
+{
+    return ConstBuffer{vec.data(), vec.size()};
+}
+
 }  // namespace batt
 
 #endif  // BATTERIES_BUFFER_HPP
