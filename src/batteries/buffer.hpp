@@ -471,6 +471,12 @@ inline ConstBuffer as_const_buffer(const SmallVecBase<u8>& vec)
     return ConstBuffer{vec.data(), vec.size()};
 }
 
+template <usize kLength>
+inline ConstBuffer as_const_buffer(const char (&c_str)[kLength])
+{
+    return ConstBuffer{&c_str, kLength - 1};
+}
+
 }  // namespace batt
 
 #endif  // BATTERIES_BUFFER_HPP

@@ -134,4 +134,20 @@ TEST(BufferTest, ArrayFromCStr)
     }
 }
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+//
+TEST(BufferTest, AsConstBuffer)
+{
+    {
+        batt::ConstBuffer b = batt::as_const_buffer("");
+        EXPECT_EQ(b.size(), 0u);
+    }
+    {
+        batt::ConstBuffer b = batt::as_const_buffer("0123456789");
+        ASSERT_EQ(b.size(), 10u);
+        EXPECT_EQ(std::memcmp("0123456789", b.data(), 10), 0);
+    }
+}
+
 }  // namespace
+g
