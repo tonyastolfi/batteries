@@ -3,6 +3,9 @@
 //
 #pragma once
 
+#include <batteries/config.hpp>
+//
+
 #include <utility>
 
 namespace batt {

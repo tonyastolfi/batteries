@@ -5,17 +5,14 @@
 #ifndef BATTERIES_ASYNC_WORK_CONTEXT_HPP
 #define BATTERIES_ASYNC_WORK_CONTEXT_HPP
 
-#include <batteries/async/worker_pool.hpp>
-
 #include <batteries/config.hpp>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILALBE
+//
+#include <batteries/async/worker_pool.hpp>
 
 #include <batteries/assert.hpp>
 #include <batteries/async/task.hpp>
 #include <batteries/finally.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/utility.hpp>
 
 #include <thread>
@@ -62,11 +59,7 @@ class WorkContext
 
     void await_done()
     {
-        // TODO [tastolfi 2021-10-06] - do this in a way that can differentiate between WorkerPools so
-        // we can have work fns in one WorkerPool wait on the completion of work in a deeper-level
-        // WorkerPool.
-        //
-        BATT_CHECK(!Worker::inside_work_fn());
+        BATT_CHECK(!batt::Task::inside_work_fn());
 
         BATT_DEBUG_INFO("work_count=" << this->work_count_.get_value());
         this->work_count_

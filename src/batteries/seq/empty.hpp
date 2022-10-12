@@ -5,6 +5,8 @@
 #ifndef BATTERIES_SEQ_EMPTY_HPP
 #define BATTERIES_SEQ_EMPTY_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/optional.hpp>
 
 namespace batt {

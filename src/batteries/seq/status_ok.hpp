@@ -5,6 +5,8 @@
 #ifndef BATTERIES_SEQ_STATUS_OK_HPP
 #define BATTERIES_SEQ_STATUS_OK_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/optional.hpp>
 #include <batteries/seq/seq_item.hpp>
 #include <batteries/status.hpp>

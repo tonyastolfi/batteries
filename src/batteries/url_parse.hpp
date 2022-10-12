@@ -1,7 +1,12 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_URL_PARSE_HPP
 #define BATTERIES_URL_PARSE_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/int_types.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/status.hpp>

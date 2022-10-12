@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_HOST_ADDRESS_HPP
 #define BATTERIES_HTTP_HOST_ADDRESS_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/task.hpp>
 
 #include <batteries/int_types.hpp>

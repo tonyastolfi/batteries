@@ -1,20 +1,18 @@
-// Copyright 2021 Anthony Paul Astolfi
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_SEQ_GROUP_BY_HPP
 #define BATTERIES_SEQ_GROUP_BY_HPP
 
-#include <batteries/assert.hpp>
 #include <batteries/config.hpp>
+//
+#include <batteries/assert.hpp>
 #include <batteries/hint.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/seq/consume.hpp>
 #include <batteries/seq/seq_item.hpp>
 #include <batteries/utility.hpp>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
 
 #include <type_traits>
 #include <utility>

@@ -1,7 +1,12 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_ASYNC_FAKE_TIME_SERVICE_IMPL_HPP
 #define BATTERIES_ASYNC_FAKE_TIME_SERVICE_IMPL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/fake_execution_context.hpp>
 #include <batteries/async/fake_time_service_decl.hpp>
 

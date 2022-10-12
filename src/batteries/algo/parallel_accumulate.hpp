@@ -50,7 +50,7 @@ Slice<T> parallel_accumulate_partial(WorkContext& context,                   //
 
     slice_work(context, plan,
                /*gen_work_fn=*/[&](TaskIndex task_index, TaskOffset task_offset, TaskSize task_size) {
-                   return [task_index, task_offset, task_size, first, init, &binary_op, task_results] {
+                   return [task_index, task_offset, task_size, first, &binary_op, task_results] {
                        auto task_begin = std::next(first, task_offset);
                        auto task_end = std::next(task_begin, task_size);
                        task_results[task_index] =
@@ -64,10 +64,10 @@ Slice<T> parallel_accumulate_partial(WorkContext& context,                   //
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 //
 template <typename Iter, typename T, typename BinaryOp>
-T parallel_accumulate(WorkerPool& worker_pool,                //
-                      Iter first, Iter last, T init,          //
-                      const BinaryOp& binary_op, T identity,  //
-                      TaskSize min_task_size = 4096,          //
+T parallel_accumulate(WorkerPool& worker_pool,                  //
+                      Iter first, Iter last, T init,            //
+                      const BinaryOp& binary_op, T identity,    //
+                      TaskSize min_task_size = TaskSize{4096},  //
                       TaskCount max_tasks = TaskCount{std::thread::hardware_concurrency()})
 {
     if (first == last) {

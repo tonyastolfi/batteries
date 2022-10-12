@@ -5,15 +5,13 @@
 #ifndef BATTERIES_ASYNC_GRANT_DECL_HPP
 #define BATTERIES_ASYNC_GRANT_DECL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/types.hpp>
 #include <batteries/async/watch.hpp>
-#include <batteries/config.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/pointers.hpp>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
 
 #include <atomic>
 
@@ -38,7 +36,7 @@ class Grant
 
         StatusOr<Grant> issue_grant(u64 count, WaitForResource wait_for_resource);
 
-        void recycle(u64 count);
+        void grow(u64 count);
 
         void close();
 
@@ -48,8 +46,10 @@ class Grant
         }
 
        private:
+        void recycle(u64 count);
+
         Watch<u64> available_{0};
-        std::atomic<i64> ref_count_{0};
+        std::atomic<u64> total_size_{0};
     };
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

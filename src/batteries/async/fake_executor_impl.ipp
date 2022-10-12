@@ -1,7 +1,12 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_ASYNC_FAKE_EXECUTOR_IMPL_IPP
 #define BATTERIES_ASYNC_FAKE_EXECUTOR_IMPL_IPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/fake_execution_context.hpp>
 #include <batteries/async/handler.hpp>
 

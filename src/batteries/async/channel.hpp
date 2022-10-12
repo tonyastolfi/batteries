@@ -1,7 +1,12 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_ASYNC_CHANNEL_HPP
 #define BATTERIES_ASYNC_CHANNEL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/watch.hpp>
 
 #include <batteries/optional.hpp>
@@ -31,23 +36,44 @@ class Channel
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
+    // Returns true iff there is currently an object available on the channel.
+    //
     bool is_active() const;
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
+    // Wait for an object to be written to the Channel, then return a reference to that object.  The referred
+    // object will stay valid until `consume()` is called.
+    //
     StatusOr<T&> read();
 
+    // Release the last value read on the Channel.  Panic if `consume()` is called without a prior successful
+    // call to `read()` (indicating that `this->is_active()` is true).
+    //
     void consume();
 
+    // Unblock all ongoing calls to write/async_write and cause all future calls to fail with closed error
+    // status.
+    //
     void close_for_read();
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
+    // Write a value to the Channel.  Panic if there is currently an ongoing write (single-producer).
+    //
+    // The passed handler is invoked once the value is consumed via `read`/`consume`.
+    //
     template <typename Handler = void(Status)>
     void async_write(T& value, Handler&& handler);
 
+    // Blocking (Task::await) version of `async_write`.  This function will not return until the passed value
+    // has been consumed.  The value is guaranteed not to be copied; the consumer will see the same exact
+    // object passed into write.
+    //
     Status write(T& value);
 
+    // Unblock all ongoing calls to read and cause all future calls to fail with closed error status.
+    //
     void close_for_write();
 
    private:

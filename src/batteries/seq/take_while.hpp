@@ -1,9 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_SEQ_TAKE_WHILE_HPP
 #define BATTERIES_SEQ_TAKE_WHILE_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/seq/seq_item.hpp>
 #include <batteries/utility.hpp>
 

@@ -5,11 +5,15 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <batteries/int_types.hpp>
 #include <batteries/small_fn.hpp>
+
+#include <deque>
 #include <memory>
 
 namespace {
 
+using namespace batt::int_types;
 using batt::SmallFn;
 using batt::UniqueSmallFn;
 
@@ -101,6 +105,24 @@ TEST(UniqueSmallFnTest, MoveAndInvoke)
     ASSERT_TRUE(fn6);
     ASSERT_TRUE(fn4);
     EXPECT_EQ(11, fn5(5));
+}
+
+TEST(UniqueSmallFnTest, PushToCollection)
+{
+    int called = 0;
+    std::deque<UniqueSmallFn<void(), 128 - 16>> queue;
+
+    for (usize i = 0; i < 10; ++i) {
+        UniqueSmallFn<void(), 128 - 16> fn = [&called] {
+            ++called;
+        };
+        queue.emplace_back(std::move(fn));
+    }
+
+    for (auto& f : queue) {
+        f();
+    }
+    EXPECT_EQ(called, 10);
 }
 
 }  // namespace

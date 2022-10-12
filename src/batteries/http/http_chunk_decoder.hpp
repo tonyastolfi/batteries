@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_HTTP_CHUNK_DECODER_HPP
 #define BATTERIES_HTTP_HTTP_CHUNK_DECODER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/buffer_source.hpp>
 #include <batteries/async/stream_buffer.hpp>
 

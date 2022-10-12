@@ -5,6 +5,8 @@
 #ifndef BATTERIES_STATIC_ASSERT_HPP
 #define BATTERIES_STATIC_ASSERT_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/utility.hpp>
 
 #include <boost/preprocessor/cat.hpp>
@@ -27,32 +29,32 @@ struct StaticBinaryAssertion : std::integral_constant<bool, kCondition> {
 #define BATT_STATIC_ASSERT_EQ(x, y)                                                                          \
     static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Eq, \
                                                            (y), ((x) == (y))>                                \
-        BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
+    BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 #define BATT_STATIC_ASSERT_NE(x, y)                                                                          \
     static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Ne, \
                                                            (y), ((x) != (y))>                                \
-        BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
+    BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 #define BATT_STATIC_ASSERT_LT(x, y)                                                                          \
     static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Lt, \
                                                            (y), ((x) < (y))>                                 \
-        BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
+    BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 #define BATT_STATIC_ASSERT_LE(x, y)                                                                          \
     static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Le, \
                                                            (y), ((x) <= (y))>                                \
-        BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
+    BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 #define BATT_STATIC_ASSERT_GT(x, y)                                                                          \
     static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Gt, \
                                                            (y), ((x) > (y))>                                 \
-        BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
+    BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 #define BATT_STATIC_ASSERT_GE(x, y)                                                                          \
     static BATT_MAYBE_UNUSED ::batt::StaticBinaryAssertion<decltype(x), decltype(y), (x), struct ::batt::Ge, \
                                                            (y), ((x) >= (y))>                                \
-        BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
+    BOOST_PP_CAT(BOOST_PP_CAT(BATTERIES_StaticAssert_Instance_, __LINE__), __COUNTER__)
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 

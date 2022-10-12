@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_RATE_LIMITER_HPP
 #define BATTERIES_ASYNC_RATE_LIMITER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
 

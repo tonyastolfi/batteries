@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_DATA_HPP
 #define BATTERIES_HTTP_DATA_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/buffer_source.hpp>
 
 #include <batteries/small_vec.hpp>

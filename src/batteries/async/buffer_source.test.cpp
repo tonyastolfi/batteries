@@ -1,3 +1,6 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #include <batteries/async/buffer_source.hpp>
 //
 #include <batteries/async/buffer_source.hpp>

@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_HTTP_CHUNK_ENCODER_HPP
 #define BATTERIES_HTTP_HTTP_CHUNK_ENCODER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/http/http_data.hpp>
 
 #include <batteries/async/io_result.hpp>

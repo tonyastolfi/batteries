@@ -5,6 +5,8 @@
 #ifndef BATTERIES_SEQ_FOR_EACH_HPP
 #define BATTERIES_SEQ_FOR_EACH_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/seq/loop_control.hpp>
 #include <batteries/seq/requirements.hpp>
 

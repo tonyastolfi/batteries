@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_QUEUE_HPP
 #define BATTERIES_ASYNC_QUEUE_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/async/mutex.hpp>
 #include <batteries/async/watch.hpp>

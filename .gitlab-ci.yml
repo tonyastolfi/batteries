@@ -4,11 +4,24 @@
 image: registry.gitlab.com/tonyastolfi/batteries:latest
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+#+++++++++++-+-+--+----- --- -- -  -  -   -
 default:
   retry:
     max: 2
     when: runner_system_failure
-
+  before_script:
+    - "test -d /local/gitlab-runner-local-cache || { echo \"FATAL: no local docker cache volume mapped\"; false; }"
+    - "if [ ! -d /local/gitlab-runner-local-cache/.conan ]; then rm -rf /local/gitlab-runner-local-cache/.conan.IN_PROGRESS && cp -r ~/.conan /local/gitlab-runner-local-cache/.conan.IN_PROGRESS && mv /local/gitlab-runner-local-cache/.conan.IN_PROGRESS /local/gitlab-runner-local-cache/.conan; fi"
+    - export CONAN_USER_HOME=/local/gitlab-runner-local-cache
+    - echo "CI_DEPLOY_USER=${CI_DEPLOY_USER}"
+    - echo "CI_DEPLOY_PASSWORD=${CI_DEPLOY_PASSWORD}"
+    
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 stages:
   - debug_env
@@ -17,30 +30,17 @@ stages:
   - test
   - release
 
-debug_env:
-  stage: debug_env
-  variables:
-    RELEASE_CONAN_LOGIN_USERNAME: "${CI_DEPLOY_USER}"
-    RELEASE_CONAN_PASSWORD: "${CI_DEPLOY_PASSWORD}"
-  script:
-    - echo "CI_DEPLOY_USER=${CI_DEPLOY_USER}"
-    - echo "CI_DEPLOY_PASSWORD=${CI_DEPLOY_PASSWORD}"
-    - env
-
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 install:
   stage: install
   script:
-    - script/ci-make.sh install
+    - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
+    - make BUILD_TYPE=Release install
   rules:
     - changes:
       - conanfile.py
       - .gitlab-ci.yml
   cache:
-    - key: conan-cache
-      paths:
-        - .conan/
-      policy: push
     - key: build-cache
       paths:
         - build/
@@ -50,15 +50,12 @@ install:
 build:
   stage: build
   script:
-    - script/ci-make.sh build
+    - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
+    - make BUILD_TYPE=Release build
   artifacts:
     paths:
       - build/
   cache:
-    - key: conan-cache
-      paths:
-        - .conan/
-      policy: pull
     - key: build-cache
       paths:
         - build/
@@ -68,17 +65,14 @@ build:
 test:
   stage: test
   script:
-    - script/ci-make.sh test
+    - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
+    - make BUILD_TYPE=Release test
   artifacts:
     reports:
       junit:
         - build/Release/test-results.xml
         - build/Release/death-test-results.xml
   cache:
-    - key: conan-cache
-      paths:
-        - .conan/
-      policy: pull
     - key: build-cache
       paths:
         - build/
@@ -87,16 +81,34 @@ test:
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 release:
   stage: release
+  variables:
+    RELEASE_CONAN_LOGIN_USERNAME: "${CI_DEPLOY_USER}"
+    RELEASE_CONAN_PASSWORD: "${CI_DEPLOY_PASSWORD}"
   script:
+    - env | grep 'RELEASE_CONAN'
+    - env | grep -v 'RELEASE_CONAN'
     - script/publish-release.sh
+  release:
+    tag_name: $CI_COMMIT_TAG
+    description: $CI_COMMIT_MESSAGE
   rules:
     - if: $CI_COMMIT_TAG
   cache:
-    - key: conan-cache
-      paths:
-        - .conan/
-      policy: pull
     - key: build-cache
       paths:
         - build/
       policy: pull
+
+#+++++++++++-+-+--+----- --- -- -  -  -   -
+docs:
+  stage: release
+  script:
+      - make deploy-docs
+  rules:
+    - if: $CI_COMMIT_TAG
+  cache:
+    - key: build-cache
+      paths:
+        - build/
+      policy: pull
+

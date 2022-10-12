@@ -5,8 +5,11 @@
 #ifndef BATTERIES_STATUS_HPP
 #define BATTERIES_STATUS_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/stream_util.hpp>
 #include <batteries/strong_typedef.hpp>
 #include <batteries/utility.hpp>
@@ -22,10 +25,6 @@
 #include <typeindex>
 #include <typeinfo>
 #include <vector>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
 
 namespace batt {
 
@@ -124,17 +123,13 @@ class Status : private detail::StatusBase
     {
         const usize index_of_group = get_index_of_group(value);
         const usize index_within_group = get_index_within_group(value);
-        {
-            std::unique_lock<std::mutex> lock{global_mutex()};
+        const auto& all_groups = registered_groups();
 
-            const auto& all_groups = registered_groups();
+        BATT_CHECK_LT(index_of_group, all_groups.size());
+        BATT_CHECK_LT(index_within_group, all_groups[index_of_group]->entries.size())
+            << BATT_INSPECT(index_of_group) << BATT_INSPECT(value);
 
-            BATT_CHECK_LT(index_of_group, all_groups.size());
-            BATT_CHECK_LT(index_within_group, all_groups[index_of_group]->entries.size())
-                << BATT_INSPECT(index_of_group) << BATT_INSPECT(value);
-
-            return all_groups[index_of_group]->entries[index_within_group].message;
-        }
+        return all_groups[index_of_group]->entries[index_within_group].message;
     }
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -157,17 +152,17 @@ class Status : private detail::StatusBase
     /*implicit*/ Status(EnumT enum_value) noexcept
     {
         const CodeGroup& group = code_group_for_type<EnumT>();
-        BATT_CHECK_GE(static_cast<int>(enum_value), group.min_enum_value);
+        BATT_ASSERT_GE(static_cast<int>(enum_value), group.min_enum_value);
 
         const int index_within_enum = static_cast<int>(enum_value) - group.min_enum_value;
-        BATT_CHECK_LT(index_within_enum, static_cast<int>(group.enum_value_to_code.size()))
+        BATT_ASSERT_LT(index_within_enum, static_cast<int>(group.enum_value_to_code.size()))
             << BATT_INSPECT(group.index) << BATT_INSPECT(group.enum_type_index.name());
 
         this->value_ = group.enum_value_to_code[index_within_enum];
 
-        BATT_CHECK_NOT_NULLPTR(message_from_code(this->value_).data());
+        BATT_ASSERT_NOT_NULLPTR(message_from_code(this->value_).data());
 
-#ifdef BATT_STATUS_CUSTOM_MESSSAGES
+#ifdef BATT_ASSERT_CUSTOM_MESSSAGES
         const usize index_within_group = get_index_within_group(this->value_);
 
         this->message_ = group.entries[index_within_group].message;
@@ -204,16 +199,12 @@ class Status : private detail::StatusBase
     const CodeGroup& group() const
     {
         const usize index_of_group = get_index_of_group(this->value_);
-        {
-            std::unique_lock<std::mutex> lock{global_mutex()};
+        const auto& all_groups = registered_groups();
 
-            const auto& all_groups = registered_groups();
+        BATT_ASSERT_LT(index_of_group, all_groups.size());
+        BATT_ASSERT_NOT_NULLPTR(all_groups[index_of_group]);
 
-            BATT_ASSERT_LT(index_of_group, all_groups.size());
-            BATT_ASSERT_NOT_NULLPTR(all_groups[index_of_group]);
-
-            return *all_groups[index_of_group];
-        }
+        return *all_groups[index_of_group];
     }
 
     void IgnoreError() const noexcept
@@ -221,17 +212,13 @@ class Status : private detail::StatusBase
         // do nothing
     }
 
-    void Update(const Status& new_status)
-    {
-        if (this->ok()) {
-            *this = new_status;
-        }
-    }
+    void Update(const Status& new_status);
 
    private:
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
     friend class detail::StatusBase;
 
+    static constexpr usize kMaxGroupCount = 256;
     static constexpr i32 kMaxCodeNumericRange = 0xffff;
     static constexpr i32 kLocalMask = (i32{1} << kGroupSizeBits) - 1;
     static constexpr i32 kGroupMask = ~kLocalMask;
@@ -241,18 +228,19 @@ class Status : private detail::StatusBase
     static usize next_group_index()
     {
         static std::atomic<i32> next_index{0};
-        return next_index.fetch_add(1);
+        const usize i = next_index.fetch_add(1);
+        BATT_CHECK_LT(i, kMaxGroupCount);
+        return i;
     }
 
-    static std::mutex& global_mutex()
+    static std::array<CodeGroup*, kMaxGroupCount>& registered_groups()
     {
-        static std::mutex m;
-        return m;
-    }
+        static std::array<CodeGroup*, kMaxGroupCount> all_groups;
+        [[maybe_unused]] static bool initialized = [] {
+            all_groups.fill(nullptr);
+            return true;
+        }();
 
-    static std::vector<CodeGroup*>& registered_groups()
-    {
-        static std::vector<CodeGroup*> all_groups;
         return all_groups;
     }
 
@@ -302,6 +290,13 @@ bool operator!=(const Status& l, const Status& r);
 // Returns a Status value `s` for which `s.ok() == true`.
 //
 Status OkStatus();
+
+inline void Status::Update(const Status& new_status)
+{
+    if (this->ok() || *this == Status{StatusCode::kUnknown}) {
+        *this = new_status;
+    }
+}
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
@@ -780,23 +775,43 @@ bool is_ok_status(const T& val)
 
 enum struct LogLevel { kFatal, kError, kWarning, kInfo, kDebug, kVerbose };
 
+inline std::atomic<LogLevel>& require_fail_global_default_log_level()
+{
+    static std::atomic<LogLevel> global_default_{LogLevel::kVerbose};
+    return global_default_;
+}
+
+inline LogLevel& require_fail_thread_default_log_level()
+{
+    thread_local LogLevel per_thread_default_ = require_fail_global_default_log_level();
+    return per_thread_default_;
+}
+
+#ifdef BATT_GLOG_AVAILABLE
+#define BATT_VLOG_IS_ON(level) VLOG_IS_ON(level)
+#else
+#define BATT_VLOG_IS_ON(level) false
+#endif
+
 namespace detail {
 
 class NotOkStatusWrapper
 {
    public:
-    explicit NotOkStatusWrapper(const char* file, int line, Status&& status) noexcept
+    explicit NotOkStatusWrapper(const char* file, int line, Status&& status, bool vlog_is_on) noexcept
         : file_{file}
         , line_{line}
         , status_(std::move(status))
+        , vlog_is_on_{vlog_is_on}
     {
         *this << this->status_ << "; ";
     }
 
-    explicit NotOkStatusWrapper(const char* file, int line, const Status& status) noexcept
+    explicit NotOkStatusWrapper(const char* file, int line, const Status& status, bool vlog_is_on) noexcept
         : file_{file}
         , line_{line}
         , status_(status)
+        , vlog_is_on_{vlog_is_on}
     {
 #ifndef BATT_GLOG_AVAILABLE
         *this << "(" << this->file_ << ":" << this->line_ << ") ";
@@ -827,7 +842,10 @@ class NotOkStatusWrapper
             DLOG(INFO) << " [" << this->file_ << ":" << this->line_ << "] " << this->output_.str();
             break;
         case LogLevel::kVerbose:
-            VLOG(1) << " [" << this->file_ << ":" << this->line_ << "] " << this->output_.str();
+            if (this->vlog_is_on_) {
+                ::google::LogMessage(this->file_, this->line_, google::GLOG_INFO).stream()
+                    << this->output_.str();
+            }
             break;
         }
 #endif  // BATT_GLOG_AVAILABLE
@@ -861,7 +879,8 @@ class NotOkStatusWrapper
     const char* file_;
     int line_;
     Status status_;
-    LogLevel level_{LogLevel::kVerbose};
+    bool vlog_is_on_;
+    LogLevel level_{require_fail_thread_default_log_level()};
     std::ostringstream output_;
 };
 
@@ -901,10 +920,13 @@ inline Status to_status(const T& ec)
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
 #define BATT_REQUIRE_OK(expr)                                                                                \
-    if (!::batt::is_ok_status(expr))                                                                         \
+    for (decltype(auto) BOOST_PP_CAT(BATTERIES_temp_status_result_, __LINE__) = (expr);                      \
+         !::batt::is_ok_status(BOOST_PP_CAT(BATTERIES_temp_status_result_, __LINE__));)                      \
         return ::batt::detail::NotOkStatusWrapper                                                            \
         {                                                                                                    \
-            __FILE__, __LINE__, ::batt::to_status(BATT_FORWARD(expr))                                        \
+            __FILE__, __LINE__,                                                                              \
+                ::batt::to_status(BATT_FORWARD(BOOST_PP_CAT(BATTERIES_temp_status_result_, __LINE__))),      \
+                BATT_VLOG_IS_ON(1)                                                                           \
         }
 
 #define BATT_ASSIGN_OK_RESULT(lvalue_expr, statusor_expr)                                                    \
@@ -917,11 +939,19 @@ inline Status to_status(const T& ec)
         BATT_CHECK(::batt::is_ok_status(expr_value))                                                         \
             << BOOST_PP_STRINGIZE(expr) << ".status == " << ::batt::to_status(expr_value);                   \
         return std::move(*BATT_FORWARD(expr_value));                                                         \
-    }(expr)
+    }((expr))
 
 #define BATT_CHECK_OK(expr)                                                                                  \
-    BATT_CHECK(::batt::is_ok_status(expr))                                                                   \
-        << BOOST_PP_STRINGIZE(expr) << ".status == " << ::batt::to_status(expr) << "; "
+    if (bool BOOST_PP_CAT(BATTERIES_check_ok_flag_, __LINE__) = true)                                        \
+        for (decltype(auto) BOOST_PP_CAT(BATTERIES_check_expr_value_, __LINE__) = (expr);                    \
+             BOOST_PP_CAT(BATTERIES_check_ok_flag_, __LINE__);                                               \
+             BOOST_PP_CAT(BATTERIES_check_ok_flag_, __LINE__) = false)                                       \
+            for (; !BATT_HINT_TRUE(                                                                          \
+                       ::batt::is_ok_status(BOOST_PP_CAT(BATTERIES_check_expr_value_, __LINE__))) &&         \
+                   BATT_HINT_TRUE(::batt::lock_fail_check_mutex());                                          \
+                 ::batt::fail_check_exit())                                                                  \
+    BATT_FAIL_CHECK_MESSAGE("batt::to_status(" BOOST_PP_STRINGIZE(expr) ")", ::batt::to_status(BOOST_PP_CAT(BATTERIES_check_expr_value_, __LINE__)),                   \
+        "==", "batt::OkStatus()", ::batt::OkStatus(), __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
 inline Status status_from_errno(int code)
 {
@@ -1025,20 +1055,15 @@ inline bool Status::register_codes_internal(const std::vector<std::pair<EnumT, s
                 CodeEntry{next_code, max_enum_value + 1, unknown_enum_value_message()});
 
             // Atomically insert the new code group.
-            {
-                std::unique_lock<std::mutex> lock{Status::global_mutex()};
+            //
+            CodeGroup& global_group = Status::code_group_for_type_internal<EnumT>();
+            BATT_CHECK(global_group.entries.empty()) << "A status code group may only be registered once!";
+            global_group = std::move(group);
 
-                CodeGroup& global_group = Status::code_group_for_type_internal<EnumT>();
-                BATT_CHECK(global_group.entries.empty())
-                    << "A status code group may only be registered once!";
-                global_group = std::move(group);
+            /*std::array<CodeGroup*, ...>*/ auto& all_groups = Status::registered_groups();
+            BATT_CHECK_LT(global_group.index, all_groups.size());
 
-                std::vector<CodeGroup*>& all_groups = Status::registered_groups();
-                if (all_groups.size() < global_group.index + 1) {
-                    all_groups.resize(global_group.index + 1);
-                }
-                all_groups[global_group.index] = &global_group;
-            }
+            all_groups[global_group.index] = &global_group;
 
             // Done!
         }();

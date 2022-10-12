@@ -46,7 +46,7 @@
 /// void BATT_NO_OPTIMIZE empty_function() {}
 /// ```
 ///
-#ifdef __APPLE__
+#if defined(__clang__)
 #define BATT_NO_OPTIMIZE __attribute__((optnone))
 #else
 #define BATT_NO_OPTIMIZE __attribute__((optimize("O0")))

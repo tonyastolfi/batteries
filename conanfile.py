@@ -25,7 +25,7 @@ class BatteriesConan(ConanFile):
     generators = "cmake"
     build_policy = "missing"
     requires = [
-        "gtest/cci.20210126",
+        "gtest/1.11.0",
         "boost/1.79.0",
     ]
     exports_sources = [
@@ -51,7 +51,6 @@ class BatteriesConan(ConanFile):
     def build(self):
         cmake = CMake(self)
         cmake.verbose = VERBOSE_
-        cmake.definitions["BUILD_DOC"] = "ON"
         cmake.configure(source_folder="src")
         cmake.build()
         #cmake.test(output_on_failure=True)
@@ -61,13 +60,16 @@ class BatteriesConan(ConanFile):
         #          % (self.source_folder, cmake.command_line))
         # self.run("cmake --build . %s" % cmake.build_config)
 
+    def export(self):
+        self.copy("*.sh", src="script", dst="script")
+
     def package(self):
         self.copy("*.hpp", dst="include", src="src")
         self.copy("*.ipp", dst="include", src="src")
-        self.copy("*.sh", dst="bin", src="script")
+        self.copy("*.sh", dst="script", src="script")
 
     def package_info(self):
-        self.cpp_info.cxxflags = ["-std=c++17 -D_GNU_SOURCE"]
+        self.cpp_info.cxxflags = ["-D_GNU_SOURCE"]
         self.cpp_info.system_libs = ["dl"]
 
     def package_id(self):

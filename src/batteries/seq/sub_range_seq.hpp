@@ -1,10 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_SEQ_SUB_RANGE_SEQ_HPP
 #define BATTERIES_SEQ_SUB_RANGE_SEQ_HPP
 
 #include <batteries/config.hpp>
+//
 #include <batteries/optional.hpp>
 #include <batteries/seq/count.hpp>
 #include <batteries/seq/for_each.hpp>

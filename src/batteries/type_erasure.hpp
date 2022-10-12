@@ -5,8 +5,11 @@
 #ifndef BATTERIES_TYPE_ERASURE_HPP
 #define BATTERIES_TYPE_ERASURE_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/buffer.hpp>
+#include <batteries/cpu_align.hpp>
 #include <batteries/type_traits.hpp>
 
 #include <memory>
@@ -63,14 +66,10 @@ class AbstractValuePointer : public AbstractValue<T>
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 //
-template <typename AbstractType, template <typename> class TypedImpl,
-          usize kReservedSize = kCpuCacheLineSize - sizeof(void*)>
-class TypeErasedStorage
+template <typename AbstractType, template <typename> class TypedImpl>
+class TypeErasedStorageBase
 {
    public:
-    static_assert(kReservedSize >= sizeof(AbstractValuePointer<AbstractType>),
-                  "kReservedSize must be large enough to fit a pointer");
-
     template <typename T, typename... Args>
     static AbstractType* construct_impl(StaticType<T>, MutableBuffer buf, Args&&... args)
     {
@@ -88,6 +87,19 @@ class TypeErasedStorage
         new (buf.data()) AbstractValuePointer<AbstractType>{std::move(p_impl)};
         return retval;
     }
+};
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+//
+template <typename AbstractType, template <typename> class TypedImpl,
+          usize kReservedSize = kCpuCacheLineSize - sizeof(void*), usize kAlignment = kCpuCacheLineSize>
+class TypeErasedStorage : public TypeErasedStorageBase<AbstractType, TypedImpl>
+{
+   public:
+    static_assert(kReservedSize >= sizeof(AbstractValuePointer<AbstractType>),
+                  "kReservedSize must be large enough to fit a pointer");
+
+    static constexpr usize reserved_size = kReservedSize;
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
@@ -105,8 +117,9 @@ class TypeErasedStorage
     {
     }
 
-    TypeErasedStorage(TypeErasedStorage&& other) : impl_{other.impl_->move_to(this->memory())}
+    TypeErasedStorage(TypeErasedStorage&& other) : impl_{other.get_abstract()->move_to(this->memory())}
     {
+        other.clear();
     }
 
     ~TypeErasedStorage() noexcept
@@ -120,7 +133,8 @@ class TypeErasedStorage
     {
         if (BATT_HINT_TRUE(this != &other)) {
             this->clear();
-            this->impl_ = other.impl_->move_to(this->memory());
+            this->impl_ = other.get_abstract()->move_to(this->memory());
+            other.clear();
         }
         return *this;
     }
@@ -154,7 +168,7 @@ class TypeErasedStorage
     void clear()
     {
         if (this->impl_) {
-            (*reinterpret_cast<AbstractValue<AbstractType>*>(&this->storage_)).~AbstractValue<AbstractType>();
+            this->get_abstract()->~AbstractValue<AbstractType>();
             this->impl_ = nullptr;
         }
     }
@@ -167,6 +181,11 @@ class TypeErasedStorage
     AbstractType* get() const
     {
         return this->impl_;
+    }
+
+    AbstractValue<AbstractType>* get_abstract()
+    {
+        return reinterpret_cast<AbstractValue<AbstractType>*>(&this->storage_);
     }
 
     bool is_valid() const
@@ -202,7 +221,7 @@ class TypeErasedStorage
         return this->impl_;
     }
 
-    std::aligned_storage_t<kReservedSize, 8> storage_;
+    std::aligned_storage_t<kReservedSize, kAlignment> storage_;
     AbstractType* impl_ = nullptr;
 };
 
@@ -231,14 +250,14 @@ class AbstractValueImpl : public AbstractType
 
     AbstractType* copy_to(MutableBuffer memory) override
     {
-        return TypeErasedStorage<AbstractType, TypedImpl>::construct_impl(StaticType<T>{}, memory,
-                                                                          batt::make_copy(this->obj_));
+        return TypeErasedStorageBase<AbstractType, TypedImpl>::construct_impl(StaticType<T>{}, memory,
+                                                                              batt::make_copy(this->obj_));
     }
 
     AbstractType* move_to(MutableBuffer memory) override
     {
-        return TypeErasedStorage<AbstractType, TypedImpl>::construct_impl(StaticType<T>{}, memory,
-                                                                          std::move(this->obj_));
+        return TypeErasedStorageBase<AbstractType, TypedImpl>::construct_impl(StaticType<T>{}, memory,
+                                                                              std::move(this->obj_));
     }
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -

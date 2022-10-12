@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_HTTP_MESSAGE_BASE_HPP
 #define BATTERIES_HTTP_HTTP_MESSAGE_BASE_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/http/http_data.hpp>
 #include <batteries/http/http_header.hpp>
 

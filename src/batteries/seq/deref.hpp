@@ -1,9 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_SEQ_DEREF_HPP
 #define BATTERIES_SEQ_DEREF_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/seq/map.hpp>
 
 namespace batt {

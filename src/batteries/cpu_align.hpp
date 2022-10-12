@@ -5,6 +5,8 @@
 #ifndef BATT_CPU_ALIGN_HPP
 #define BATT_CPU_ALIGN_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/hint.hpp>
 #include <batteries/int_types.hpp>
@@ -185,6 +187,22 @@ inline Status pin_thread_to_cpu(usize cpu_i)
     cpu_set_t mask;
     CPU_ZERO(&mask);
     CPU_SET(cpu_i, &mask);
+    const int retval = sched_setaffinity(0, sizeof(mask), &mask);
+    return status_from_retval(retval);
+#else
+    return StatusCode::kUnimplemented;
+#endif  //__linux__
+}
+
+template <typename IntRange>
+inline Status pin_thread_to_cpu_set(const IntRange& cpu_i_set)
+{
+#ifdef __linux__
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    for (usize cpu_i : cpu_i_set) {
+        CPU_SET(cpu_i, &mask);
+    }
     const int retval = sched_setaffinity(0, sizeof(mask), &mask);
     return status_from_retval(retval);
 #else

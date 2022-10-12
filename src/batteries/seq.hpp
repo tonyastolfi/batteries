@@ -8,6 +8,8 @@
 #ifndef BATTERIES_SEQ_HPP
 #define BATTERIES_SEQ_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/case_of.hpp>
 #include <batteries/optional.hpp>
@@ -44,10 +46,6 @@
 #include <batteries/utility.hpp>
 
 #include <boost/range/iterator_range.hpp>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
 
 #include <algorithm>
 #include <ostream>

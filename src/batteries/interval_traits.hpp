@@ -1,12 +1,16 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_INTERVAL_TRAITS_HPP
 #define BATTERIES_INTERVAL_TRAITS_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/bounds.hpp>
 #include <batteries/seq/natural_equals.hpp>
 #include <batteries/seq/natural_order.hpp>
+
+#include <type_traits>
 
 namespace batt {
 
@@ -23,6 +27,27 @@ struct IntervalTraitsBase {
     {
         return OrderFn{}(left, right);
     }
+
+    template <typename T0, typename T1>
+    static std::common_type_t<T0, T1> min(const T0& left, const T1& right)
+    {
+        if (Base::less_than(right, left)) {
+            return right;
+        } else {
+            return left;
+        }
+    }
+
+    template <typename T0, typename T1>
+    static std::common_type_t<T0, T1> max(const T0& left, const T1& right)
+    {
+        if (Base::less_than(left, right)) {
+            return right;
+        } else {
+            return left;
+        }
+    }
+
     template <typename T0, typename T1>
     static bool equal(const T0& left, const T1& right)
     {

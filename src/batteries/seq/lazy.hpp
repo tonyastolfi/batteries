@@ -1,9 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_SEQ_LAZY_HPP
 #define BATTERIES_SEQ_LAZY_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/case_of.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/utility.hpp>
