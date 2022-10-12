@@ -1,8 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_SEQ_NATURAL_EQUALS_HPP
 #define BATTERIES_SEQ_NATURAL_EQUALS_HPP
+
+#include <batteries/config.hpp>
+//
 
 namespace batt {
 namespace seq {

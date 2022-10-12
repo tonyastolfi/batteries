@@ -1,14 +1,16 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_FINALLY_HPP
 #define BATTERIES_FINALLY_HPP
 
+#include <batteries/config.hpp>
+//
+#include <batteries/type_traits.hpp>
+#include <batteries/utility.hpp>
+
 #include <optional>
 #include <utility>
-
-#include "batteries/type_traits.hpp"
-#include "batteries/utility.hpp"
 
 namespace batt {
 

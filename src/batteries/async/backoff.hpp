@@ -10,11 +10,8 @@
 #include <batteries/async/task_decl.hpp>
 
 #include <batteries/int_types.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/suppress.hpp>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
 
 BATT_SUPPRESS_IF_GCC("-Wswitch-enum")
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -25,6 +22,7 @@ BATT_UNSUPPRESS_IF_GCC()
 namespace batt {
 
 struct TaskSleepImpl;
+struct DefaultStatusIsRetryableImpl;
 
 // Try an action until it succeeds, according to the specified RetryPolicy, which controls the maximum number
 // of retries and the delay (if any) between retries.
@@ -38,9 +36,9 @@ struct TaskSleepImpl;
 // allowable return types.
 //
 template <typename RetryPolicy, typename ActionFn, typename Result = std::invoke_result_t<ActionFn>,
-          typename SleepImpl = TaskSleepImpl>
+          typename SleepImpl = TaskSleepImpl, typename StatusIsRetryableImpl = DefaultStatusIsRetryableImpl>
 Result with_retry_policy(RetryPolicy&& policy, std::string_view action_name, ActionFn&& action_fn,
-                         SleepImpl&& sleep_impl = {});
+                         SleepImpl&& sleep_impl = {}, StatusIsRetryableImpl&& status_is_retryable_impl = {});
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 // State variables passed into `update_retry_state` along with a RetryPolicy object in order to update the
@@ -124,24 +122,33 @@ struct TaskSleepImpl {
 };
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// The default 'status_is_retryable' implementation for `with_retry_policy`.
 //
-template <typename RetryPolicy, typename ActionFn, typename Result, typename SleepImpl>
+struct DefaultStatusIsRetryableImpl {
+    bool operator()(const Status& s) const
+    {
+        return status_is_retryable(s);
+    }
+};
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+//
+template <typename RetryPolicy, typename ActionFn, typename Result, typename SleepImpl,
+          typename StatusIsRetryableImpl>
 inline Result with_retry_policy(RetryPolicy&& policy, std::string_view action_name, ActionFn&& action_fn,
-                                SleepImpl&& sleep_impl)
+                                SleepImpl&& sleep_impl, StatusIsRetryableImpl&& status_is_retryable_impl)
 {
     RetryState state;
     for (;;) {
         Result result = action_fn();
         if (!is_ok_status(result)) {
             auto status = to_status(result);
-            if (status_is_retryable(status)) {
+            if (status_is_retryable_impl(status)) {
                 update_retry_state(state, policy);
                 if (state.should_retry) {
-#ifdef BATT_GLOG_AVAILABLE
-                    VLOG(1) << "operation '" << action_name << "' failed with status=" << status
-                            << "; retrying after " << state.next_delay_usec << "us (" << state.n_attempts
-                            << " of " << policy.max_attempts << ")";
-#endif  // BATT_GLOG_AVAILABLE
+                    BATT_VLOG(1) << "operation '" << action_name << "' failed with status=" << status
+                                 << "; retrying after " << state.next_delay_usec << "us (" << state.n_attempts
+                                 << " of " << policy.max_attempts << ")";
 
                     sleep_impl(boost::posix_time::microseconds(state.next_delay_usec));
                     continue;

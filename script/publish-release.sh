@@ -8,6 +8,8 @@ script_dir=$(cd $(dirname $0) && pwd)
 source "${script_dir}/common.sh"
 source "${script_dir}/conan-login.sh"
 
+echo "project_dir is '${project_dir}'"
+
 # Verify all required variables are defined.
 #
 require_env_var RELEASE_CONAN_CHANNEL
@@ -67,7 +69,8 @@ verbose "Publishing ${conan_recipe}..."
 # This is just a sanity check; the project must be fully built before
 # we continue.
 #
-( cd "${project_dir}" && make BUILD_TYPE=Release install build test create )
+#( cd "${project_dir}" && make BUILD_TYPE=Release install build test create )
+( cd "${project_dir}" && make BUILD_TYPE=Release install create )
 
 # Create the release package...
 #

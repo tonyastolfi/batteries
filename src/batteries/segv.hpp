@@ -1,4 +1,4 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 
@@ -6,6 +6,8 @@
 #undef BOOST_STACKTRACE_USE_NOOP
 #endif  // BOOST_STACKTRACE_USE_NOOP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/int_types.hpp>
 #include <batteries/suppress.hpp>
 

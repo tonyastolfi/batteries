@@ -131,12 +131,17 @@ TEST(AsyncRateLimiterTest, Period)
 //
 TEST(AsyncRateLimiterTest, BurstUnderLimit)
 {
-    batt::RateLimiter limiter{/*rate=*/1000.0, /*burst=*/100};
+    constexpr i64 kWaitCount = 10;
+    constexpr i64 kBurstLimit = 100;
+    constexpr i64 kTolerance = 5;
 
-    batt::Task::sleep(boost::posix_time::milliseconds(10));
+    batt::RateLimiter limiter{/*rate=*/1000.0 /*unit/second*/, /*burst=*/kBurstLimit};
+
+    batt::Task::sleep(boost::posix_time::milliseconds(kWaitCount));
 
     const i64 n_available = limiter.available();
-    EXPECT_EQ(n_available, 10);
+    EXPECT_GE(n_available, kWaitCount);
+    EXPECT_LT(n_available, kWaitCount + kTolerance);
 
     i64 n_consumed = 0;
     while (limiter.poll()) {
@@ -144,8 +149,8 @@ TEST(AsyncRateLimiterTest, BurstUnderLimit)
     }
 
     EXPECT_EQ(limiter.available(), 0);
-    EXPECT_GE(n_consumed, 10);
-    EXPECT_LT(n_consumed, 15);
+    EXPECT_GE(n_consumed, kWaitCount);
+    EXPECT_LT(n_consumed, kWaitCount + kTolerance * 2);
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -154,12 +159,15 @@ TEST(AsyncRateLimiterTest, BurstUnderLimit)
 //
 TEST(AsyncRateLimiterTest, BurstAtLimit)
 {
-    batt::RateLimiter limiter{/*rate=*/1000.0, /*burst=*/100};
+    constexpr i64 kBurstLimit = 100;
+    constexpr i64 kTolerance = 5;
+
+    batt::RateLimiter limiter{/*rate=*/1000.0, /*burst=*/kBurstLimit};
 
     batt::Task::sleep(boost::posix_time::milliseconds(100));
 
     const i64 n_available = limiter.available();
-    EXPECT_EQ(n_available, 100);
+    EXPECT_EQ(n_available, kBurstLimit);
 
     i64 n_consumed = 0;
     while (limiter.poll()) {
@@ -167,8 +175,8 @@ TEST(AsyncRateLimiterTest, BurstAtLimit)
     }
 
     EXPECT_EQ(limiter.available(), 0);
-    EXPECT_GE(n_consumed, 100);
-    EXPECT_LT(n_consumed, 105);
+    EXPECT_GE(n_consumed, kBurstLimit);
+    EXPECT_LT(n_consumed, kBurstLimit + kTolerance);
 }
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -177,12 +185,15 @@ TEST(AsyncRateLimiterTest, BurstAtLimit)
 //
 TEST(AsyncRateLimiterTest, BurstOverLimit)
 {
-    batt::RateLimiter limiter{/*rate=*/1000.0, /*burst=*/100};
+    constexpr i64 kBurstLimit = 100;
+    constexpr i64 kTolerance = 5;
 
-    batt::Task::sleep(boost::posix_time::milliseconds(500));
+    batt::RateLimiter limiter{/*rate=*/1000.0, /*burst=*/kBurstLimit};
+
+    batt::Task::sleep(boost::posix_time::milliseconds(5 * kBurstLimit));
 
     const i64 n_available = limiter.available();
-    EXPECT_EQ(n_available, 100);
+    EXPECT_EQ(n_available, kBurstLimit);
 
     i64 n_consumed = 0;
     while (limiter.poll()) {
@@ -190,8 +201,8 @@ TEST(AsyncRateLimiterTest, BurstOverLimit)
     }
 
     EXPECT_EQ(limiter.available(), 0);
-    EXPECT_GE(n_consumed, 100);
-    EXPECT_LT(n_consumed, 105);
+    EXPECT_GE(n_consumed, kBurstLimit);
+    EXPECT_LT(n_consumed, kBurstLimit + kTolerance);
 }
 
 }  // namespace

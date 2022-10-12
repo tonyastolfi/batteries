@@ -135,4 +135,6 @@ sudo gitlab-runner register
 
 This will prompt you for various pieces of information.  Paste the registration token string you copied above when prompted.
 
+NOTE: When asked for executor type, choose `docker`.  When it asks you about the default Docker image, enter `registry.gitlab.com/tonyastolfi/batteries`.  Do _not_ enter any tags/labels when prompted.
+
 If this step is successful, you will see your runner show up on the Settings &gt; CI/CD &gt; Runners page in GitLab.

@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_CLIENT_IMPL_HPP
 #define BATTERIES_HTTP_CLIENT_IMPL_HPP
 
+#include <batteries/config.hpp>
+//
 namespace batt {
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -

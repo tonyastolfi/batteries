@@ -5,6 +5,8 @@
 #ifndef BATTERIES_SLICE_HPP
 #define BATTERIES_SLICE_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/interval.hpp>
 #include <batteries/seq.hpp>
 #include <batteries/type_traits.hpp>

@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_STREAM_BUFFER_HPP
 #define BATTERIES_ASYNC_STREAM_BUFFER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/io_result.hpp>
 #include <batteries/async/types.hpp>
 #include <batteries/async/watch.hpp>
@@ -12,7 +14,6 @@
 #include <batteries/assert.hpp>
 #include <batteries/buffer.hpp>
 #include <batteries/checked_cast.hpp>
-#include <batteries/config.hpp>
 #include <batteries/finally.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/small_vec.hpp>

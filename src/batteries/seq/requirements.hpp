@@ -5,6 +5,8 @@
 #ifndef BATTERIES_SEQ_REQUIREMENTS_HPP
 #define BATTERIES_SEQ_REQUIREMENTS_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/optional.hpp>
 #include <batteries/type_traits.hpp>
 

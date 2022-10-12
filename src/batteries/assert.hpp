@@ -8,6 +8,7 @@
 #endif  // BOOST_STACKTRACE_USE_NOOP
 
 #include <batteries/config.hpp>
+//
 #include <batteries/hint.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/type_traits.hpp>
@@ -66,13 +67,20 @@ std::string make_printable(T&& obj)
                         << "  " << right_str << " == " << ::batt::make_printable(right_val) << ::std::endl   \
                         << ::std::endl
 
-#ifdef __GNUC__
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#if defined(__GNUC__)
 #define BATT_NORETURN __attribute__((noreturn))
 #define BATT_UNREACHABLE __builtin_unreachable
+
+#elif defined(__clang__)
+#define BATT_NORETURN _Noreturn
+#define BATT_UNREACHABLE __builtin_unreachable
+
 #else
 #define BATT_NORETURN
 #define BATT_UNREACHABLE() (void)
 #endif
+//+++++++++++-+-+--+----- --- -- -  -  -   -
 
 BATT_NORETURN inline void fail_check_exit()
 {
@@ -92,18 +100,24 @@ inline bool lock_fail_check_mutex()
     static std::aligned_storage_t<sizeof(std::mutex), alignof(std::mutex)> storage_;
     static std::mutex* m = new (&storage_) std::mutex{};
     m->lock();
-    return false;
+    return true;
 }
 
 #define BATT_CHECK_RELATION(left, op, right)                                                                 \
-    for (; !BATT_HINT_TRUE(((left)op(right)) || ::batt::lock_fail_check_mutex()); ::batt::fail_check_exit()) \
+    for (; !BATT_HINT_TRUE((left)op(right)) && BATT_HINT_TRUE(::batt::lock_fail_check_mutex());              \
+         ::batt::fail_check_exit())                                                                          \
     BATT_FAIL_CHECK_MESSAGE(#left, (left), #op, #right, (right), __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
 #define BATT_CHECK_IMPLIES(p, q)                                                                             \
-    for (; !BATT_HINT_TRUE(!(p) || (q)); ::batt::fail_check_exit())                                          \
+    for (; !BATT_HINT_TRUE(!(p) || (q)) && BATT_HINT_TRUE(::batt::lock_fail_check_mutex());                  \
+         ::batt::fail_check_exit())                                                                          \
     BATT_FAIL_CHECK_MESSAGE(#p, (p), "implies", #q, (q), __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
+/*! \brief This is only a test...
+ * \param x The expression to test.
+ */
 #define BATT_CHECK(x) BATT_CHECK_RELATION(bool{x}, ==, true)
+
 #define BATT_CHECK_EQ(x, y) BATT_CHECK_RELATION(x, ==, y)
 #define BATT_CHECK_NE(x, y) BATT_CHECK_RELATION(x, !=, y)
 #define BATT_CHECK_GE(x, y) BATT_CHECK_RELATION(x, >=, y)

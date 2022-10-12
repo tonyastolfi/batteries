@@ -6,6 +6,7 @@
 #define BATTERIES_ASYNC_WORKER_POOL_IMPL_HPP
 
 #include <batteries/config.hpp>
+#include <batteries/logging.hpp>
 
 #include <batteries/async/worker_pool.hpp>
 
@@ -34,9 +35,7 @@ BATT_INLINE_IMPL /*static*/ WorkerPool& WorkerPool::default_pool()
                     usize c0 = (i / 2) * 4;
                     for (usize j = c0; j < c0 + 4; ++j) {
                         CPU_SET(j % cpu_count, &mask);
-#ifdef BATT_GLOG_AVAILABLE
-                        VLOG(1) << "worker[" << i << "]: cpu " << j;
-#endif  // BATT_GLOG_AVAILABLE
+                        BATT_VLOG(1) << "worker[" << i << "]: cpu " << j;
                     }
                     BATT_CHECK_EQ(0, sched_setaffinity(0, sizeof(mask), &mask))
                         << "cpu=" << i << " err=" << std::strerror(errno);

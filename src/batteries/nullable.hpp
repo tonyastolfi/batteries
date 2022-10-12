@@ -1,13 +1,15 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_NULLABLE_HPP
 #define BATTERIES_NULLABLE_HPP
 
+#include <batteries/config.hpp>
+//
+#include <batteries/utility.hpp>
+
 #include <memory>
 #include <optional>
-
-#include "utility.hpp"
 
 namespace batt {
 

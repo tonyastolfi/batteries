@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_SLICE_WORK_HPP
 #define BATTERIES_ASYNC_SLICE_WORK_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/work_context.hpp>
 #include <batteries/async/worker_pool.hpp>
 

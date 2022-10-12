@@ -1,11 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_ASYNC_FUTURE_IMPL_HPP
 #define BATTERIES_ASYNC_FUTURE_IMPL_HPP
 
 #include <batteries/config.hpp>
-
+//
 #include <batteries/async/future_decl.hpp>
 #include <batteries/async/handler.hpp>
 #include <batteries/async/latch.hpp>

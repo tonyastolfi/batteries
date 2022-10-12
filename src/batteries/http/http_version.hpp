@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_HTTP_VERSION_HPP
 #define BATTERIES_HTTP_HTTP_VERSION_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/int_types.hpp>
 
 namespace batt {

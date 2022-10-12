@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_WORKER_HPP
 #define BATTERIES_ASYNC_WORKER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/debug_info.hpp>
 #include <batteries/async/queue.hpp>
 #include <batteries/async/task.hpp>
@@ -22,12 +24,6 @@ class Worker
    public:
     using WorkFn = batt::UniqueSmallFn<void(), 128 - 16>;
 
-    static bool& inside_work_fn()
-    {
-        thread_local bool b_ = false;
-        return b_;
-    }
-
     explicit Worker(boost::asio::any_io_executor ex, std::string&& name = "Worker::task") noexcept
         : task{ex,
                [this] {
@@ -39,9 +35,9 @@ class Worker
                            return;
                        }
                        {
-                           Worker::inside_work_fn() = true;
+                           batt::Task::inside_work_fn() = true;
                            auto on_work_done = batt::finally([] {
-                               Worker::inside_work_fn() = false;
+                               batt::Task::inside_work_fn() = false;
                            });
 
                            (*next_work)();

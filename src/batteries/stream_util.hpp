@@ -3,6 +3,9 @@
 //
 #pragma once
 
+#include <batteries/config.hpp>
+//
+#include <batteries/constants.hpp>
 #include <batteries/finally.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/optional.hpp>
@@ -15,6 +18,7 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 
 #include <atomic>
+#include <charconv>
 #include <iomanip>
 #include <optional>
 #include <ostream>
@@ -294,6 +298,256 @@ inline std::ostream& operator<<(std::ostream& out, const EscapedStringLiteral& t
         }
     }
     return out << '"';
+}
+
+struct HexByteDumper {
+    std::string_view bytes;
+};
+
+inline std::ostream& operator<<(std::ostream& out, const HexByteDumper& t)
+{
+    out << std::endl;
+    boost::io::ios_flags_saver saver{out};
+
+    const char* const bytes = t.bytes.data();
+    const usize len = t.bytes.size();
+    for (usize i = 0; i < len; ++i) {
+        if (i % 16 == 0) {
+            out << std::hex << std::setw(8) << std::setfill('0') << i << ": ";
+        }
+        out << std::hex << std::setw(2) << std::setfill('0') << (((unsigned)bytes[i]) & 0xfful);
+        if (i % 16 == 15) {
+            out << std::endl;
+        } else if (i % 2 == 1) {
+            out << " ";
+        }
+    }
+    return out;
+}
+
+inline HexByteDumper dump_hex(const void* ptr, usize size)
+{
+    return HexByteDumper{std::string_view{static_cast<const char*>(ptr), size}};
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+
+/*! \brief Wrapper around `usize` (`std::size_t`) that prints as human-readable sizes.
+ */
+struct SizeDumper {
+    enum struct UnitBase {
+        kLog2 = 2,
+        kLog10 = 10,
+    };
+
+    std::string format(UnitBase base, i32& parts, i32& ord, usize& error) const
+    {
+        std::ostringstream oss;
+
+        parts = 0;
+        ord = 0;
+        error = 0;
+
+        bool first_part = true;
+        usize n = this->value;
+        usize unit_ord = 7;
+
+        auto format_impl = [&](const std::array<std::pair<u64, const char*>, 7>& units) {
+            for (auto [div, unit_str] : units) {
+                const usize q = n / div;
+                const usize r = n % div;
+                if (q != 0 || (div == 1 && first_part)) {
+                    if (first_part) {
+                        ord = unit_ord;
+                    }
+                    parts += 1;
+                    oss << (first_part ? "" : "+") << q << unit_str;
+                    if (!this->exact) {
+                        error = r;
+                        break;
+                    }
+                    first_part = false;
+                }
+                n = r;
+                unit_ord -= 1;
+            }
+        };
+
+        switch (base) {
+        case UnitBase::kLog2:
+            format_impl({
+                std::make_pair(kEiB, "EiB"),
+                std::make_pair(kPiB, "PiB"),
+                std::make_pair(kTiB, "TiB"),
+                std::make_pair(kGiB, "GiB"),
+                std::make_pair(kMiB, "MiB"),
+                std::make_pair(kKiB, "KiB"),
+                std::make_pair(u64{1}, "B"),
+            });
+            break;
+
+        case UnitBase::kLog10:
+            format_impl({
+                std::make_pair(kEB, "EB"),
+                std::make_pair(kPB, "PB"),
+                std::make_pair(kTB, "TB"),
+                std::make_pair(kGB, "GB"),
+                std::make_pair(kMB, "MB"),
+                std::make_pair(kKB, "KB"),
+                std::make_pair(u64{1}, "B"),
+            });
+            break;
+
+        default:
+            BATT_PANIC() << "Invalid value for `base`: " << int(base);
+        }
+
+        return std::move(oss).str();
+    }
+
+    /*! \brief The size value to be printed.
+     */
+    usize value;
+
+    /*! \brief If false, then `value` will be printed rounded off to the nearest human-friendly unit (mb,
+     * kb, etc.); if true, then a longer string will be printed to capture the exact value.
+     */
+    bool exact;
+};
+
+inline std::ostream& operator<<(std::ostream& out, SizeDumper t)
+{
+    i32 base2_parts = 0, base10_parts = 0, base2_ord = 0, base10_ord = 0;
+    usize base2_error = 0, base10_error = 0;
+    const std::string base2_str = t.format(SizeDumper::UnitBase::kLog2, base2_parts, base2_ord, base2_error);
+    const std::string base10_str =
+        t.format(SizeDumper::UnitBase::kLog10, base10_parts, base10_ord, base10_error);
+
+    if (base10_parts < base2_parts           //
+        || (base10_parts == base2_parts      //
+            && (base2_ord < base10_ord       //
+                || (base2_ord == base10_ord  //
+                    && (base2_error != 0 && base10_error == 0))))) {
+        return out << ((base10_error == 0) ? "" : "~") << base10_str;
+    } else {
+        return out << ((base2_error == 0) ? "" : "~") << base2_str;
+    }
+}
+
+inline SizeDumper dump_size(usize n)
+{
+    return SizeDumper{
+        .value = n,
+        .exact = false,
+    };
+}
+
+inline SizeDumper dump_size_exact(usize n)
+{
+    return SizeDumper{
+        .value = n,
+        .exact = true,
+    };
+}
+
+/*! \brief Parse a byte size string with optional units.
+ *
+ * Units can be any of:
+ *  - 'b': bytes
+ *  - 'kb': kilobytes (=1024 bytes)
+ *  - 'mb': megabytes (=1024 kilobytes)
+ *  - 'gb': gigabytes (=1024 megabytes)
+ *  - 'tb': terabytes (=1024 gigabytes)
+ *  - 'pb': petabytes (=1024 terabtyes)
+ *  - 'eb': eitabytes (=1024 petabytes)
+ *
+ * The unit string may be upper or lower case, and only the first character is considered, so the string "45k"
+ * will parse the same as "45KILOBYTES" or "45Kb", etc.
+ *
+ * Simple addition and subtraction will also be evaluated, so for example, the string "16mb-1" will parse to
+ * the value `16 * 1024 * 1024 - 1`.  No space is allowed between additive terms when using this notation.
+ *
+ * \return The parse size in bytes if successful, None otherwise.
+ */
+inline Optional<usize> parse_byte_size(std::string_view s)
+{
+    if (s.empty()) {
+        return None;
+    }
+
+    usize result_value = 0;
+    bool have_result = false;
+
+    while (!s.empty()) {
+        if (s.front() == '+') {
+            s.remove_prefix(1);
+            continue;
+        }
+        if (s.front() == '-') {
+            if (!have_result) {
+                return None;
+            }
+            s.remove_prefix(1);
+            Optional<usize> delta = parse_byte_size(s);
+            if (!delta) {
+                return None;
+            }
+            result_value -= *delta;
+            break;
+        }
+        std::string_view num_chars = s;
+        while (!s.empty() && s.front() >= '0' && s.front() <= '9') {
+            s.remove_prefix(1);
+        }
+        num_chars.remove_suffix(s.size());
+
+        usize num_value = 0;
+        std::from_chars_result int_parse =
+            std::from_chars(num_chars.data(), num_chars.data() + num_chars.size(), num_value);
+
+        if (int_parse.ec != std::errc{}) {
+            return None;
+        }
+
+        const usize unit_value = [&]() -> usize {
+            if (s.empty()) {
+                return 1ull;
+            }
+            switch (std::tolower(s.front())) {
+            case 'b':
+                return 1ull;
+            case 'k':
+                return kKiB;
+            case 'm':
+                return kMiB;
+            case 'g':
+                return kGiB;
+            case 't':
+                return kTiB;
+            case 'p':
+                return kPiB;
+            case 'e':
+                return kEiB;
+            default:
+                return 1ull;
+            }
+        }();
+        while (!s.empty() &&
+               ((s.front() >= 'a' && s.front() <= 'z') || (s.front() >= 'A' && s.front() <= 'Z'))) {
+            s.remove_prefix(1);
+        }
+
+        have_result = true;
+        result_value += num_value * unit_value;
+
+        // After the unit string, only '-' or '+' are allowed.
+        //
+        if (!s.empty() && s.front() != '+' && s.front() != '-') {
+            return None;
+        }
+    }
+
+    return result_value;
 }
 
 // =============================================================================

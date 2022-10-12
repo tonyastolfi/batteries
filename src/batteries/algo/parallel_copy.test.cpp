@@ -48,11 +48,11 @@ class AlgoParallelCopyTest : public ::testing::Test
 
         std::vector<ValueType> dst(input_size);
         {
-            batt::WorkContext work_context{worker_pool};
+            batt::ScopedWorkContext work_context{worker_pool};
 
             batt::parallel_copy(work_context, first, last, dst.data(), min_task_size, max_tasks);
         }
-        EXPECT_THAT(dst, ::testing::ElementsAreArray(first, last));
+        EXPECT_TRUE(std::equal(first, last, dst.begin()));
     }
 
     std::vector<int> generate_random_input(usize size)

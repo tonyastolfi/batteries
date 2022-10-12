@@ -1,6 +1,9 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
+
+#include <batteries/config.hpp>
+//
 
 namespace batt {
 

@@ -5,6 +5,8 @@
 #ifndef BATTERIES_OPTIONAL_HPP
 #define BATTERIES_OPTIONAL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/hint.hpp>
 
@@ -433,7 +435,7 @@ inline std::ostream& operator<<(std::ostream& out, const Optional<T>& t)
     if (!t) {
         return out << "--";
     }
-    return out << *t;
+    return out << make_printable(*t);
 }
 
 inline std::ostream& operator<<(std::ostream& out, const NoneType&)

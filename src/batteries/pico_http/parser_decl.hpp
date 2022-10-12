@@ -27,6 +27,8 @@
 #ifndef BATTERIES_PICO_HTTP_PARSER_DECL_HPP
 #define BATTERIES_PICO_HTTP_PARSER_DECL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/buffer.hpp>
 #include <batteries/int_types.hpp>
 #include <batteries/small_vec.hpp>

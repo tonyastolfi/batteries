@@ -1,7 +1,12 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_ASYNC_FAKE_EXECUTOR_DECL_HPP
 #define BATTERIES_ASYNC_FAKE_EXECUTOR_DECL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 
 #include <boost/asio/any_io_executor.hpp>

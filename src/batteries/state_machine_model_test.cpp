@@ -211,10 +211,6 @@ BATT_MAYBE_UNUSED Square get_winner(const GameState& s)
 class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash>
 {
    public:
-    bool prune_won_games = true;
-    bool prune_symmetries = true;
-    usize n_threads = 1;
-
     GameState initialize() override
     {
         return GameState{/*board*/ {{
@@ -241,11 +237,18 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
         }
         BATT_STATE_MACHINE_VERBOSE() << " No winner.  Generating moves...";
 
-        usize i = this->pick_int(0, 2);
+        batt::StateMachineEntropySource entropy = this->entropy();
+
+        // Verify that `entropy` can be copied.
+        //
+        batt::StateMachineEntropySource entropy_copy;
+        entropy_copy = entropy;
+
+        usize i = entropy.pick_one_of({0, 1, 2});
         usize j = 9999;
         this->do_one_of(
             [&] {
-                j = this->pick_int(100, 102) - 100;
+                j = entropy_copy.pick_int(100, 102) - 100;
             },
             [&] {
                 j = 0;
@@ -323,8 +326,26 @@ class TicTacToeModel : public batt::StateMachineModel<GameState, GameState::Hash
 
     std::unique_ptr<StateMachineModel<GameState, GameState::Hash>> clone() const override
     {
-        return std::make_unique<TicTacToeModel>(*this);
+        auto cloned_this = std::make_unique<TicTacToeModel>();
+        cloned_this->prune_won_games = this->prune_won_games;
+        cloned_this->prune_symmetries = this->prune_symmetries;
+        cloned_this->n_threads = this->n_threads;
+        cloned_this->min_running_time_ms = this->min_running_time_ms;
+        cloned_this->state_ = this->state_;
+        return cloned_this;
     }
+
+    AdvancedOptions advanced_options() const override
+    {
+        auto options = AdvancedOptions::with_default_values();
+        options.min_running_time_ms = this->min_running_time_ms;
+        return options;
+    }
+
+    bool prune_won_games = true;
+    bool prune_symmetries = true;
+    usize n_threads = 1;
+    usize min_running_time_ms = 100;
 
    private:
     GameState state_;
@@ -376,6 +397,69 @@ TEST(StateMachineModelTest, Basic)
     EXPECT_EQ(r.branch_push_count, kExpectedBranchCount);
     EXPECT_EQ(r.branch_pop_count, kExpectedBranchCount);
     EXPECT_EQ(r.self_branch_count, kExpectedSelfBranchCount);
+}
+
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+TEST(StateMachineModelTest, StochasticCheck)
+{
+    for (usize n_threads : {1, 2, 4, 8, 16}) {
+        for (usize running_time_ms : {125, 250, 500, 1000, 2000, 4000, 8000}) {
+            TicTacToeModel t;
+            t.n_threads = n_threads;
+            t.min_running_time_ms = running_time_ms;
+
+            TicTacToeModel::Result r =
+                t.check_model(batt::StaticType<batt::StochasticModelChecker<TicTacToeModel>>{});
+
+            if (r.state_count < kExpectedStateCount) {
+                ASSERT_LT(running_time_ms, 8000u);
+                continue;
+            }
+
+            std::cerr << "DONE with check_model; result=" << r << std::endl;
+
+            std::vector<std::pair<int, int>> coords;
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    coords.emplace_back(i, j);
+                }
+            }
+            EXPECT_EQ(coords.size(), 9u);
+            usize positions = 0;
+            std::unordered_set<GameState, GameState::Hash> checked_states;
+            checked_states.emplace(t.normalize(t.initialize()));
+            do {
+                GameState g;
+                auto g_packed = g.pack();
+                for (const auto& p : coords) {
+                    g.board[p.first][p.second] = square_from_player(g.to_move);
+                    g.to_move = flip_player(g.to_move);
+                    auto s = t.normalize(g);
+                    if (!checked_states.count(s)) {
+                        checked_states.emplace(s);
+                        EXPECT_TRUE(t.state_visited(s))
+                            << g << " " << g_packed << " (" << p.first << "," << p.second << ")";
+                    }
+                    g_packed = g.pack();
+                    if (t.prune_won_games && get_winner(g) != Square::Empty) {
+                        break;
+                    }
+                }
+                positions += 1;
+            } while (std::next_permutation(coords.begin(), coords.end()));
+
+            EXPECT_EQ(positions, usize(9 * 8 * 7 * 6 * 5 * 4 * 3 * 2 * 1));
+
+            EXPECT_TRUE(r.ok);
+            EXPECT_EQ(r.state_count, kExpectedStateCount);
+            EXPECT_EQ(checked_states.size(), kExpectedStateCount);
+            EXPECT_GE(r.branch_push_count, kExpectedBranchCount);
+            EXPECT_GE(r.branch_pop_count, kExpectedBranchCount);
+            EXPECT_GE(r.self_branch_count, kExpectedSelfBranchCount);
+
+            break;
+        }
+    }
 }
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------

@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_REQUEST_HPP
 #define BATTERIES_HTTP_REQUEST_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/buffer_source.hpp>
 
 #include <batteries/http/http_data.hpp>

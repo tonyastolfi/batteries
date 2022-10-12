@@ -5,6 +5,8 @@
 #ifndef BATTERIES_SEQ_PRINT_OUT_HPP
 #define BATTERIES_SEQ_PRINT_OUT_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/seq/for_each.hpp>
 #include <batteries/seq/map.hpp>
 #include <batteries/seq/requirements.hpp>
@@ -37,7 +39,7 @@ inline auto operator|(Seq&& seq, PrintOut p)
 
 inline auto debug_out(std::ostream& out, std::string_view sep = " ")
 {
-    return map([&out, sep ](auto&& item) -> auto {
+    return map([&out, sep ](auto&& item) -> auto{
         out << item << sep;
         return BATT_FORWARD(item);
     });

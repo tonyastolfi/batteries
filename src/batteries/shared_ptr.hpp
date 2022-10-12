@@ -5,6 +5,8 @@
 #ifndef BATTERIES_SHARED_PTR_HPP
 #define BATTERIES_SHARED_PTR_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/utility.hpp>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
@@ -73,6 +75,22 @@ template <typename T>
 SharedPtr<T> into_shared(std::unique_ptr<T>&& ptr)
 {
     return SharedPtr<T>{ptr.release()};
+}
+
+template <typename T, typename = std::enable_if_t<
+                          std::is_same_v<SharedPtr<T>, std::shared_ptr<std::remove_reference_t<T>>>>>
+SharedPtr<T> shared_ptr_from(T* that)
+{
+    return that->shared_from_this();
+}
+
+template <typename T,
+          typename = std::enable_if_t<
+              std::is_same_v<SharedPtr<T>, boost::intrusive_ptr<std::remove_reference_t<T>>>>,
+          typename = void>
+SharedPtr<T> shared_ptr_from(T* that)
+{
+    return SharedPtr<T>{that};
 }
 
 }  // namespace batt

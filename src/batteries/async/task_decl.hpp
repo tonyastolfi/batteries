@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_TASK_HPP
 #define BATTERIES_ASYNC_TASK_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/async/continuation.hpp>
 #include <batteries/async/debug_info_decl.hpp>
@@ -12,17 +14,13 @@
 #include <batteries/async/handler.hpp>
 #include <batteries/async/io_result.hpp>
 #include <batteries/case_of.hpp>
-#include <batteries/config.hpp>
 #include <batteries/finally.hpp>
 #include <batteries/int_types.hpp>
+#include <batteries/logging.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/segv.hpp>
 #include <batteries/status.hpp>
 #include <batteries/utility.hpp>
-
-#ifdef BATT_GLOG_AVAILABLE
-#include <glog/logging.h>
-#endif  // BATT_GLOG_AVAILABLE
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -274,7 +272,7 @@ class Task
     // boost::asio::ip::tcp::socket s;
     //
     // using ReadResult = std::pair<boost::system::error_code, std::size_t>;
-
+    //
     // ReadResult r = Task::await<ReadResult>([&](auto&& handler) {
     //     s.async_read_some(buffers, BATT_FORWARD(handler));
     //   });
@@ -399,6 +397,17 @@ class Task
         return current_task->get_priority();
     }
 
+    static bool& inside_work_fn()
+    {
+        auto ptr = Task::current_ptr();
+        if (ptr) {
+            return ptr->is_inside_work_fn_;
+        }
+
+        thread_local bool b_ = false;
+        return b_;
+    }
+
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
     Task(const Task&) = delete;
@@ -428,13 +437,8 @@ class Task
                 try {
                     (*body_fn)();
                 } catch (...) {
-#ifdef BATT_GLOG_AVAILABLE
-                    LOG(WARNING)
-#else
-                    std::cerr
-#endif  // BATT_GLOG_AVAILABLE
-                        << "task fn exited via unhandled exception [task='" << this->name_
-                        << "']: " << boost::current_exception_diagnostic_information();
+                    BATT_LOG(WARNING) << "task fn exited via unhandled exception [task='" << this->name_
+                                      << "']: " << boost::current_exception_diagnostic_information();
                 }
                 body_fn = None;
 
@@ -673,7 +677,7 @@ class Task
     //
     void activate_via_post();
 
-    // Activate this task via boost::asio::dispatchx.
+    // Activate this task via boost::asio::dispatch.
     //
     void activate_via_dispatch();
 
@@ -730,6 +734,8 @@ class Task
     const volatile u8* stack_base_ = nullptr;
 
     bool is_preempted_ = false;
+
+    bool is_inside_work_fn_ = false;
 };
 
 }  // namespace batt

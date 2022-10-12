@@ -1,10 +1,12 @@
 //######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_ASYNC_FUTURE_DECL_HPP
 #define BATTERIES_ASYNC_FUTURE_DECL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/shared_ptr.hpp>
 
 #include <memory>

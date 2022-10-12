@@ -5,8 +5,17 @@
 #ifndef BATTERIES_STATE_MACHINE_MODEL_HPP
 #define BATTERIES_STATE_MACHINE_MODEL_HPP
 
+#include <batteries/config.hpp>
+//
+#include <batteries/state_machine_model/entropy_source.hpp>
+#include <batteries/state_machine_model/exhaustive_model_checker.hpp>
+#include <batteries/state_machine_model/parallel_model_check_state.hpp>
+#include <batteries/state_machine_model/state_machine_result.hpp>
+#include <batteries/state_machine_model/state_machine_traits.hpp>
+#include <batteries/state_machine_model/stochastic_model_checker.hpp>
+#include <batteries/state_machine_model/verbose.hpp>
+
 #include <batteries/async/debug_info.hpp>
-#include <batteries/async/fake_executor.hpp>
 #include <batteries/async/mutex.hpp>
 #include <batteries/async/queue.hpp>
 
@@ -28,146 +37,8 @@
 
 namespace batt {
 
-#if 0
-#define BATT_STATE_MACHINE_VERBOSE()                                                                         \
-    for (bool b_VerBOSe_vAR = true; b_VerBOSe_vAR; std::cout << std::endl, b_VerBOSe_vAR = false)            \
-    std::cout
-#else
-#define BATT_STATE_MACHINE_VERBOSE()                                                                         \
-    for (; false;)                                                                                           \
-    std::cout
-#endif
-
-//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
-//
-struct StateMachineResult {
-    bool ok = false;
-    usize branch_push_count = 0;
-    usize branch_pop_count = 0;
-    usize branch_miss_count = 0;
-    usize state_count = 0;
-    usize self_branch_count = 0;
-    std::chrono::steady_clock::time_point start_time;
-    usize elapsed_ms = 0;
-    double states_per_second = 0.0;
-    double branch_pop_per_second = 0.0;
-    double branch_push_per_second = 0.0;
-    std::bitset<64> shards{0};
-
-    void update_elapsed_time()
-    {
-        this->elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                               std::chrono::steady_clock::now() - this->start_time)
-                               .count();
-        this->update_rates();
-    }
-
-    double compute_rate(usize count) const
-    {
-        return double(count * 1000 + 1) / double(this->elapsed_ms + 1);
-    }
-
-    void update_rates()
-    {
-        this->states_per_second = this->compute_rate(this->state_count);
-        this->branch_pop_per_second = this->compute_rate(this->branch_pop_count);
-        this->branch_push_per_second = this->compute_rate(this->branch_push_count);
-    }
-};
-
-inline StateMachineResult combine_results(const StateMachineResult& a, const StateMachineResult& b)
-{
-    StateMachineResult c;
-
-    c.ok = a.ok && b.ok;
-    c.branch_push_count = a.branch_push_count + b.branch_push_count;
-    c.branch_pop_count = a.branch_pop_count + b.branch_pop_count;
-    c.branch_miss_count = a.branch_miss_count + b.branch_miss_count;
-    c.state_count = a.state_count + b.state_count;
-    c.self_branch_count = a.self_branch_count + b.self_branch_count;
-    c.elapsed_ms = std::max(a.elapsed_ms, b.elapsed_ms);
-    c.start_time = std::chrono::steady_clock::now() - std::chrono::milliseconds(c.elapsed_ms);
-    c.shards = a.shards | b.shards;
-    c.update_rates();
-
-    return c;
-}
-
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
-inline std::ostream& operator<<(std::ostream& out, const StateMachineResult& r)
-{
-    return out << "StateMachineResult{"                                     //
-               << ".ok=" << r.ok                                            //
-               << ", .branch_push_count=" << r.branch_push_count            //
-               << ", .branch_pop_count=" << r.branch_pop_count              //
-               << ", .branch_miss_count=" << r.branch_miss_count            //
-               << ", .state_count=" << r.state_count                        //
-               << ", .self_branch_count=" << r.self_branch_count            //
-               << ", .states_per_second=" << r.states_per_second            //
-               << ", .branch_push_per_second=" << r.branch_push_per_second  //
-               << ", .branch_pop_per_second=" << r.branch_pop_per_second    //
-               << ", .elapsed_ms=" << r.elapsed_ms                          //
-               << ", .shards=" << r.shards                                  //
-               << ",}";
-}
-
-//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
-namespace detail {
-template <typename Branch>
-struct ParallelModelCheckState;
-}
-
-template <typename StateT, typename StateHash, typename StateEqual>
-struct StateMachineBranch {
-    using state_type = StateT;
-    using state_hash_type = StateHash;
-    using state_equal_type = StateEqual;
-
-    state_type snapshot;
-    RadixQueue<256> delta;
-};
-
-template <typename StateT, typename StateHash, typename StateEqual>
-inline std::ostream& operator<<(std::ostream& out, const StateMachineBranch<StateT, StateHash, StateEqual>& t)
-{
-    return out << "Branch{" << std::endl
-               << pretty_print_indent() << ".snapshot=" << make_printable(t.snapshot) << "," << std::endl
-               << pretty_print_indent() << ".delta=" << t.delta << "," << std::endl
-               << "}";
-}
-
-struct StateMachineModelCheckAdvancedOptions {
-    using Self = StateMachineModelCheckAdvancedOptions;
-
-    bool pin_shard_to_cpu;
-    usize max_loop_iterations_between_flush;
-    usize max_loop_iterations_between_update;
-
-    static Self with_default_values()
-    {
-        return Self{
-            .pin_shard_to_cpu = true,
-            .max_loop_iterations_between_flush = 16,
-            .max_loop_iterations_between_update = 4096,
-        };
-    }
-};
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-
-template <typename StateT, typename StateHash, typename StateEqual>
-inline bool operator==(const StateMachineBranch<StateT, StateHash, StateEqual>& l,
-                       const StateMachineBranch<StateT, StateHash, StateEqual>& r)
-{
-    return StateEqual{}(l.snapshot, r.snapshot) && l.delta == r.delta;
-}
-
-template <typename StateT, typename StateHash, typename StateEqual>
-inline usize hash_value(const StateMachineBranch<StateT, StateHash, StateEqual>& branch)
-{
-    return hash(StateHash{}(branch.snapshot), branch.delta);
-}
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 //
@@ -177,55 +48,32 @@ class StateMachineModel
 {
    public:
     using state_type = StateT;
+    using state_hash_type = StateHash;
+    using state_equal_type = StateEqual;
 
+    using Base = StateMachineModel;
     using Branch = StateMachineBranch<StateT, StateHash, StateEqual>;
     using Result = StateMachineResult;
     using AdvancedOptions = StateMachineModelCheckAdvancedOptions;
 
-    class Checker
-    {
-       public:
-        enum struct VisitResult {
-            kFirstTime,
-            kSeenBefore,
-        };
-
-        BATT_STRONG_TYPEDEF(bool, ForceSend);
-
-        explicit Checker(StateMachineModel& model, detail::ParallelModelCheckState<Branch>& mesh,
-                         usize shard_i) noexcept;
-
-        ~Checker() noexcept;
-
-        Result run();
-
-        usize pick_int(usize min_value, usize max_value);
-
-       private:
-        void explore(Branch&& branch, ForceSend force_send = ForceSend{false});
-
-        void enter_loop(usize loop_counter);
-
-        bool pop_next();
-
-        // Returns whether this is the first time visiting the passed state.
-        //
-        VisitResult visit(const StateT& state, const Branch& src_branch);
-
-        //+++++++++++-+-+--+----- --- -- -  -  -   -
-
-        StateMachineModel& model_;
-        const AdvancedOptions options_ = this->model_.advanced_options();
-        detail::ParallelModelCheckState<Branch>& mesh_;
-        const usize shard_i_;
-        Optional<Branch> current_branch_;
-        RadixQueue<256> history_;
-        std::deque<Branch> queue_;
-        Result result_;
-        usize progress_reports_ = 0;
+    enum struct VisitResult {
+        kFirstTime,
+        kSeenBefore,
     };
 
-    Result check_model();
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
+    StateMachineModel(const StateMachineModel&) = delete;
+    StateMachineModel& operator=(const StateMachineModel&) = delete;
+
+    virtual ~StateMachineModel() = default;
+
+    StateMachineModel() = default;
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
+    template <typename Checker = ExhaustiveModelChecker<StateMachineModel>>
+    Result check_model(StaticType<Checker> = {});
 
     bool state_visited(const state_type& s) const
     {
@@ -234,7 +82,38 @@ class StateMachineModel
 
     std::shared_ptr<std::ostringstream> debug_out = std::make_shared<std::ostringstream>();
 
-   protected:
+    // Attach the passed entropy source to the model.  This is used to return values from `pick_int`, etc.
+    // during the model's `step()` function.
+    //
+    void set_entropy(StateMachineEntropySource&& entropy_source)
+    {
+        this->entropy_ = std::move(entropy_source);
+    }
+
+    // Clears the set of states visited by the model.
+    //
+    void reset_visited_states()
+    {
+        this->visited_.clear();
+    }
+
+    // Returns whether this is the first time visiting the passed state.
+    //
+    VisitResult visit(const StateT& state, const Branch& src_branch)
+    {
+        // We save a subgraph of the overall search so we can give somewhat meaningful information to help
+        // users understand how a state machine got into a certain state, if things go wrong.
+        //
+        const auto& [iter, inserted] = this->visited_.emplace(state, src_branch);
+
+        (void)iter;
+
+        if (inserted) {
+            return VisitResult::kFirstTime;
+        }
+        return VisitResult::kSeenBefore;
+    }
+
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
     // Derived classes must implemented these methods to define the state machine simulation.
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -298,13 +177,6 @@ class StateMachineModel
         return 1;
     }
 
-    // (Optional) Advanced tuning of model check algorithm.
-    //
-    virtual AdvancedOptions advanced_options() const
-    {
-        return AdvancedOptions::with_default_values();
-    }
-
     // If the derived model implementation class returns `max_concurrency() > 1`, this method must return
     // non-nullptr.
     //
@@ -313,13 +185,35 @@ class StateMachineModel
         return nullptr;
     }
 
+    // (Optional) Advanced tuning of model check algorithm.
+    //
+    virtual AdvancedOptions advanced_options() const
+    {
+        return AdvancedOptions::with_default_values();
+    }
+
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
+    // Returns an integer `i` non-deterministically, such that `i >= min_value && i <= max_value`.
+    //
     usize pick_int(usize min_value, usize max_value)
     {
-        BATT_CHECK_NOT_NULLPTR(this->checker_);
+        return this->entropy_.pick_int(min_value, max_value);
+    }
 
-        return this->checker_->pick_int(min_value, max_value);
+    // Returns false or true.
+    //
+    bool pick_branch()
+    {
+        return this->entropy_.pick_branch();
+    }
+
+    // Returns one of the items in `values`, using `pick_int`.
+    //
+    template <typename T>
+    T pick_one_of(std::initializer_list<T> values)
+    {
+        return this->entropy_.pick_one_of(values);
     }
 
     // If there is at least one runnable completion handler in `context`, one such handler is selected (via
@@ -327,24 +221,25 @@ class StateMachineModel
     //
     bool run_one(FakeExecutionContext& context)
     {
-        UniqueHandler<> handler = context.pop_ready_handler([this](usize count) {
-            return this->pick_int(0, count - 1);
-        });
-        if (!handler) {
-            return false;
-        }
-        handler();
-        return true;
+        return this->entropy_.run_one(context);
     }
 
+    // Performs one of the passed action functions.  Each `Fn` in `actions...` must be callable with no
+    // arguments and its return type must be ignorable.
+    //
     template <typename... Fn>
     void do_one_of(Fn&&... actions)
     {
-        auto actions_tuple = std::forward_as_tuple(BATT_FORWARD(actions)...);
+        this->entropy_.do_one_of(BATT_FORWARD(actions)...);
+    }
 
-        static_dispatch<usize, 0, sizeof...(Fn)>(this->pick_int(0, sizeof...(Fn) - 1), [&](auto kI) {
-            std::get<decltype(kI)::value>(std::move(actions_tuple))();
-        });
+    // Returns a generic entropy source that can be passed around by state machine implementations to
+    // implement modular simulations.  No copy of the returned object may outlive `this`, or behavior is
+    // undefined!
+    //
+    StateMachineEntropySource entropy()
+    {
+        return this->entropy_;
     }
 
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -352,251 +247,16 @@ class StateMachineModel
     using VisitedBranchMap = std::unordered_map<state_type, Branch, StateHash, StateEqual>;
 
     VisitedBranchMap visited_;
-    Checker* checker_ = nullptr;
+    StateMachineEntropySource entropy_;
 };
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
-namespace detail {
-
-struct ModelCheckShardMetrics {
-    i64 stall_count = 0;
-    i64 flush_count = 0;
-    i64 send_count = 0;
-    i64 recv_count = 0;
-};
-
-inline std::ostream& operator<<(std::ostream& out, const ModelCheckShardMetrics& t)
-{
-    return out << "ShardMetrics{"                                                           //
-               << ".stall=" << t.stall_count                                                //
-               << ", .flush=" << t.flush_count                                              //
-               << ", .send=" << t.send_count                                                //
-               << ", .recv=" << t.recv_count                                                //
-               << ", .stall_rate=" << double(t.stall_count + 1) / double(t.recv_count + 1)  //
-               << ",}";
-}
-
-template <typename Branch>
-class ParallelModelCheckState
-{
-   public:
-    static constexpr u64 kStallEpochUnit = u64{1} << 32;
-    static constexpr u64 kStallCountMask = kStallEpochUnit - 1;
-    static constexpr u64 kStallEpochMask = ~kStallCountMask;
-
-    using ShardMetrics = ModelCheckShardMetrics;
-
-    explicit ParallelModelCheckState(usize n_shards)
-        : shard_count{n_shards}
-        , stalled(this->shard_count)
-        , recv_queues(this->shard_count)
-        , send_queues(this->shard_count)
-        , shard_metrics(this->shard_count)
-        , local_consume_count(this->shard_count)
-    {
-        BATT_CHECK_EQ(this->stalled.size(), this->shard_count);
-        BATT_CHECK_EQ(this->local_consume_count.size(), this->shard_count);
-        BATT_CHECK_EQ(this->recv_queues.size(), this->shard_count);
-        BATT_CHECK_EQ(this->send_queues.size(), this->shard_count);
-        BATT_CHECK_EQ(this->shard_metrics.size(), this->shard_count);
-
-        for (std::unique_ptr<std::atomic<bool>[]>& stalled_per_other : this->stalled) {
-            stalled_per_other.reset(new std::atomic<bool>[this->shard_count]);
-            for (usize i = 0; i < this->shard_count; ++i) {
-                stalled_per_other[i].store(false);
-            }
-        }
-
-        for (auto& recv_queues_per_dst : this->recv_queues) {
-            recv_queues_per_dst = std::make_unique<Queue<std::vector<Branch>>>();
-        }
-
-        for (CpuCacheLineIsolated<std::vector<std::vector<Branch>>>&  //
-                 send_queues_per_src : this->send_queues) {
-            send_queues_per_src->resize(this->shard_count);
-        }
-
-        for (auto& count : this->local_consume_count) {
-            *count = 0;
-        }
-    }
-
-    usize find_shard(const Branch& branch) const
-    {
-        const usize branch_hash = hash(branch);
-        const usize branch_shard = branch_hash / this->hash_space_per_shard;
-
-        return branch_shard;
-    }
-
-    void send(usize src_i, usize dst_i, Branch&& branch)
-    {
-        std::vector<std::vector<Branch>>& src_send_queues = *this->send_queues[src_i];
-        std::vector<Branch>& src_dst_send_queue = src_send_queues[dst_i];
-
-        src_dst_send_queue.emplace_back(std::move(branch));
-        this->metrics(src_i).send_count += 1;
-
-        if (this->stalled[src_i][dst_i].load()) {
-            this->queue_push(dst_i, &src_dst_send_queue);
-        }
-    }
-
-    void flush_all(usize src_i)
-    {
-        std::vector<std::vector<Branch>>& src_send_queues = *this->send_queues[src_i];
-        usize dst_i = 0;
-        for (std::vector<Branch>& src_dst_send_queue : src_send_queues) {
-            const auto advance_dst_i = finally([&dst_i] {
-                dst_i += 1;
-            });
-            if (src_dst_send_queue.empty()) {
-                continue;
-            }
-            this->metrics(src_i).flush_count += 1;
-            this->queue_push(dst_i, &src_dst_send_queue);
-        }
-    }
-
-    void queue_push(usize dst_i, std::vector<Branch>* branch)
-    {
-        std::vector<Branch> to_send;
-        std::swap(to_send, *branch);
-        this->total_pending_count->fetch_add(1);
-        const Optional<i64> success = this->recv_queues[dst_i]->push(std::move(to_send));
-        BATT_CHECK(success) << BATT_INSPECT(dst_i) << BATT_INSPECT(this->shard_count);
-        this->queue_push_count.fetch_add(1);
-    }
-
-    StatusOr<usize> recv(usize shard_i, std::deque<Branch>& local_queue)
-    {
-        Queue<std::vector<Branch>>& src_queue = *this->recv_queues[shard_i];
-
-        this->metrics(shard_i).recv_count += 1;
-
-        const auto transfer_batch = [this, &local_queue, &src_queue, shard_i](auto& maybe_next_batch) {
-            std::vector<Branch>& next_batch = *maybe_next_batch;
-            this->queue_pop_count.fetch_add(1);
-
-            usize count = next_batch.size();
-            local_queue.insert(local_queue.end(),                            //
-                               std::make_move_iterator(next_batch.begin()),  //
-                               std::make_move_iterator(next_batch.end()));
-
-            *this->local_consume_count[shard_i] += 1;
-
-            return count;
-        };
-
-        // Try to pop branches without stalling.
-        //
-        {
-            Optional<std::vector<Branch>> next_batch = src_queue.try_pop_next();
-            if (next_batch) {
-                return transfer_batch(next_batch);
-            }
-        }
-
-        this->metrics(shard_i).stall_count += 1;
-
-        // Set "stalled" flags for this shard so that other shards know to send queued batches ASAP.
-        //
-        for (usize other_i = 0; other_i < shard_count; ++other_i) {
-            this->stalled[other_i][shard_i].store(true);
-        }
-        const auto reset_stall_flags = finally([&] {
-            // Clear "stalled" flags, now that we have a some branches to process, or the entire job is
-            // done.
-            //
-            for (usize other_i = 0; other_i < shard_count; ++other_i) {
-                this->stalled[other_i][shard_i].store(false);
-            }
-        });
-
-        // Because we are about to go to put the current task to sleep awaiting the next batch, flush all
-        // outgoing batches so no other shards are blocked on `shard_i`.
-        //
-        this->flush_all(shard_i);
-
-        // Now that we've flushed all outgoing branches, it is safe to ack the read message timestamp
-        // upper bound for this shard.
-        //
-        i64 n_to_consume = 0;
-        std::swap(n_to_consume, *this->local_consume_count[shard_i]);
-        const i64 old_value = this->total_pending_count->fetch_sub(n_to_consume);
-
-        // Check for deadlock; if all shards are stalled, then the branch-state-space has been fully explored
-        // and we are done!
-        //
-        if (old_value - n_to_consume == 0) {
-            this->close_all(shard_i);
-            //
-            // More than one shard task may call close_all; this is fine!
-        }
-
-        StatusOr<std::vector<Branch>> next_batch = src_queue.await_next();
-        BATT_REQUIRE_OK(next_batch);
-
-        return transfer_batch(next_batch);
-    }
-
-    void close_all(usize shard_i, bool allow_pending = false)
-    {
-        for (usize dst_i = 0; dst_i < this->recv_queues.size(); ++dst_i) {
-            const auto& p_queue = this->recv_queues[dst_i];
-            bool queue_is_empty = p_queue->empty();
-            if (!queue_is_empty) {
-                Task::sleep(boost::posix_time::milliseconds(1200));
-                queue_is_empty = p_queue->empty();
-            }
-            BATT_CHECK(allow_pending || queue_is_empty)
-                << BATT_INSPECT(shard_i) << BATT_INSPECT(dst_i) << BATT_INSPECT(queue_is_empty)
-                << BATT_INSPECT(p_queue->empty()) << BATT_INSPECT(allow_pending)
-                << BATT_INSPECT(p_queue->size()) << BATT_INSPECT(this->shard_count);
-
-            p_queue->close();
-        }
-    }
-
-    void finished(usize shard_i)
-    {
-        this->flush_all(shard_i);
-        this->recv_queues[shard_i]->close();
-        this->queue_pop_count.fetch_add(this->recv_queues[shard_i]->drain());
-    }
-
-    ShardMetrics& metrics(usize shard_i)
-    {
-        return *this->shard_metrics[shard_i];
-    }
-
-    Status wait_for_other_shards()
-    {
-        this->barrier_.fetch_sub(1);
-        return this->barrier_.await_equal(0);
-    }
-
-    const usize shard_count;
-    const usize hash_space_per_shard = std::numeric_limits<usize>::max() / this->shard_count;
-    Watch<usize> barrier_{this->shard_count};
-    std::atomic<i64> queue_push_count{0};
-    std::atomic<i64> queue_pop_count{0};
-
-    std::vector<std::unique_ptr<std::atomic<bool>[]>> stalled;
-    std::vector<std::unique_ptr<Queue<std::vector<Branch>>>> recv_queues;
-    std::vector<CpuCacheLineIsolated<std::vector<std::vector<Branch>>>> send_queues;
-    std::vector<CpuCacheLineIsolated<ShardMetrics>> shard_metrics;
-
-    CpuCacheLineIsolated<std::atomic<i64>> total_pending_count{0};
-    std::vector<CpuCacheLineIsolated<i64>> local_consume_count;
-};
-
-}  // namespace detail
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 
 template <typename StateT, typename StateHash, typename StateEqual>
-auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
+template <typename Checker>
+auto StateMachineModel<StateT, StateHash, StateEqual>::check_model(StaticType<Checker>) -> Result
 {
     const usize n_shards = this->max_concurrency();
     BATT_CHECK_GT(n_shards, 0u);
@@ -731,304 +391,10 @@ auto StateMachineModel<StateT, StateHash, StateEqual>::check_model() -> Result
 
 //######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
 
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-//
-template <typename StateT, typename StateHash, typename StateEqual>
-inline StateMachineModel<StateT, StateHash, StateEqual>::Checker::Checker(
-    StateMachineModel& model, detail::ParallelModelCheckState<Branch>& mesh, usize shard_i) noexcept
-    : model_{model}
-    , mesh_{mesh}
-    , shard_i_{shard_i}
-{
-    BATT_CHECK_GT(this->mesh_.shard_count, 0u);
-    BATT_CHECK_LT(this->shard_i_, this->mesh_.shard_count);
-
-    BATT_CHECK(this->model_.checker_ == nullptr);
-    this->model_.checker_ = this;
-}
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-//
-template <typename StateT, typename StateHash, typename StateEqual>
-inline StateMachineModel<StateT, StateHash, StateEqual>::Checker::~Checker() noexcept
-{
-    this->model_.checker_ = nullptr;
-}
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-//
-template <typename StateT, typename StateHash, typename StateEqual>
-inline usize StateMachineModel<StateT, StateHash, StateEqual>::Checker::pick_int(usize min_value,
-                                                                                 usize max_value)
-{
-    if (min_value == max_value) {
-        return min_value;
-    }
-
-    BATT_CHECK_LT(min_value, max_value);
-
-    const usize radix = max_value - min_value + 1;
-
-    if (!this->current_branch_->delta.empty()) {
-        auto before = this->current_branch_->delta;
-        const usize value = this->current_branch_->delta.pop(radix);
-        this->history_.push(radix, value);
-        BATT_STATE_MACHINE_VERBOSE() << "pick_int(" << min_value << "," << max_value << ") [delta=" << before
-                                     << "] returning branch value: " << (min_value + value);
-        return min_value + value;
-    }
-
-    for (usize value = 1; value < radix; ++value) {
-        Branch to_explore{
-            .snapshot = this->current_branch_->snapshot,
-            .delta = this->history_,
-        };
-        to_explore.delta.push(radix, value);
-
-        BATT_STATE_MACHINE_VERBOSE() << "pick_int(" << min_value << "," << max_value << ") -> " << min_value
-                                     << "; queuing new branch: " << (min_value + value)
-                                     << " [delta=" << to_explore.delta << "]";
-
-        this->explore(std::move(to_explore));
-    }
-    this->history_.push(radix, /*value=*/0);
-
-    return /*value=*/min_value;
-}
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-//
-template <typename StateT, typename StateHash, typename StateEqual>
-inline void StateMachineModel<StateT, StateHash, StateEqual>::Checker::explore(Branch&& branch,
-                                                                               ForceSend force_send)
-{
-    const usize dst_i = this->mesh_.find_shard(branch);
-
-    // Update cross-shard branch hit rate stats.
-    //
-    if (dst_i != this->shard_i_) {
-        this->result_.branch_miss_count += 1;
-    }
-
-    if (dst_i == this->shard_i_ && !force_send) {
-        this->result_.branch_push_count += 1;
-        this->queue_.emplace_back(std::move(branch));
-    } else {
-        this->mesh_.send(/*src_i=*/this->shard_i_, /*dst_i=*/dst_i, std::move(branch));
-    }
-}
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-//
-template <typename StateT, typename StateHash, typename StateEqual>
-void StateMachineModel<StateT, StateHash, StateEqual>::Checker::enter_loop(usize loop_counter)
-{
-    // Flush outbound queues to other shards periodically to try to prevent stalls.
-    //
-    if (((loop_counter + 1) % this->options_.max_loop_iterations_between_flush) == 0) {
-        if (this->mesh_.shard_count > 1) {
-            this->mesh_.flush_all(this->shard_i_);
-        }
-    }
-
-    // Update elapsed time and send a progress report if necessary.
-    //
-    if (((loop_counter + 1) % this->options_.max_loop_iterations_between_update) == 0) {
-        this->result_.update_elapsed_time();
-        const double elapsed_seconds = double(this->result_.elapsed_ms) / 1000.0;
-        const usize required_reports = elapsed_seconds / this->model_.progress_report_interval_seconds();
-        if (this->progress_reports_ < required_reports) {
-            this->progress_reports_ += 1;
-            this->model_.report_progress(this->result_);
-        }
-    }
-}
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-//
-template <typename StateT, typename StateHash, typename StateEqual>
-bool StateMachineModel<StateT, StateHash, StateEqual>::Checker::pop_next()
-{
-    for (;;) {
-        while (this->queue_.empty()) {
-            const usize size_before = this->queue_.size();
-            StatusOr<usize> n_recv = this->mesh_.recv(this->shard_i_, this->queue_);
-            if (!n_recv.ok()) {
-                if (n_recv.status() != batt::StatusCode::kClosed) {
-                    this->result_.ok = false;
-                }
-                return false;
-            }
-            const usize size_after = this->queue_.size();
-            BATT_CHECK_EQ(size_before, 0u);
-            BATT_CHECK_GT(*n_recv, 0u);
-            BATT_CHECK_EQ(size_after - size_before, *n_recv);
-
-            // Deduplicate incoming branches.
-            //
-            auto first_duplicate =
-                std::remove_if(this->queue_.begin(), this->queue_.end(), [&](const Branch& branch) {
-                    const bool is_duplicate =
-                        branch.delta.empty() &&
-                        (this->visit(branch.snapshot, /*src_branch=*/Branch{}
-                                     // TODO [tastolfi 2022-01-24] restore the trace history when merging
-                                     // `visited_` sets at the end of a parallel run.
-                                     ) == VisitResult::kSeenBefore);
-
-                    return is_duplicate;
-                });
-
-            this->queue_.erase(first_duplicate, this->queue_.end());
-            this->result_.branch_push_count += this->queue_.size();
-        }
-        BATT_CHECK(!this->queue_.empty());
-
-        auto& next_branch = this->queue_.front();
-        const usize branch_shard_i = this->mesh_.find_shard(next_branch);
-        BATT_CHECK_EQ(branch_shard_i, this->shard_i_);
-
-        // Pop the next branch of the state graph to explore.
-        //
-        this->current_branch_ = std::move(next_branch);
-        this->history_.clear();
-        this->queue_.pop_front();
-        this->result_.branch_pop_count += 1;
-
-        return true;
-    }
-}
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-//
-template <typename StateT, typename StateHash, typename StateEqual>
-auto StateMachineModel<StateT, StateHash, StateEqual>::Checker::run() -> Result
-{
-    // Clear current state.
-    //
-    this->progress_reports_ = 0;
-    this->current_branch_ = None;
-    this->history_.clear();
-    this->model_.visited_.clear();
-    this->queue_.clear();
-
-    // Initialize new state and seed the BFS for model checking.
-    //
-    {
-        StateT s = this->model_.normalize(this->model_.initialize());
-        this->explore(
-            Branch{
-                .snapshot = std::move(s),
-                .delta = RadixQueue<256>{},
-            },
-            ForceSend{true});
-    }
-    this->mesh_.flush_all(this->shard_i_);
-    BATT_CHECK_OK(this->mesh_.wait_for_other_shards());
-    BATT_CHECK_GT(this->mesh_.total_pending_count->load(), 0);
-
-    this->result_.ok = true;
-    this->result_.state_count = 1;
-    this->result_.start_time = std::chrono::steady_clock::now();
-
-    const auto notify_finished = finally([&] {
-        this->mesh_.finished(this->shard_i_);
-        this->result_.update_elapsed_time();
-        this->model_.report_progress(this->result_);
-    });
-
-    for (usize loop_counter = 0;; ++loop_counter) {
-        // Perform top-of-loop maintenance tasks.
-        //
-        this->enter_loop(loop_counter);
-
-        // Pop the next branch off the queue (this may block on other shards if the local queue is empty).
-        //
-        if (!this->pop_next()) {
-            break;
-        }
-
-        // Enter the new state.
-        //
-        this->model_.enter_state(this->current_branch_->snapshot);
-
-        BATT_STATE_MACHINE_VERBOSE() << " branch=" << this->current_branch_->delta;
-
-        // We should have already checked invariants for this state before enqueuing it for the first time
-        // (and the initial state should always pass invariant checks), but one can never be too sure...
-        //
-        if (!this->model_.check_invariants()) {
-            this->result_.ok = false;
-            break;
-        }
-
-        // Expand the "out-edges" of this node of the graph.
-        //
-        this->model_.step();
-
-        // Make sure the state machine hasn't violated any of its invariants.
-        //
-        if (!this->model_.check_invariants()) {
-            this->result_.ok = false;
-            break;
-        }
-
-        // Grab the new state and normalize it.
-        //
-        StateT after = this->model_.normalize(this->model_.leave_state());
-
-        if (after == this->current_branch_->snapshot) {
-            BATT_STATE_MACHINE_VERBOSE() << "(no state change) pruning self-branch";
-            this->result_.self_branch_count += 1;
-            continue;
-        }
-
-        // If this is the first time we are visiting the new state, add it to the queue and note how we
-        // discovered it in the trace.
-        //
-        if (this->visit(after, /*src_branch=*/Branch{
-                            .snapshot = this->current_branch_->snapshot,
-                            .delta = this->history_,
-                        }) == VisitResult::kFirstTime) {
-            this->result_.state_count += 1;
-            BATT_STATE_MACHINE_VERBOSE() << "new state discovered";
-
-            // This is the branch (or "out-edge") that represents choosing 0 for all non-deterministic
-            // variables inside `step()`.  We added all the non-0 branches already inside
-            // `pick_int`.
-            //
-            this->explore(Branch{
-                .snapshot = after,
-                .delta = RadixQueue<256>{},
-            });
-        } else {
-            BATT_STATE_MACHINE_VERBOSE() << "state already visited; pruning";
-        }
-    }
-
-    return this->result_;
-}
-
-//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-//
-template <typename StateT, typename StateHash, typename StateEqual>
-auto StateMachineModel<StateT, StateHash, StateEqual>::Checker::visit(const StateT& state,
-                                                                      const Branch& src_branch) -> VisitResult
-{
-    // We save a subgraph of the overall search so we can give somewhat meaningful information to help
-    // users understand how a state machine got into a certain state, if things go wrong.
-    //
-    const auto& [iter, inserted] = this->model_.visited_.emplace(state, src_branch);
-
-    (void)iter;
-
-    if (inserted) {
-        return VisitResult::kFirstTime;
-    }
-    return VisitResult::kSeenBefore;
-}
-
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 /* TEMPLATE FOR NEW STATE MACHINE MODEL IMPLS:
+
+#include <batteries/state_machine_model.hpp>
 
 #include <boost/functional/hash.hpp>
 #include <boost/operators.hpp>
@@ -1099,6 +465,15 @@ class $ImplModel : public batt::StateMachineModel<$ImplState, $ImplState::Hash>
    private:
     $ImplState state_;
 };
+
+TEST($ImplTest, StateMachineSimulation)
+{
+    $ImplModel model;
+
+    $ImplModel::Result result = model.check_model();
+    EXPECT_TRUE(result.ok());
+}
+
  */
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 

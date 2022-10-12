@@ -1,10 +1,12 @@
 //######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_ASYNC_LATCH_HPP
 #define BATTERIES_ASYNC_LATCH_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/async/handler.hpp>
 #include <batteries/async/watch_decl.hpp>

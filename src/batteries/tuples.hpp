@@ -4,6 +4,8 @@
 #ifndef BATTERIES_TUPLES_HPP
 #define BATTERIES_TUPLES_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/type_traits.hpp>
 #include <tuple>
 #include <type_traits>

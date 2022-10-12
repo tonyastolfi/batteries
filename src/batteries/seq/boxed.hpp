@@ -4,10 +4,13 @@
 #ifndef BATTERIES_SEQ_BOXED_HPP
 #define BATTERIES_SEQ_BOXED_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/hint.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/seq/requirements.hpp>
 #include <batteries/seq/seq_item.hpp>
+#include <batteries/type_erasure.hpp>
 #include <batteries/type_traits.hpp>
 #include <batteries/utility.hpp>
 
@@ -26,7 +29,14 @@ template <typename ItemT>
 class BoxedSeq
 {
    public:
-    class AbstractSeq
+    class AbstractSeq;
+
+    template <typename T>
+    class SeqImpl;
+
+    using storage_type = TypeErasedStorage<AbstractSeq, SeqImpl>;
+
+    class AbstractSeq : public AbstractValue<AbstractSeq>
     {
        public:
         AbstractSeq() = default;
@@ -36,40 +46,32 @@ class BoxedSeq
 
         virtual ~AbstractSeq() = default;
 
-        virtual AbstractSeq* clone() = 0;
-
         virtual Optional<ItemT> peek() = 0;
 
         virtual Optional<ItemT> next() = 0;
     };
 
     template <typename T>
-    class SeqImpl : public AbstractSeq
+    class SeqImpl : public AbstractValueImpl<AbstractSeq, SeqImpl, T>
     {
        public:
+        using Super = AbstractValueImpl<AbstractSeq, SeqImpl, T>;
+
         static_assert(std::is_same_v<std::decay_t<T>, T>, "BoxedSeq<T&> is not supported");
 
-        explicit SeqImpl(T&& seq) noexcept : seq_(BATT_FORWARD(seq))
+        explicit SeqImpl(T&& seq) noexcept : Super{BATT_FORWARD(seq)}
         {
-        }
-
-        AbstractSeq* clone() override
-        {
-            return new SeqImpl(batt::make_copy(seq_));
         }
 
         Optional<ItemT> peek() override
         {
-            return seq_.peek();
+            return this->obj_.peek();
         }
 
         Optional<ItemT> next() override
         {
-            return seq_.next();
+            return this->obj_.next();
         }
-
-       private:
-        T seq_;
     };
 
     using Item = ItemT;
@@ -81,7 +83,7 @@ class BoxedSeq
               typename = EnableIfSeq<T>,                   //
               typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, Status> &&
                                           !std::is_same_v<std::decay_t<T>, StatusCode>>>
-    explicit BoxedSeq(T&& seq) : impl_(std::make_unique<SeqImpl<T>>(BATT_FORWARD(seq)))
+    explicit BoxedSeq(T&& seq) : storage_{StaticType<T>{}, BATT_FORWARD(seq)}
     {
         static_assert(std::is_same<T, std::decay_t<T>>{}, "BoxedSeq may not be used to capture a reference");
     }
@@ -92,35 +94,26 @@ class BoxedSeq
     template <typename U, typename = std::enable_if_t<!std::is_same_v<ItemT, U>>>
     BoxedSeq(BoxedSeq<U>&& other_seq) = delete;
 
-    // Use std::unique_ptr move semantics
+    // Copyable.
     //
     BoxedSeq(BoxedSeq&&) = default;
+    BoxedSeq(const BoxedSeq& that) = default;
+
     BoxedSeq& operator=(BoxedSeq&&) = default;
-
-    BoxedSeq(const BoxedSeq& that) : impl_(that.impl_->clone())
-    {
-    }
-
-    BoxedSeq& operator=(const BoxedSeq& that)
-    {
-        if (BATT_HINT_TRUE(this != &that)) {
-            impl_.reset(that.impl_->clone());
-        }
-        return *this;
-    }
+    BoxedSeq& operator=(const BoxedSeq& that) = default;
 
     Optional<Item> peek()
     {
-        return impl_->peek();
+        return this->storage_->peek();
     }
 
     Optional<Item> next()
     {
-        return impl_->next();
+        return this->storage_->next();
     }
 
    private:
-    std::unique_ptr<AbstractSeq> impl_;
+    storage_type storage_;
 };
 
 template <typename T>

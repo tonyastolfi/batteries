@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_HEADER_HPP
 #define BATTERIES_HTTP_HEADER_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/pico_http/parser.hpp>
 
 namespace batt {

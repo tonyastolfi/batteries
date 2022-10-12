@@ -1,3 +1,6 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_ASYNC_STREAM_BUFFER_IPP
 #define BATTERIES_ASYNC_STREAM_BUFFER_IPP

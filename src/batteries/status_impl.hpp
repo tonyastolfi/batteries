@@ -1,7 +1,12 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_STATUS_IMPL_HPP
 #define BATTERIES_STATUS_IMPL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/config.hpp>
 
@@ -42,7 +47,7 @@ BATT_INLINE_IMPL Status OkStatus()
 //
 BATT_INLINE_IMPL detail::StatusBase::StatusBase() noexcept
 {
-    static bool initialized = [] {
+    [[maybe_unused]] static bool initialized = [] {
         Status::register_codes_internal<StatusCode>({
             {StatusCode::kOk, "Ok"},
             {StatusCode::kCancelled, "Cancelled"},
@@ -81,7 +86,6 @@ BATT_INLINE_IMPL detail::StatusBase::StatusBase() noexcept
         }
         return Status::register_codes_internal<ErrnoValue>(errno_codes);
     }();
-    BATT_ASSERT(initialized);
 }
 
 }  // namespace batt

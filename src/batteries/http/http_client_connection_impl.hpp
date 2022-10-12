@@ -5,6 +5,8 @@
 #ifndef BATTERIES_HTTP_HTTP_CLIENT_CONNECTION_IMPL_HPP
 #define BATTERIES_HTTP_HTTP_CLIENT_CONNECTION_IMPL_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/http/http_chunk_decoder.hpp>
 #include <batteries/http/http_client_connection.hpp>
 #include <batteries/http/http_client_host_context.hpp>

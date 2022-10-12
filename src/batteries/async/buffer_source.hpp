@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_BUFFER_SOURCE_HPP
 #define BATTERIES_ASYNC_BUFFER_SOURCE_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/async/io_result.hpp>
 #include <batteries/async/task_decl.hpp>
 
@@ -102,6 +104,34 @@ template <typename T>
 using EnableIfBufferSource = std::enable_if_t<has_buffer_source_requirements<T>()>;
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// A type-erased no-copy input stream.
+//
+// Instead of a traditional (copying) input stream, which copies data into caller-supplied buffers,
+// BufferSource provides the `fetch_at_least` operation, which returns one or more pre-populated data buffers
+// owned by the BufferSource.  The caller is guaranteed that these buffers remain valid until the next
+// non-const member function is invoked on the BufferSource.
+//
+// To make dealing with byte streams easier, BufferSource values can be modified/transformed via a select
+// subset of `batt::seq` operators:
+//
+// - seq::take_n(byte_count)
+// - seq::skip_n(byte_count)
+// - seq::prepend(const_buffer_sequence)
+// - seq::for_each(fn) (fn takes ConstBuffer)
+// - seq::collect_vec() => std::vector<char>
+// - seq::print_out(std::ostream)
+// - seq::consume()
+//
+// In addition, a new operator is defined for BufferSource, seq::write_to(AsyncWriteStream):
+//
+// ```c++
+// batt::BufferSource data_to_send;
+// boost::asio::ip::tcp::socket dst_stream;
+//
+// // Write all the data to the stream.
+// //
+// StatusOr<usize> result = data_to_send | batt::seq::write_to(dst_stream);
+// ```
 //
 class BufferSource
 {
@@ -113,11 +143,18 @@ class BufferSource
               typename = std::enable_if_t<std::is_same_v<std::decay_t<T>, T>>>
     /*implicit*/ BufferSource(T&& obj) noexcept;
 
+    // Returns true iff this object contains a valid BufferSource impl.
+    //
     explicit operator bool() const;
 
+    // Release the type-erased impl object; post-condition: `bool{*this} == false`.
+    //
     void clear();
 
-    // The current number of bytes available as consumable data.
+    // The current number of bytes available as consumable data.  This should be used as an optimization hint
+    // only; the next call to `fetch_*` may return more bytes than the last returned value of size.
+    // Specifically, callers should not count on `size()` returning 0 being an indication that the next call
+    // to `fetch_at_least` will block.
     //
     usize size() const;
 
@@ -150,6 +187,8 @@ class BufferSource
 };
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+// Adapts a Seq of Item = ConstBuffer to a BufferSource impl, allowing it to be wrapped via the BufferSource
+// class.
 //
 template <typename Seq>
 class SeqBufferSource
@@ -267,6 +306,7 @@ template <typename Src, typename MapFn>
 class FilterBufferSource
 {
    public:
+    // TODO [tastolfi 2022-06-22]
    private:
 };
 
@@ -277,6 +317,7 @@ template <typename Src, typename MapFn>
 class MapBufferSource
 {
    public:
+    // TODO [tastolfi 2022-06-22]
    private:
 };
 

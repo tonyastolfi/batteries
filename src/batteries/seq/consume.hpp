@@ -5,6 +5,8 @@
 #ifndef BATTERIES_SEQ_CONSUME_HPP
 #define BATTERIES_SEQ_CONSUME_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/seq/for_each.hpp>
 #include <batteries/seq/requirements.hpp>
 

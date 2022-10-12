@@ -1,9 +1,13 @@
+//######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
+// Copyright 2022 Anthony Paul Astolfi
+//
 #pragma once
 #ifndef BATTERIES_ASYNC_BUFFER_SOURCE_IMPL_HPP
 #define BATTERIES_ASYNC_BUFFER_SOURCE_IMPL_HPP
 
-#include <batteries/async/buffer_source.hpp>
 #include <batteries/config.hpp>
+//
+#include <batteries/async/buffer_source.hpp>
 #include <batteries/utility.hpp>
 
 namespace batt {

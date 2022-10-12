@@ -5,6 +5,8 @@
 #ifndef BATTERIES_ASYNC_IO_RESULT_HPP
 #define BATTERIES_ASYNC_IO_RESULT_HPP
 
+#include <batteries/config.hpp>
+//
 #include <batteries/assert.hpp>
 #include <batteries/status.hpp>
 #include <batteries/utility.hpp>
