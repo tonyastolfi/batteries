@@ -1,7 +1,7 @@
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 # See batteries/docker/Dockerfile
 #
-image: registry.gitlab.com/tonyastolfi/batteries:latest
+image: registry.gitlab.com/batteriescpp/batteries:latest
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 workflow:
