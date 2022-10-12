@@ -15,6 +15,7 @@ fi
 # container based on our CI image.
 #
 docker run ${DOCKER_FLAGS_INTERACTIVE} \
+       --ulimit memlock=-1:-1 \
        -v /etc/passwd:/etc/passwd \
        -v /etc/group:/etc/group \
        --user $(id -u):$(id -g) \
