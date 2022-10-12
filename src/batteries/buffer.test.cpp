@@ -150,4 +150,3 @@ TEST(BufferTest, AsConstBuffer)
 }
 
 }  // namespace
-g
