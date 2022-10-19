@@ -453,33 +453,41 @@ class PrependBufferSource
 
     explicit PrependBufferSource(ConstBufferSequence&& buffers, Src&& rest) noexcept
         : first_{BATT_FORWARD(buffers)}
-        , first_begin_{boost::asio::buffer_sequence_begin(this->first_)}
-        , first_end_{boost::asio::buffer_sequence_end(this->first_)}
-        , first_offset_{0}
-        , first_size_{boost::asio::buffer_size(this->first_)}
+        , first_buffer_index_{0}
+        , first_buffer_offset_{0}
+        , first_bytes_remaining_{boost::asio::buffer_size(this->first_)}
         , rest_{BATT_FORWARD(rest)}
     {
-        if (this->first_size_ == 0) {
-            this->first_begin_ = this->first_end_;
-        }
+        static_assert(std::is_same_v<std::decay_t<ConstBufferSequence>, ConstBufferSequence>,
+                      "PrependBufferSource may not capture ConstBufferSequence reference types!");
     }
 
     usize size() const
     {
-        return this->first_size_ + this->rest_.size();
+        return this->first_bytes_remaining_ + this->rest_.size();
     }
 
     StatusOr<SmallVec<ConstBuffer, 3>> fetch_at_least(i64 min_count_i)
     {
         const usize min_count_z = BATT_CHECKED_CAST(usize, min_count_i);
+        SmallVec<ConstBuffer, 3> buffer;
 
-        SmallVec<ConstBuffer, 3> buffer(this->first_begin_, this->first_end_);
-        if (!buffer.empty()) {
-            buffer.front() += first_offset_;
+        if (this->first_bytes_remaining_ > 0) {
+            const auto first_begin = boost::asio::buffer_sequence_begin(this->first_);
+            const auto first_end = boost::asio::buffer_sequence_end(this->first_);
+            const auto first_iter = std::next(first_begin, this->first_buffer_index_);
+
+            BATT_CHECK_NE(first_iter, first_end)
+                << "If bytes_remaining > 0, then the unread buffer sequence should be non-empty";
+
+            buffer.insert(buffer.end(), first_iter, first_end);
+
+            BATT_CHECK(!buffer.empty());
+
+            buffer.front() += this->first_buffer_offset_;
         }
 
-        const usize rest_min_count = min_count_z - std::min(this->first_size_, min_count_z);
-
+        const usize rest_min_count = min_count_z - std::min(this->first_bytes_remaining_, min_count_z);
         auto fetched_from_rest = this->rest_.fetch_at_least(rest_min_count);
         if (buffer.empty() || fetched_from_rest.status() != StatusCode::kEndOfStream) {
             BATT_REQUIRE_OK(fetched_from_rest);
@@ -497,12 +505,18 @@ class PrependBufferSource
     void consume(i64 count_i)
     {
         const usize count_z = BATT_CHECKED_CAST(usize, count_i);
-        const usize consume_from_first = std::min(this->first_size_, count_z);
+        const usize consume_from_first = std::min(this->first_bytes_remaining_, count_z);
         const usize consume_from_rest = count_z - consume_from_first;
 
-        std::tie(this->first_begin_, this->first_offset_) = consume_buffers_iter(
-            std::make_pair(this->first_begin_, this->first_offset_), this->first_end_, consume_from_first);
-        this->first_size_ -= consume_from_first;
+        const auto first_begin = boost::asio::buffer_sequence_begin(this->first_);
+        const auto first_end = boost::asio::buffer_sequence_end(this->first_);
+        auto first_iter = std::next(first_begin, this->first_buffer_index_);
+
+        std::tie(first_iter, this->first_buffer_offset_) = consume_buffers_iter(
+            std::make_pair(first_iter, this->first_buffer_offset_), first_end, consume_from_first);
+        this->first_buffer_index_ = std::distance(first_begin, first_iter);
+        this->first_bytes_remaining_ -= consume_from_first;
+
         if (consume_from_rest > 0) {
             this->rest_.consume(consume_from_rest);
         }
@@ -510,17 +524,31 @@ class PrependBufferSource
 
     void close_for_read()
     {
-        this->first_begin_ = this->first_end_;
-        this->first_size_ = 0;
+        this->first_buffer_index_ = std::distance(boost::asio::buffer_sequence_begin(this->first_),
+                                                  boost::asio::buffer_sequence_end(this->first_));
+        this->first_buffer_offset_ = 0;
+        this->first_bytes_remaining_ = 0;
+
         this->rest_.close_for_read();
     }
 
    private:
     ConstBufferSequence first_;
-    BufferIter first_begin_;
-    BufferIter first_end_;
-    usize first_offset_;
-    usize first_size_;
+
+    // How far into the buffer sequence `first_` is the first unread data?
+    //
+    usize first_buffer_index_;
+
+    // How far within the current buffer the first unread data?
+    //
+    usize first_buffer_offset_;
+
+    // How much data in `first` has not yet been consumed?
+    //
+    usize first_bytes_remaining_;
+
+    // What follows `first_`.
+    //
     Src rest_;
 };
 

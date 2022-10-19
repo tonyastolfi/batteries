@@ -52,6 +52,7 @@
 #include <bitset>
 #include <functional>
 #include <future>
+#include <thread>
 #include <utility>
 
 namespace batt {
