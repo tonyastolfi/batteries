@@ -161,6 +161,7 @@ class Mutex
     {
         const u64 my_ticket = next_ticket_.fetch_add(1);
         StatusOr<u64> latest_ticket = current_ticket_.get_value();
+        BATT_CHECK_OK(latest_ticket);
 
         // This is OK since it will probably take something like 100 years to wrap.  We should be so lucky!
         //

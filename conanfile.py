@@ -1,20 +1,29 @@
+##=##=##=#==#=#==#===#+==#+==========+==+=+=+=+=+=++=+++=+++++=-++++=-+++++++++++
+# Copyright 2022 Anthony Paul Astolfi
+#
 from conans import ConanFile, CMake
 
 import os, sys
 
-VERBOSE_ = os.getenv('VERBOSE') and True or False
+SCRIPT_DIR = os.path.join(os.path.dirname(__file__), 'script')
+VERBOSE = os.getenv('VERBOSE') and True or False
 
-SCRIPT_DIR_ = os.path.join(os.path.dirname(__file__), 'script')
-if VERBOSE_:
-    print(f"SCRIPT_DIR_={SCRIPT_DIR_}", file=sys.stderr)
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+# Import the Batteries utility module.
+#
+sys.path.append(SCRIPT_DIR)
 
-VERSION_ = os.popen("VERBOSE= " + os.path.join(SCRIPT_DIR_, "get-version.sh")).read().strip()
-if VERBOSE_:
-    print(f"VERSION_={VERSION_}", file=sys.stderr)
+import batt
+
+batt.VERBOSE = False
+VERSION = batt.get_version(no_check_conan=True)
+batt.verbose(f'VERSION={VERSION}')
+#
+#+++++++++++-+-+--+----- --- -- -  -  -   -
 
 class BatteriesConan(ConanFile):
     name = "batteries"
-    version = VERSION_
+    version = VERSION
     license = "Apache Public License 2.0"
     author = "Tony Astolfi <tastolfi@gmail.com>"
     url = "https://github.com/tonyastolfi/batteries.git"
@@ -50,15 +59,9 @@ class BatteriesConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
-        cmake.verbose = VERBOSE_
+        cmake.verbose = VERBOSE
         cmake.configure(source_folder="src")
         cmake.build()
-        #cmake.test(output_on_failure=True)
-
-        # Explicit way:
-        # self.run('cmake %s/hello %s'
-        #          % (self.source_folder, cmake.command_line))
-        # self.run("cmake --build . %s" % cmake.build_config)
 
     def export(self):
         self.copy("*.sh", src="script", dst="script")
