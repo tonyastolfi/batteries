@@ -80,7 +80,7 @@ def working_tree_is_clean():
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
 def find_git_hash(refspec='HEAD'):
-    return os.popen(f'git rev-list -n 1 "{refspec}"').read().strip().split(' ').get(0)
+    return os.popen(f'git rev-list -n 1 "{refspec}"').read().strip().split(' ')[0]
 
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
