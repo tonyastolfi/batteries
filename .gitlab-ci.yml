@@ -47,6 +47,7 @@ install:
     - changes:
       - conanfile.py
       - .gitlab-ci.yml
+      - script/*
   cache:
     - key: build-cache
       paths:
