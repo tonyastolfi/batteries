@@ -34,11 +34,19 @@ namespace batt {
 }  // namespace batt
 
 #if defined(__GNUC__) && !defined(__clang__)
+
 #define BATT_COMPILER_IS_GCC 1
 #define BATT_IF_GCC(expr) expr
+
+// This causes a lot of false positives, so disable.
+//
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
 #else
+
 #define BATT_COMPILER_IS_GCC 0
 #define BATT_IF_GCC(expr)
+
 #endif
 
 #if defined(__clang__)
