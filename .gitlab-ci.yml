@@ -41,11 +41,6 @@ install.linux_gcc9_amd64:
   script:
     - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
     - make BUILD_TYPE=Release install
-  rules:
-    - changes:
-      - conanfile.py
-      - .gitlab-ci.yml
-      - script/*
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 install.linux_gcc11_amd64:
@@ -55,11 +50,6 @@ install.linux_gcc11_amd64:
     - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
     - conan --version
     - make BUILD_TYPE=Release install
-  rules:
-    - changes:
-      - conanfile.py
-      - .gitlab-ci.yml
-      - script/*
 
 #=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 # Build Stage
