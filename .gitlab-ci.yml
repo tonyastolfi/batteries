@@ -48,6 +48,7 @@ install.linux_gcc11_amd64:
   stage: install
   script:
     - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
+    - conan --version
     - make BUILD_TYPE=Release install
   rules:
     - changes:
