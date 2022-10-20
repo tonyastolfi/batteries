@@ -65,6 +65,7 @@ class BatteriesConan(ConanFile):
 
     def export(self):
         self.copy("*.sh", src="script", dst="script")
+        self.copy("*.py", src="script", dst="script")
 
     def package(self):
         self.copy("*.hpp", dst="include", src="src")

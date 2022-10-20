@@ -70,11 +70,12 @@ verbose "Publishing ${conan_recipe}..."
 # we continue.
 #
 #( cd "${project_dir}" && make BUILD_TYPE=Release install build test create )
-( cd "${project_dir}" && make BUILD_TYPE=Release install create )
+( cd "${project_dir}" && make BUILD_TYPE=Release install )
 
 # Create the release package...
 #
-( cd "${project_dir}/build/Release" && conan create ../.. ${conan_recipe} )
+conan_profile=$(test -f '/etc/conan_profile.default' && echo '/etc/conan_profile.default' || echo 'default')
+( cd "${project_dir}/build/Release" && conan create --profile "${conan_profile}"  ../.. ${conan_recipe} )
 
 # ...and upload it!
 #
