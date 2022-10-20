@@ -75,7 +75,7 @@ verbose "Publishing ${conan_recipe}..."
 # Create the release package...
 #
 conan_profile=$(test -f '/etc/conan_profile.default' && echo '/etc/conan_profile.default' || echo 'default')
-( cd "${project_dir}/build/Release" && conan create ../.. --profile "${conan_profile}" ${conan_recipe} )
+( cd "${project_dir}/build/Release" && conan create --profile "${conan_profile}"  ../.. ${conan_recipe} )
 
 # ...and upload it!
 #

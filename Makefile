@@ -49,10 +49,10 @@ endif
 
 install:
 	mkdir -p "$(BUILD_DIR)"
-	(cd "$(BUILD_DIR)" && conan install ../.. --profile "$(CONAN_PROFILE)" -s build_type=$(BUILD_TYPE) --build=missing)
+	(cd "$(BUILD_DIR)" && conan install --profile "$(CONAN_PROFILE)" -s build_type=$(BUILD_TYPE) --build=missing ../..)
 
 create: test
-	(cd "$(BUILD_DIR)" && conan create ../.. --profile "$(CONAN_PROFILE)" -s build_type=$(BUILD_TYPE))
+	(cd "$(BUILD_DIR)" && conan create --profile "$(CONAN_PROFILE)" -s build_type=$(BUILD_TYPE) ../..)
 
 
 publish: | test build
