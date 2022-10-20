@@ -1,7 +1,7 @@
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 # See batteries/docker/Dockerfile
 #
-image: registry.gitlab.com/batteriescpp/batteries:linux_gcc11_amd64_v0.11.7-devel
+image: registry.gitlab.com/batteriescpp/batteries:latest.linux_gcc11_amd64
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 workflow:
@@ -21,17 +21,17 @@ default:
     - export CONAN_USER_HOME=/local/gitlab-runner-local-cache
     - echo "CI_DEPLOY_USER=${CI_DEPLOY_USER}"
     - echo "CI_DEPLOY_PASSWORD=${CI_DEPLOY_PASSWORD}"
-    
+
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 stages:
-  - debug_env
   - install
   - build
   - test
   - release
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
-install:
+install.linux_gcc9_amd64:
+  image: registry.gitlab.com/batteriescpp/batteries:latest.linux_gcc9_amd64
   stage: install
   script:
     - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
@@ -41,30 +41,37 @@ install:
       - conanfile.py
       - .gitlab-ci.yml
       - script/*
-  cache:
-    - key: build-cache
-      paths:
-        - build/
-      policy: push
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
-build:
+install.linux_gcc11_amd64:
+  image: registry.gitlab.com/batteriescpp/batteries:latest.linux_gcc11_amd64
+  stage: install
+  script:
+    - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
+    - make BUILD_TYPE=Release install
+  rules:
+    - changes:
+      - conanfile.py
+      - .gitlab-ci.yml
+      - script/*
+
+#+++++++++++-+-+--+----- --- -- -  -  -   -
+build.linux_gcc9_amd64:
+  image: registry.gitlab.com/batteriescpp/batteries:latest.linux_gcc9_amd64
   stage: build
+  needs: [install.linux_gcc9_amd64]
   script:
     - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
     - make BUILD_TYPE=Release build
   artifacts:
     paths:
       - build/
-  cache:
-    - key: build-cache
-      paths:
-        - build/
-      policy: pull-push
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
-test:
+test.linux_gcc11_amd64:
+  image: registry.gitlab.com/batteriescpp/batteries:latest.linux_gcc11_amd64
   stage: test
+  needs: [build.linux_gcc11_amd64]
   script:
     - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
     - make BUILD_TYPE=Release test
@@ -73,11 +80,6 @@ test:
       junit:
         - build/Release/test-results.xml
         - build/Release/death-test-results.xml
-  cache:
-    - key: build-cache
-      paths:
-        - build/
-      policy: pull
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 release:
@@ -94,11 +96,6 @@ release:
     description: $CI_COMMIT_MESSAGE
   rules:
     - if: $CI_COMMIT_TAG
-  cache:
-    - key: build-cache
-      paths:
-        - build/
-      policy: pull
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 docs:
@@ -107,9 +104,4 @@ docs:
       - make deploy-docs
   rules:
     - if: $CI_COMMIT_TAG
-  cache:
-    - key: build-cache
-      paths:
-        - build/
-      policy: pull
 

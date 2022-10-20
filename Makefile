@@ -9,13 +9,27 @@ endif
 PROJECT_DIR := $(shell pwd)
 BUILD_DIR := build/$(BUILD_TYPE)
 DOC_DIR := $(BUILD_DIR)/doc
-DOCKER_TAG_PREFIX := registry.gitlab.com/batteriescpp/batteries
-DOCKER_TAG_VERSION := _v$(shell "$(PROJECT_DIR)/script/get-version.sh")
-DOCKER_TAG_LATEST := :latest
+
+# The list of OS/Compiler/Arch variants to build images for.
+#
+DOCKER_PLATFORM_VARIANTS := \
+	linux_gcc9_amd64 \
+	linux_gcc11_amd64 \
+
+
+DOCKER_IMAGE_PREFIX := registry.gitlab.com/batteriescpp/batteries
+DOCKER_TAG_VERSION_PREFIX := v$(shell "$(PROJECT_DIR)/script/get-version.sh")
+DOCKER_TAGS_TO_BUILD := $(foreach VARIANT,$(DOCKER_PLATFORM_VARIANTS),$(DOCKER_IMAGE_PREFIX):$(DOCKER_TAG_VERSION_PREFIX)$(VARIANT))
+DOCKER_TS_DIR := $(BUILD_DIR)/docker
+DOCKER_TS_BUILD_LIST := $(foreach VARIANT,$(DOCKER_PLATFORM_VARIANTS),$(DOCKER_TS_DIR)/$(VARIANT).build.ts)
+DOCKER_TS_PUSH_LIST := $(foreach VARIANT,$(DOCKER_PLATFORM_VARIANTS),$(DOCKER_TS_DIR)/$(VARIANT).push.ts)
+
 CONAN_PROFILE := $(shell test -f /etc/conan_profile.default && echo '/etc/conan_profile.default' || echo 'default')
 
 $(info CONAN_PROFILE is $(CONAN_PROFILE))
-
+$(info DOCKER_TAGS_TO_BUILD is $(DOCKER_TAGS_TO_BUILD))
+$(info DOCKER_TS_BUILD_LIST is $(DOCKER_TS_BUILD_LIST))
+$(info DOCKER_TS_PUSH_LIST is $(DOCKER_TS_PUSH_LIST))
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
 build: | install
@@ -45,21 +59,35 @@ publish: | test build
 	script/publish-release.sh
 
 
-docker-build:
-	(cd docker && docker build -t $(DOCKER_TAG_PREFIX):linux_gcc9_amd64$(DOCKER_TAG_VERSION) -f Dockerfile.linux_gcc9_amd64 .)
-	(cd docker && docker build -t $(DOCKER_TAG_PREFIX):linux_gcc11_amd64$(DOCKER_TAG_VERSION) -f Dockerfile.linux_gcc11_amd64 .)
-	docker tag $(DOCKER_TAG_PREFIX):linux_gcc11_amd64$(DOCKER_TAG_VERSION) $(DOCKER_TAG_PREFIX)$(DOCKER_TAG_LATEST)
+#+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+$(DOCKER_TS_DIR)/%.build.ts: $(PROJECT_DIR)/docker/Dockerfile.% $(MAKEFILE_LIST)
+	mkdir -p "$(DOCKER_TS_DIR)"
+	(cd "$(PROJECT_DIR)/docker" && docker build -t $(DOCKER_IMAGE_PREFIX):$(DOCKER_TAG_VERSION_PREFIX).$* -f Dockerfile.$* .)
+	docker tag $(DOCKER_IMAGE_PREFIX):$(DOCKER_TAG_VERSION_PREFIX).$* $(DOCKER_IMAGE_PREFIX):latest.$*
+	docker tag $(DOCKER_IMAGE_PREFIX):$(DOCKER_TAG_VERSION_PREFIX).$* $(DOCKER_IMAGE_PREFIX):latest
+	touch "$@"
 
 
-docker-push: | docker-build
-	docker push $(DOCKER_TAG_PREFIX):linux_gcc9_amd64$(DOCKER_TAG_VERSION)
-	docker push $(DOCKER_TAG_PREFIX):linux_gcc11_amd64$(DOCKER_TAG_VERSION)
-	docker push $(DOCKER_TAG_PREFIX)$(DOCKER_TAG_LATEST)
+docker-build: $(DOCKER_TS_BUILD_LIST)
+
+#+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+$(DOCKER_TS_DIR)/%.push.ts: $(DOCKER_TS_DIR)/%.build.ts $(MAKEFILE_LIST)
+	docker push $(DOCKER_IMAGE_PREFIX):$(DOCKER_TAG_VERSION_PREFIX).$*
+	docker push $(DOCKER_IMAGE_PREFIX):latest.$*
+	docker push $(DOCKER_IMAGE_PREFIX):latest
+	touch "$@"
+
+
+docker-push: $(DOCKER_TS_PUSH_LIST)
 
 
 docker: docker-build docker-push
 
 
+#+++++++++++-+-+--+----- --- -- -  -  -   -
+#
 .PHONY: doxygen
 doxygen:
 	rm -rf "$(PROJECT_DIR)/build/doxygen"
