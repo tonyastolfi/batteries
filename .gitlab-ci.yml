@@ -75,6 +75,9 @@ build.linux_gcc9_amd64:
   artifacts:
     paths:
       - build/
+    exclude:
+      - build/**/*.o
+      - build/**/*.obj
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 build.linux_gcc11_amd64:
@@ -87,6 +90,9 @@ build.linux_gcc11_amd64:
   artifacts:
     paths:
       - build/
+    exclude:
+      - build/**/*.o
+      - build/**/*.obj
 
 #=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 # Test Stage
