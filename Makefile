@@ -1,5 +1,3 @@
-.PHONY: build build-nodoc install create test publish docker-build docker-push docker
-
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
 ifeq ($(BUILD_TYPE),)
@@ -19,7 +17,6 @@ DOCKER_PLATFORM_VARIANTS := \
 
 DOCKER_IMAGE_PREFIX := registry.gitlab.com/batteriescpp/batteries
 DOCKER_TAG_VERSION_PREFIX := v$(shell "$(PROJECT_DIR)/script/get-version.sh")
-DOCKER_TAGS_TO_BUILD := $(foreach VARIANT,$(DOCKER_PLATFORM_VARIANTS),$(DOCKER_IMAGE_PREFIX):$(DOCKER_TAG_VERSION_PREFIX)$(VARIANT))
 DOCKER_TS_DIR := $(BUILD_DIR)/docker
 DOCKER_TS_BUILD_LIST := $(foreach VARIANT,$(DOCKER_PLATFORM_VARIANTS),$(DOCKER_TS_DIR)/$(VARIANT).build.ts)
 DOCKER_TS_PUSH_LIST := $(foreach VARIANT,$(DOCKER_PLATFORM_VARIANTS),$(DOCKER_TS_DIR)/$(VARIANT).push.ts)
@@ -27,16 +24,25 @@ DOCKER_TS_PUSH_LIST := $(foreach VARIANT,$(DOCKER_PLATFORM_VARIANTS),$(DOCKER_TS
 CONAN_PROFILE := $(shell test -f /etc/conan_profile.default && echo '/etc/conan_profile.default' || echo 'default')
 
 $(info CONAN_PROFILE is $(CONAN_PROFILE))
-$(info DOCKER_TAGS_TO_BUILD is $(DOCKER_TAGS_TO_BUILD))
 $(info DOCKER_TS_BUILD_LIST is $(DOCKER_TS_BUILD_LIST))
 $(info DOCKER_TS_PUSH_LIST is $(DOCKER_TS_PUSH_LIST))
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
-build: | install
+#----- --- -- -  -  -   -
+.PHONY: install
+install:
+	mkdir -p "$(BUILD_DIR)"
+	(cd "$(BUILD_DIR)" && conan install --profile "$(CONAN_PROFILE)" -s build_type=$(BUILD_TYPE) --build=missing ../..)
+
+#----- --- -- -  -  -   -
+.PHONY: build
+build:
 	mkdir -p "$(BUILD_DIR)"
 	(cd "$(BUILD_DIR)" && conan build ../..)
 
-test: | build
+#----- --- -- -  -  -   -
+.PHONY: test
+test:
 	mkdir -p "$(BUILD_DIR)"
 ifeq ("$(GTEST_FILTER)","")
 	@echo -e "\n\nRunning DEATH tests ==============================================\n"
@@ -47,16 +53,10 @@ else
 	(cd "$(BUILD_DIR)" && GTEST_OUTPUT='xml:../test-results.xml' ctest --verbose)
 endif
 
-install:
-	mkdir -p "$(BUILD_DIR)"
-	(cd "$(BUILD_DIR)" && conan install --profile "$(CONAN_PROFILE)" -s build_type=$(BUILD_TYPE) --build=missing ../..)
-
-create: test
+#----- --- -- -  -  -   -
+.PHONY: create
+create:
 	(cd "$(BUILD_DIR)" && conan create --profile "$(CONAN_PROFILE)" -s build_type=$(BUILD_TYPE) ../..)
-
-
-publish: | test build
-	script/publish-release.sh
 
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -69,6 +69,7 @@ $(DOCKER_TS_DIR)/%.build.ts: $(PROJECT_DIR)/docker/Dockerfile.% $(MAKEFILE_LIST)
 	touch "$@"
 
 
+.PHONY: docker-build
 docker-build: $(DOCKER_TS_BUILD_LIST)
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -80,9 +81,11 @@ $(DOCKER_TS_DIR)/%.push.ts: $(DOCKER_TS_DIR)/%.build.ts $(MAKEFILE_LIST)
 	touch "$@"
 
 
+.PHONY: docker-push
 docker-push: $(DOCKER_TS_PUSH_LIST)
 
 
+.PHONY: docker
 docker: docker-build docker-push
 
 
