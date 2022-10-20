@@ -1,5 +1,7 @@
 .PHONY: build build-nodoc install create test publish docker-build docker-push docker
 
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+
 ifeq ($(BUILD_TYPE),)
 BUILD_TYPE := RelWithDebInfo
 endif
@@ -10,6 +12,11 @@ DOC_DIR := $(BUILD_DIR)/doc
 DOCKER_TAG_PREFIX := registry.gitlab.com/batteriescpp/batteries
 DOCKER_TAG_VERSION := _v$(shell "$(PROJECT_DIR)/script/get-version.sh")
 DOCKER_TAG_LATEST := :latest
+CONAN_PROFILE := $(shell test -f /etc/conan_profile.default && echo '/etc/conan_profile.default' || echo 'default')
+
+$(info CONAN_PROFILE is $(CONAN_PROFILE))
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
 build: | install
 	mkdir -p "$(BUILD_DIR)"
@@ -28,10 +35,10 @@ endif
 
 install:
 	mkdir -p "$(BUILD_DIR)"
-	(cd "$(BUILD_DIR)" && conan install ../.. -s build_type=$(BUILD_TYPE) --build=missing)
+	(cd "$(BUILD_DIR)" && conan install ../.. --profile "$(CONAN_PROFILE)" -s build_type=$(BUILD_TYPE) --build=missing)
 
 create: test
-	(cd "$(BUILD_DIR)" && conan create ../.. -s build_type=$(BUILD_TYPE))
+	(cd "$(BUILD_DIR)" && conan create ../.. --profile "$(CONAN_PROFILE)" -s build_type=$(BUILD_TYPE))
 
 
 publish: | test build

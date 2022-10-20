@@ -69,6 +69,11 @@ RUN conan profile update 'env.LDFLAGS=-fno-omit-frame-pointer' default
 RUN conan remote add gitlab https://gitlab.com/api/v4/packages/conan
 RUN conan remote add mw-insidelabs-gitlab https://insidelabs-git.mathworks.com/api/v4/packages/conan
 
+# Copy the profile to a location that won't be remapped by docker when the pipeline runs.
+#
+RUN cp ~/.conan/profiles/default /etc/conan_profile.linux_gcc9_amd64
+RUN ln -s /etc/conan_profile.linux_gcc9_amd64 /etc/conan_profile.default
+
 #=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 # Install the GitLab release cli
 #
