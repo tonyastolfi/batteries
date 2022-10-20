@@ -77,7 +77,7 @@ build.linux_gcc9_amd64:
       - build/
     exclude:
       - build/**/*.o
-      - build/**/*.o.d
+      - build/**/*.d
       - build/**/*.obj
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -93,7 +93,7 @@ build.linux_gcc11_amd64:
       - build/
     exclude:
       - build/**/*.o
-      - build/**/*.o.d
+      - build/**/*.d
       - build/**/*.obj
 
 #=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------

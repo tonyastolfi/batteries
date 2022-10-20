@@ -36,7 +36,7 @@ build: | install
 	mkdir -p "$(BUILD_DIR)"
 	(cd "$(BUILD_DIR)" && conan build ../..)
 
-test: build
+test: | build
 	mkdir -p "$(BUILD_DIR)"
 ifeq ("$(GTEST_FILTER)","")
 	@echo -e "\n\nRunning DEATH tests ==============================================\n"
