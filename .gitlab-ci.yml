@@ -18,6 +18,7 @@ default:
   before_script:
     - "test -d /local/gitlab-runner-local-cache || { echo \"FATAL: no local docker cache volume mapped\"; false; }"
     - "if [ ! -d /local/gitlab-runner-local-cache/.conan ]; then rm -rf /local/gitlab-runner-local-cache/.conan.IN_PROGRESS && cp -r ~/.conan /local/gitlab-runner-local-cache/.conan.IN_PROGRESS && mv /local/gitlab-runner-local-cache/.conan.IN_PROGRESS /local/gitlab-runner-local-cache/.conan; fi"
+    - "if [ ~/.conan/settings.yml -nt /local/gitlab-runner-local-cache/.conan/settings.yml ]; then cp ~/.conan/settings.yml  /local/gitlab-runner-local-cache/.conan/settings.yml; fi"
     - export CONAN_USER_HOME=/local/gitlab-runner-local-cache
     - echo "CI_DEPLOY_USER=${CI_DEPLOY_USER}"
     - echo "CI_DEPLOY_PASSWORD=${CI_DEPLOY_PASSWORD}"
