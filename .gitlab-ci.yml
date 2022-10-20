@@ -68,10 +68,10 @@ build.linux_gcc9_amd64:
       - build/
 
 #+++++++++++-+-+--+----- --- -- -  -  -   -
-test.linux_gcc11_amd64:
-  image: registry.gitlab.com/batteriescpp/batteries:latest.linux_gcc11_amd64
+test.linux_gcc9_amd64:
+  image: registry.gitlab.com/batteriescpp/batteries:latest.linux_gcc9_amd64
   stage: test
-  needs: [build.linux_gcc11_amd64]
+  needs: [build.linux_gcc9_amd64]
   script:
     - echo "CONAN_USER_HOME=${CONAN_USER_HOME}"
     - make BUILD_TYPE=Release test
