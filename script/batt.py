@@ -131,6 +131,8 @@ def get_version(no_check_conan = (os.getenv('NO_CHECK_CONAN') == '1')):
     latest_release = version_from_release_tag(latest_release_tag)
     active_version = latest_release
 
+    verbose(f"pwd={os.getcwd()}")
+
     def devel(version_str):
         return f'{find_next_version(version_str, "patch")}-devel'
 
