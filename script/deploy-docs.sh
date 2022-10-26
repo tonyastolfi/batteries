@@ -45,20 +45,21 @@ touch "${deploy_repo_dir}/.nojekyll"
 
 # Remove previous docsite files and copy the new content.
 #
-rm -rf "${deploy_repo_dir}/${package_version}"
-mkdir -p "${deploy_repo_dir}/${package_version}"
+rm -rf "${deploy_repo_dir}/v${package_version}"
+mkdir -p "${deploy_repo_dir}/v${package_version}"
 
 # Refresh symlinks
 #
 rm -f "${deploy_repo_dir}/latest"
-ln -s "${package_version}" "${deploy_repo_dir}/latest"
+ln -s "v${package_version}" "${deploy_repo_dir}/latest"
 
 # Copy the generated site files to the github pages repo.
 #
-cp -aT "${site_dir}/*" "${deploy_repo_dir}/${package_version}/"
+cp -aT "${site_dir}" "${deploy_repo_dir}/v${package_version}"
 
 # Generate the doc version nav selector.
 #
+rm -f "${deploy_repo_dir}/releaseNavOptions.js"
 "${script_dir}/gen-version-nav-js.sh" "${deploy_repo_dir}" > "${deploy_repo_dir}/releaseNavOptions.js"
 
 # Commit changes.
