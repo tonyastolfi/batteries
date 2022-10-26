@@ -1,6 +1,6 @@
 # &lt;batteries/assert.hpp&gt; : Fatal error check macros
 
-[File Reference](/_autogen/Files/assert_8hpp/)
+[File Reference](_autogen/Files/assert_8hpp/)
 
 This header includes enhanced drop-in replacements for standard `assert()` statements.  All the supported assertion types have a version (`BATT_CHECK*`) which is always on, even in optimized/release builds, and a version (`BATT_ASSERT*`) that is automatically stripped out of non-Debug builds.
 

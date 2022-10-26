@@ -59,6 +59,11 @@ create:
 	(cd "$(BUILD_DIR)" && conan create --profile "$(CONAN_PROFILE)" -s build_type=$(BUILD_TYPE) ../..)
 
 
+#----- --- -- -  -  -   -
+.PHONY: clean
+clean:
+	rm -rf "$(BUILD_DIR)"
+
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 #
 $(DOCKER_TS_DIR)/%.build.ts: $(PROJECT_DIR)/docker/Dockerfile.% $(MAKEFILE_LIST)

@@ -7,5 +7,5 @@ tags:
 ---
 Including this header enables strict-level compiler warnings and tells the compiler to treat all warnings as errors.
 
-[File Reference](/reference/files/strict_8hpp)
+[File Reference](reference/files/strict_8hpp)
 <!--more-->

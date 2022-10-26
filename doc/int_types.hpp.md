@@ -7,5 +7,5 @@ tags:
 ---
 Rust-like type aliases for standard integer types.
 
-[File Reference](/reference/files/int__types_8hpp)
+[File Reference](reference/files/int__types_8hpp)
 <!--more-->

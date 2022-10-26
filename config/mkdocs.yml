@@ -8,19 +8,19 @@ nav:
   - Home: index.md
   - GitLab Repo: https://gitlab.com/tonyastolfi/batteries/
   - Headers:
-      - batteries/assert.hpp: /assert.hpp
-      - batteries/async/*: /async
-      - batteries/case_of.hpp: /case_of.hpp
-      - batteries/cpu_align.hpp: /cpu_align.hpp
-      - batteries/seq.hpp: /seq
-      - batteries/status.hpp: /status.hpp
+      - batteries/assert.hpp: assert.hpp
+      - batteries/async/*: async
+      - batteries/case_of.hpp: case_of.hpp
+      - batteries/cpu_align.hpp: cpu_align.hpp
+      - batteries/seq.hpp: seq
+      - batteries/status.hpp: status.hpp
   - Reference:
-      - Files: /_autogen/Files/
-      - Classes: /_autogen/Classes/
+      - Files: _autogen/Files/
+      - Classes: _autogen/Classes/
   - Developers:
-      - Coding Style: /coding_style
-      - Configuring CI Pipelines: /how-to/configure-ci-pipelines
-      - Writing Documentation: /how-to/write-the-docs
+      - Coding Style: coding_style
+      - Configuring CI Pipelines: how-to/configure-ci-pipelines
+      - Writing Documentation: how-to/write-the-docs
 markdown_extensions:
   - toc:
       permalink: "&#128279;"

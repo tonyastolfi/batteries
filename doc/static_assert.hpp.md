@@ -10,5 +10,5 @@ Comparison based static assertion macros that, when failure occurs, cause compil
 | `BATT_STATIC_ASSERT_GE`(x,y) | x >= y |
 
 
-[File Reference](/reference/files/static__assert_8hpp)
+[File Reference](reference/files/static__assert_8hpp)
 <!--more-->

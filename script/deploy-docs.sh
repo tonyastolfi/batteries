@@ -25,24 +25,41 @@ github_repo=${GITHUB_PAGES_REPO:-batteriescpp.github.io}
 cd "${deploy_dir}"
 git clone "https://${github_user}:${GITHUB_PAGES_ACCESS_TOKEN}@github.com/${github_user}/${github_repo}"
 
+if [ "$CLONE_ONLY" == "1" ]; then
+    exit 0
+fi
+
 cd "${github_repo}"
 git config user.email "batteriescpp@gmail.com"
 git config user.name "${github_user}"
 
 deploy_repo_dir=${deploy_dir}/${github_repo}
 
-# Remove previous docsite files.
-#
-find "${deploy_repo_dir}" -mindepth 1 -maxdepth 1 \( ! -name '.git' -a ! -name 'LICENSE' -a ! -name '.nojekyll' -a ! -name '.' -a ! -name '..' \) \
-     | xargs -t rm -rf 
-
 # Make sure there is a '.nojekyll' file present.
 #
 touch "${deploy_repo_dir}/.nojekyll"
 
+# Create the version-specific content directory.
+#
+package_version=$("${script_dir}/get-version.sh")
+
+# Remove previous docsite files and copy the new content.
+#
+rm -rf "${deploy_repo_dir}/${package_version}"
+mkdir -p "${deploy_repo_dir}/${package_version}"
+
+# Refresh symlinks
+#
+rm -f "${deploy_repo_dir}/latest"
+ln -s "${package_version}" "${deploy_repo_dir}/latest"
+
 # Copy the generated site files to the github pages repo.
 #
-cp -aT "${site_dir}" "${deploy_repo_dir}"
+cp -aT "${site_dir}/*" "${deploy_repo_dir}/${package_version}/"
+
+# Generate the doc version nav selector.
+#
+"${script_dir}/gen-version-nav-js.sh" "${deploy_repo_dir}" > "${deploy_repo_dir}/releaseNavOptions.js"
 
 # Commit changes.
 #

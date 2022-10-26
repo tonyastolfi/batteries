@@ -8,7 +8,7 @@ tags:
 ---
 Enables insertion of lambda expressions into `std::ostream`, provides {{< doxfn "batt::to_string" >}} and {{< doxfn "batt::from_string" >}} functions, C-string literal escaping ({{< doxfn "batt::c_str_literal" >}}), and dumping range values with and without pretty printing ({{< doxfn "batt::dump_range" >}}).
 
-[File Reference](/reference/files/stream__util_8hpp)
+[File Reference](reference/files/stream__util_8hpp)
 <!--more-->
 
 ## Inserting Lambdas into std::ostream

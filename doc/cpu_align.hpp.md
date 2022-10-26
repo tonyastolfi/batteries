@@ -1,10 +1,10 @@
 # &lt;batteries/cpu\_align.hpp&gt;: Prevent false sharing by isolating a type in its own cache line(s).
 
-[File Reference](/_autogen/Files/cpu__align_8hpp/)
+[File Reference](_autogen/Files/cpu__align_8hpp/)
 
 ## Features
 
-- Class template [batt::CpuCacheLineIsolated](/_autogen/Classes/classbatt_1_1CpuCacheLineIsolated/#battcpucachelineisolated) for guaranteed cache-line isolation of an object.
+- Class template [batt::CpuCacheLineIsolated](_autogen/Classes/classbatt_1_1CpuCacheLineIsolated/#battcpucachelineisolated) for guaranteed cache-line isolation of an object.
 
 ## Details
 
