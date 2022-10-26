@@ -6,7 +6,7 @@ extra_css:
   - stylesheets/extra.css
 nav:
   - Home: index.md
-  - GitLab Repo: https://gitlab.com/tonyastolfi/batteries/
+  - GitLab Repo: https://gitlab.com/batteriescpp/batteries/
   - Headers:
       - batteries/assert.hpp: assert.hpp
       - batteries/async/*: async
