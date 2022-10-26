@@ -7,6 +7,10 @@ set -e
 script_dir=$(cd $(dirname $0) && pwd)
 source "${script_dir}/common.sh"
 
+# Get the current package version.
+#
+package_version=$(cd "${script_dir}" && "${script_dir}/get-version.sh")
+
 require_env_var GITHUB_PAGES_ACCESS_TOKEN
 
 site_dir=$1
@@ -38,10 +42,6 @@ deploy_repo_dir=${deploy_dir}/${github_repo}
 # Make sure there is a '.nojekyll' file present.
 #
 touch "${deploy_repo_dir}/.nojekyll"
-
-# Create the version-specific content directory.
-#
-package_version=$("${script_dir}/get-version.sh")
 
 # Remove previous docsite files and copy the new content.
 #
