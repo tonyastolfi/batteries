@@ -5,25 +5,12 @@ from conans import ConanFile, CMake
 
 import os, sys
 
-SCRIPT_DIR = os.path.join(os.path.dirname(__file__), 'script')
 VERBOSE = os.getenv('VERBOSE') and True or False
 
-#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-# Import the Batteries utility module.
-#
-sys.path.append(SCRIPT_DIR)
-
-import batt
-
-batt.VERBOSE = False
-VERSION = batt.get_version(no_check_conan=True)
-batt.verbose(f'VERSION={VERSION}')
-#
-#+++++++++++-+-+--+----- --- -- -  -  -   -
 
 class BatteriesConan(ConanFile):
     name = "batteries"
-    version = VERSION
+    # version is set automatically from Git tags - DO NOT SET IT HERE
     license = "Apache Public License 2.0"
     author = "Tony Astolfi <tastolfi@gmail.com>"
     url = "https://github.com/tonyastolfi/batteries.git"
@@ -52,6 +39,21 @@ class BatteriesConan(ConanFile):
         "src/batteries/**/*.ipp",
         "script/*.sh",
     ]
+
+    def set_version(self):
+        #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+        # Import the Batteries utility module.
+        #
+        script_dir = os.path.join(os.path.dirname(__file__), 'script')
+        sys.path.append(script_dir)
+        
+        import batt
+        
+        batt.VERBOSE = VERBOSE
+        self.version = batt.get_version(no_check_conan=True)
+        batt.verbose(f'VERSION={self.version}')
+        #
+        #+++++++++++-+-+--+----- --- -- -  -  -   -        
 
     def configure(self):
         self.options["gtest"].shared = False
