@@ -261,6 +261,31 @@ class MetricRegistry
     }
 
     template <typename T>
+    MetricRegistry& add(std::string_view name, StatsMetric<T>& stats,
+                        MetricLabelSet&& labels = MetricLabelSet{})
+    {
+        BATT_VLOG(1) << "adding StatsMetric:" << name;
+
+        this->add_exporter(&stats,
+                           std::make_unique<CountMetricExporter<T>>(to_string(name, "_count"), stats.count_),
+                           std::move(labels));
+
+        this->add_exporter(&stats,
+                           std::make_unique<CountMetricExporter<T>>(to_string(name, "_total"), stats.total_),
+                           std::move(labels));
+
+        this->add_exporter(&stats,
+                           std::make_unique<CountMetricExporter<T>>(to_string(name, "_max"), stats.max_),
+                           std::move(labels));
+
+        this->add_exporter(&stats,
+                           std::make_unique<CountMetricExporter<T>>(to_string(name, "_min"), stats.min_),
+                           std::move(labels));
+
+        return *this;
+    }
+
+    template <typename T>
     MetricRegistry& add(std::string_view name, Watch<T>& watch, MetricLabelSet&& labels = MetricLabelSet{})
     {
         return this->add_exporter(&watch, std::make_unique<WatchExporter<T>>(std::string(name), watch),

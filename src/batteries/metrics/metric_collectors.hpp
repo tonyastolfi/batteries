@@ -1,5 +1,5 @@
 //######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
-// Copyright 2021-2022 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi, Eitan Steiner
 //
 #pragma once
 #ifndef BATTERIES_METRICS_METRIC_COLLECTORS_HPP
@@ -72,6 +72,30 @@ class CountMetric
     void reset()
     {
         this->value_.store(0, std::memory_order_relaxed);
+    }
+
+    /*! \brief Atomically ensure that value_ is at least lower_bound
+     *  \param Lower bound */
+    void clamp_min(T lower_bound)
+    {
+        T observed = this->value_.load();
+        while (observed < lower_bound) {
+            if (value_.compare_exchange_weak(observed, lower_bound)) {
+                break;
+            }
+        }
+    }
+
+    /*! \brief Atomically ensure that value_ is at most upper_bound
+     *  \param Upper bound */
+    void clamp_max(T upper_bound)
+    {
+        T observed = this->value_.load();
+        while (observed > upper_bound) {
+            if (value_.compare_exchange_weak(observed, upper_bound)) {
+                break;
+            }
+        }
     }
 
    private:
@@ -219,6 +243,73 @@ class RateMetric
             .count()};
     std::atomic<T> start_value_{0};
     std::atomic<T> current_value_;
+};
+
+/*! \brief Collect count, total, max and min values for multiple samples */
+template <typename T>
+class StatsMetric
+{
+   public:
+    /*! \brief Initialize empty metric */
+    StatsMetric() = default;
+
+    /*! \brief Initialize non-empty metric
+     *  \param Initial value */
+    explicit StatsMetric(T init_val) noexcept : count_{1}, total_{init_val}, max_{init_val}, min_{init_val}
+    {
+    }
+
+    /*! \brief Reset metric to empty state */
+    void reset()
+    {
+        this->count_.reset();
+        this->total_.reset();
+        this->max_.set(std::numeric_limits<T>::min());
+        this->min_.set(std::numeric_limits<T>::max());
+    }
+
+    /*! \brief Update count, total, min and max values for a given sample
+     *  \param Sample value */
+    template <typename D>
+    void update(D sample)
+    {
+        this->count_.fetch_add(1);
+        this->total_.fetch_add(sample);
+        this->max_.clamp_min(sample);
+        this->min_.clamp_max(sample);
+    }
+
+    /*! \return Number of samples */
+    T count() const
+    {
+        return this->count_.load();
+    }
+
+    /*! \return Sum of samples */
+    T total() const
+    {
+        return this->total_.load();
+    }
+
+    /*! \return Max sample */
+    T max() const
+    {
+        return this->max_.load();
+    }
+
+    /*! \return Min sample */
+    T min() const
+    {
+        return this->min_.load();
+    }
+
+   private:
+    CountMetric<T> count_{0};
+    CountMetric<T> total_{0};
+    CountMetric<T> max_{std::numeric_limits<T>::min()};
+    CountMetric<T> min_{std::numeric_limits<T>::max()};
+
+    friend class MetricRegistry;
 };
 
 }  // namespace batt
