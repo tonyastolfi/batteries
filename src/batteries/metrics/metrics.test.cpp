@@ -15,6 +15,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <experimental/random>
 
 #include <chrono>
 #include <thread>
@@ -35,6 +36,72 @@ TEST(Metrics, CounterMetricTest)
     EXPECT_EQ(42, count_i.load());
     count_i.reset();
     EXPECT_EQ(0, count_i.load());
+}
+
+TEST(Metrics, CounterClampMinMaxTest)
+{
+    // Value updated by clamp_min
+    batt::CountMetric<int> sample(0);
+    sample.clamp_min(0);
+    EXPECT_EQ(0, sample.load());
+    sample.clamp_max(0);
+    EXPECT_EQ(0, sample.load());
+    for (int i = 1; i <= 10; i++) {
+        sample.clamp_min(i);
+        EXPECT_EQ(i, sample.load());
+    }
+    // Value updated by clamp_max
+    sample.reset();
+    sample.clamp_min(0);
+    EXPECT_EQ(0, sample.load());
+    sample.clamp_max(0);
+    EXPECT_EQ(0, sample.load());
+    for (int i = -1; i >= -10; i--) {
+        sample.clamp_max(i);
+        EXPECT_EQ(i, sample.load());
+    }
+    // Value not updated by clamp_min
+    sample.reset();
+    sample.clamp_min(0);
+    EXPECT_EQ(0, sample.load());
+    sample.clamp_max(0);
+    EXPECT_EQ(0, sample.load());
+    for (int i = -1; i >= -10; i--) {
+        sample.clamp_min(i);
+        EXPECT_EQ(0, sample.load());
+    }
+    // Value not updated by clamp_max
+    sample.reset();
+    sample.clamp_min(0);
+    EXPECT_EQ(0, sample.load());
+    sample.clamp_max(0);
+    EXPECT_EQ(0, sample.load());
+    for (int i = 1; i <= 10; i++) {
+        sample.clamp_max(i);
+        EXPECT_EQ(0, sample.load());
+    }
+    // Mixed order:
+    sample.reset();
+    sample.clamp_max(0);
+    EXPECT_EQ(0, sample.load());
+    sample.clamp_min(0);
+    EXPECT_EQ(0, sample.load());
+    sample.clamp_min(2);
+    EXPECT_EQ(2, sample.load());
+    sample.clamp_min(1);
+    EXPECT_EQ(2, sample.load());
+    sample.clamp_min(3);
+    EXPECT_EQ(3, sample.load());
+    sample.clamp_max(4);
+    EXPECT_EQ(3, sample.load());
+    sample.clamp_max(3);
+    EXPECT_EQ(3, sample.load());
+    sample.clamp_max(1);
+    EXPECT_EQ(1, sample.load());
+    sample.clamp_max(2);
+    EXPECT_EQ(1, sample.load());
+    sample.clamp_min(1);
+    EXPECT_EQ(1, sample.load());
 }
 
 TEST(Metrics, LatencyMetricTest)
@@ -84,6 +151,157 @@ TEST(Metrics, RateMetricTest)
     EXPECT_THAT(actual_rate, testing::DoubleNear(expect_rate, 0.4 * expect_rate));  // 40% for robustness
 }
 
+TEST(Metrics, StatsMetricTest)
+{
+    const int first_value = 1;
+    batt::StatsMetric<int> stats(first_value);
+    EXPECT_EQ(first_value, stats.max());
+    EXPECT_EQ(first_value, stats.min());
+    EXPECT_EQ(1, stats.count());
+    EXPECT_EQ(first_value, stats.total());
+    for (int i = 2; i <= 2048; i *= 2) {
+        const auto current_count = stats.count() + 1;
+        const auto current_total = stats.total() + i;
+        stats.update(i);
+        EXPECT_EQ(i, stats.max());
+        EXPECT_EQ(first_value, stats.min());
+        EXPECT_EQ(current_count, stats.count());
+        EXPECT_EQ(current_total, stats.total());
+    }
+    EXPECT_EQ(2048, stats.max());
+    EXPECT_EQ(first_value, stats.min());
+    EXPECT_EQ(12, stats.count());
+    EXPECT_EQ(4095, stats.total());
+
+    stats.reset();
+    EXPECT_EQ(std::numeric_limits<int>::min(), stats.max());
+    EXPECT_EQ(std::numeric_limits<int>::max(), stats.min());
+    EXPECT_EQ(0, stats.count());
+    EXPECT_EQ(0, stats.total());
+    stats.update(-first_value);
+    EXPECT_EQ(-first_value, stats.max());
+    EXPECT_EQ(-first_value, stats.min());
+    EXPECT_EQ(1, stats.count());
+    EXPECT_EQ(-first_value, stats.total());
+    for (int i = 2; i <= 2048; i *= 2) {
+        const auto current_count = stats.count() + 1;
+        const auto current_total = stats.total() - i;
+        stats.update(-i);
+        EXPECT_EQ(-first_value, stats.max());
+        EXPECT_EQ(-i, stats.min());
+        EXPECT_EQ(current_count, stats.count());
+        EXPECT_EQ(current_total, stats.total());
+    }
+    EXPECT_EQ(-first_value, stats.max());
+    EXPECT_EQ(-2048, stats.min());
+    EXPECT_EQ(12, stats.count());
+    EXPECT_EQ(-4095, stats.total());
+
+    stats.reset();
+    EXPECT_EQ(std::numeric_limits<int>::min(), stats.max());
+    EXPECT_EQ(std::numeric_limits<int>::max(), stats.min());
+    EXPECT_EQ(0, stats.count());
+    EXPECT_EQ(0, stats.total());
+    stats.update(42);
+    EXPECT_EQ(42, stats.max());
+    EXPECT_EQ(42, stats.min());
+    EXPECT_EQ(1, stats.count());
+    EXPECT_EQ(42, stats.total());
+    stats.update(41);
+    EXPECT_EQ(42, stats.max());
+    EXPECT_EQ(41, stats.min());
+    EXPECT_EQ(2, stats.count());
+    EXPECT_EQ(83, stats.total());
+    stats.update(44);
+    EXPECT_EQ(44, stats.max());
+    EXPECT_EQ(41, stats.min());
+    EXPECT_EQ(3, stats.count());
+    EXPECT_EQ(127, stats.total());
+    stats.update(48);
+    EXPECT_EQ(48, stats.max());
+    EXPECT_EQ(41, stats.min());
+    EXPECT_EQ(4, stats.count());
+    EXPECT_EQ(175, stats.total());
+    stats.update(40);
+    EXPECT_EQ(48, stats.max());
+    EXPECT_EQ(40, stats.min());
+    EXPECT_EQ(5, stats.count());
+    EXPECT_EQ(215, stats.total());
+}
+
+TEST(Metrics, StatsBasicConcurrentTest)
+{
+    batt::StatsMetric<int> stats;
+    // Initial state:
+    EXPECT_EQ(std::numeric_limits<int>::min(), stats.max());
+    EXPECT_EQ(std::numeric_limits<int>::max(), stats.min());
+    EXPECT_EQ(0, stats.count());
+    EXPECT_EQ(0, stats.total());
+    // Concurrent updates:
+    auto run_update = [&stats](int from, int to, int step) {
+        for (int i = from; (step > 0 ? i <= to : i >= to); i += step) {
+            stats.update(i);
+        }
+    };
+    std::thread t1(run_update, 52, 100, 2);  // even - up
+    std::thread t2(run_update, 50, 2, -2);   // even - down
+    std::thread t3(run_update, 51, 99, 2);   // odd  - up
+    std::thread t4(run_update, 49, 1, -2);   // odd  - down
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
+    // Final state:
+    EXPECT_EQ(100, stats.max());
+    EXPECT_EQ(1, stats.min());
+    EXPECT_EQ(100, stats.count());
+    EXPECT_EQ(5050, stats.total());
+}
+
+TEST(Metrics, StatsFocusedConcurrentTest)
+{
+    const int RUNS = 100;
+    batt::StatsMetric<int> stats;
+    auto run_update = [&stats, &RUNS](int value) {
+        for (int i = 0; i < RUNS; i++) {
+            stats.update(value);
+        }
+    };
+    // Initial state:
+    stats.reset();
+    EXPECT_EQ(std::numeric_limits<int>::min(), stats.max());
+    EXPECT_EQ(std::numeric_limits<int>::max(), stats.min());
+    EXPECT_EQ(0, stats.count());
+    EXPECT_EQ(0, stats.total());
+    {
+        // Concurrent updates:
+        std::thread t1(run_update, 4);
+        std::thread t2(run_update, 3);
+        std::thread t3(run_update, 2);
+        std::thread t4(run_update, 1);
+        std::thread t5(run_update, 8);
+        std::thread t6(run_update, 7);
+        std::thread t7(run_update, 6);
+        std::thread t8(run_update, 5);
+        // Interim state:
+        EXPECT_EQ(8, stats.max());
+        EXPECT_EQ(1, stats.min());
+        t1.join();
+        t2.join();
+        t3.join();
+        t4.join();
+        t5.join();
+        t6.join();
+        t7.join();
+        t8.join();
+    }
+    // Final state:
+    EXPECT_EQ(8, stats.max());
+    EXPECT_EQ(1, stats.min());
+    EXPECT_EQ(8 * RUNS, stats.count());
+    EXPECT_EQ(36 * RUNS, stats.total());
+}
+
 TEST(Metrics, BasicRegistryTest)
 {
     const batt::MetricLabel label_1{batt::Token("Instance"), batt::Token("localhost")};
@@ -97,6 +315,10 @@ TEST(Metrics, BasicRegistryTest)
     batt::MetricRegistry& registry = ::batt::global_metric_registry();
     registry.add("test_pi_counter", counter, batt::MetricLabelSet{label_1, label_2});
     registry.add("test_pi_latency", latency, batt::MetricLabelSet{label_1, label_2});
+    auto on_test_exit = batt::finally([&] {
+        registry.remove(counter);
+        registry.remove(latency);
+    });
 
     std::ostringstream oss;
     batt::MetricCsvFormatter csv;
@@ -113,6 +335,55 @@ TEST(Metrics, BasicRegistryTest)
         testing::StartsWith(
             "id,time_usec,date_time,test_pi_counter,test_pi_latency_count,test_pi_latency_total_usec\n1,"));
     EXPECT_THAT(actual, testing::EndsWith(/* skip time_usec,date_time timestamps */ ",3.14,42,10000\n"));
+}
+
+TEST(Metrics, StatsRegistryTest)
+{
+    const batt::MetricLabel label{batt::Token("Delay"), batt::Token("ping")};
+
+    batt::StatsMetric<int> stats;
+    EXPECT_EQ(std::numeric_limits<int>::min(), stats.max());
+    EXPECT_EQ(std::numeric_limits<int>::max(), stats.min());
+    EXPECT_EQ(0, stats.count());
+    EXPECT_EQ(0, stats.total());
+    stats.update(17);
+    EXPECT_EQ(17, stats.max());
+    EXPECT_EQ(17, stats.min());
+    EXPECT_EQ(1, stats.count());
+    EXPECT_EQ(17, stats.total());
+    stats.update(20);
+    EXPECT_EQ(20, stats.max());
+    EXPECT_EQ(17, stats.min());
+    EXPECT_EQ(2, stats.count());
+    EXPECT_EQ(37, stats.total());
+    stats.update(15);
+    EXPECT_EQ(20, stats.max());
+    EXPECT_EQ(15, stats.min());
+    EXPECT_EQ(3, stats.count());
+    EXPECT_EQ(52, stats.total());
+    stats.update(12);
+    EXPECT_EQ(20, stats.max());
+    EXPECT_EQ(12, stats.min());
+    EXPECT_EQ(4, stats.count());
+    EXPECT_EQ(64, stats.total());
+
+    batt::MetricRegistry& registry = ::batt::global_metric_registry();
+    registry.add("test_ping_stats", stats, batt::MetricLabelSet{label});
+    auto on_test_exit = batt::finally([&] {
+        registry.remove(stats);
+    });
+
+    std::ostringstream oss;
+    batt::MetricCsvFormatter csv;
+    csv.initialize(registry, oss);
+    EXPECT_THAT(oss.str(), testing::StrEq("id,time_usec,date_time,test_ping_stats_count,test_ping_stats_max,"
+                                          "test_ping_stats_min,test_ping_stats_total\n"));
+
+    csv.format_values(registry, oss);
+    const auto& actual = oss.str();
+    EXPECT_THAT(actual, testing::StartsWith("id,time_usec,date_time,test_ping_stats_count,test_ping_stats_"
+                                            "max,test_ping_stats_min,test_ping_stats_total\n1,"));
+    EXPECT_THAT(actual, testing::EndsWith(/* skip time_usec,date_time timestamps */ ",4,20,12,64\n"));
 }
 
 }  // namespace
