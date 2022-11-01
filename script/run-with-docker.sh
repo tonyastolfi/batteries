@@ -23,5 +23,5 @@ docker run ${DOCKER_FLAGS_INTERACTIVE} \
        -v "$(pwd)":"$(pwd)" \
        -v "$HOME/.conan":"$HOME/.conan" \
        -w "$(pwd)" \
-       registry.gitlab.com/batteriescpp/batteries:latest \
+       registry.gitlab.com/batteriescpp/batteries:latest_linux_gcc11_amd64 \
        "$@"
