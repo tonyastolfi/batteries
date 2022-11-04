@@ -424,4 +424,19 @@ TEST(StatusOrStatusTest, Test)
     EXPECT_EQ(s1, s2);
 }
 
+TEST(StatusOrTest, References)
+{
+    const std::string x = "abc";
+    batt::StatusOr<const std::string&> y = x;
+    const batt::StatusOr<const std::string&> z = x;
+
+    EXPECT_EQ(&(*y), &x);
+    EXPECT_THAT(y->c_str(), ::testing::StrEq("abc"));
+    EXPECT_EQ((const void*)x.c_str(), (const void*)y->c_str());
+
+    EXPECT_EQ(&(*z), &x);
+    EXPECT_THAT(z->c_str(), ::testing::StrEq("abc"));
+    EXPECT_EQ((const void*)x.c_str(), (const void*)z->c_str());
+}
+
 }  // namespace
