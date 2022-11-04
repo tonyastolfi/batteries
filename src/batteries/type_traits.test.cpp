@@ -1,7 +1,11 @@
-// Copyright 2021 Anthony Paul Astolfi
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #include <batteries/type_traits.hpp>
 //
+
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
 #include <array>
 #include <batteries/type_traits.hpp>
 #include <map>
@@ -88,3 +92,24 @@ static_assert(batt::CanBeEqCompared<const char*, std::string>{}, "");
 static_assert(!batt::CanBeEqCompared<bool, std::string>{}, "");
 static_assert(!batt::CanBeEqCompared<NotARange, NotARange>{}, "");
 static_assert(!batt::CanBeEqCompared<NotARange>{}, "");
+
+TEST(TypeTraitsTest, NameOf)
+{
+    const auto verify_case = [&](auto static_type, const auto& matcher) {
+        using T = typename decltype(static_type)::type;
+
+        EXPECT_THAT(batt::name_of<T>(), matcher);
+        EXPECT_THAT(batt::name_of(batt::StaticType<T>{}), matcher);
+        EXPECT_THAT(batt::name_of(typeid(T)), matcher);
+        EXPECT_THAT(batt::name_of(std::type_index{typeid(T)}), matcher);
+    };
+
+    verify_case(batt::StaticType<int>{}, ::testing::StrEq("int"));
+    verify_case(batt::StaticType<char>{}, ::testing::StrEq("char"));
+    verify_case(batt::StaticType<long>{}, ::testing::StrEq("long"));
+    verify_case(batt::StaticType<float>{}, ::testing::StrEq("float"));
+    verify_case(batt::StaticType<const char*>{}, ::testing::StrEq("char const*"));
+    verify_case(batt::StaticType<void (*)(int, int)>{}, ::testing::StrEq("void (*)(int, int)"));
+    verify_case(batt::StaticType<std::map<std::string, std::vector<int>>>{},
+                ::testing::MatchesRegex("std::map<std::.*string.*, std::vector<int.*>.*>"));
+}

@@ -10,6 +10,7 @@
 #include <iterator>
 #include <tuple>
 #include <type_traits>
+#include <typeindex>
 #include <variant>
 
 namespace batt {
@@ -196,11 +197,27 @@ using CanBeEqCompared = decltype(detail::can_be_eq_compared_helper<T, U>(nullptr
 
 // =============================================================================
 
-template <typename T>
-auto name_of(batt::StaticType<T> = {})
+/*! \brief Calculates and returns the demangled name of the given type as a null-terminated C-string.
+ */
+inline const char* name_of(const std::type_index& index)
 {
     int status = -1;
-    return abi::__cxa_demangle(typeid(T).name(), NULL, NULL, &status);
+    return abi::__cxa_demangle(index.name(), NULL, NULL, &status);
+}
+
+/*! \brief Calculates and returns the demangled name of the given type as a null-terminated C-string.
+ */
+inline const char* name_of(const std::type_info& info)
+{
+    return name_of(std::type_index{info});
+}
+
+/*! \brief Calculates and returns the demangled name of the given type as a null-terminated C-string.
+ */
+template <typename T>
+const char* name_of(batt::StaticType<T> = {})
+{
+    return name_of(typeid(T));
 }
 
 // =============================================================================

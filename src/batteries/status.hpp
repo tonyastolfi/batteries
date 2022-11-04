@@ -100,6 +100,11 @@ class Status : private detail::StatusBase
         int min_enum_value;
         std::vector<usize> enum_value_to_code;
         std::vector<CodeEntry> entries;
+
+        const char* name() const noexcept
+        {
+            return name_of(this->enum_type_index);
+        }
     };
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -

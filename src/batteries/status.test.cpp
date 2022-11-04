@@ -61,6 +61,7 @@ TEST_F(StatusTest, RegisteredEnums)
 {
     batt::Status s2 = MyCodes::BAD;
     EXPECT_EQ(s2.code(), batt::Status::kGroupSize * 2 + 1);
+    EXPECT_THAT(s2.group().name(), ::testing::StrEq("(anonymous namespace)::MyCodes"));
 
     EXPECT_EQ(s2, MyCodes::BAD);
     EXPECT_EQ(MyCodes::BAD, s2);
