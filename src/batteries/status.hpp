@@ -673,12 +673,12 @@ class StatusOr
         return std::move(this->value());
     }
 
-    const std::decay_t<T>* operator->() const noexcept
+    std::add_const_t<std::remove_reference_t<T>>* operator->() const noexcept
     {
         return &(this->value());
     }
 
-    std::decay_t<T>* operator->() noexcept
+    std::remove_reference_t<T>* operator->() noexcept
     {
         return &(this->value());
     }
