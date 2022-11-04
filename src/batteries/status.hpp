@@ -124,17 +124,22 @@ class Status : private detail::StatusBase
     template <typename EnumT>
     static bool register_codes(const std::vector<std::pair<EnumT, std::string>>& codes);
 
-    static std::string_view message_from_code(value_type value)
+    static const CodeEntry& get_entry_from_code(value_type value)
     {
-        const usize index_of_group = get_index_of_group(value);
-        const usize index_within_group = get_index_within_group(value);
-        const auto& all_groups = registered_groups();
+        const usize index_of_group = Status::get_index_of_group(value);
+        const usize index_within_group = Status::get_index_within_group(value);
+        const auto& all_groups = Status::registered_groups();
 
         BATT_CHECK_LT(index_of_group, all_groups.size());
         BATT_CHECK_LT(index_within_group, all_groups[index_of_group]->entries.size())
             << BATT_INSPECT(index_of_group) << BATT_INSPECT(value);
 
-        return all_groups[index_of_group]->entries[index_within_group].message;
+        return all_groups[index_of_group]->entries[index_within_group];
+    }
+
+    static std::string_view message_from_code(value_type value)
+    {
+        return Status::get_entry_from_code(value).message;
     }
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -190,6 +195,16 @@ class Status : private detail::StatusBase
     value_type code() const noexcept
     {
         return this->value_;
+    }
+
+    value_type code_index_within_group() const noexcept
+    {
+        return Status::get_index_within_group(this->value_);
+    }
+
+    const CodeEntry& code_entry() const noexcept
+    {
+        return Status::get_entry_from_code(this->value_);
     }
 
     std::string_view message() const noexcept

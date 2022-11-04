@@ -16,10 +16,10 @@ batt::Status foo()
 
 enum struct MyCodes {
     OK = 0,
-    NOT_REGISTERED,
-    BAD,
-    TERRIBLE,
-    THE_WORST,
+    NOT_REGISTERED = 1,
+    BAD = 2,
+    TERRIBLE = 3,
+    THE_WORST = 4,
 };
 
 enum struct HttpCode {
@@ -27,7 +27,7 @@ enum struct HttpCode {
     OK = 200,
     REDIRECT = 300,
     CLIENT_ERROR = 400,
-    SERVER_ERROR,
+    SERVER_ERROR = 500,
 };
 
 class StatusTest : public ::testing::Test
@@ -61,7 +61,12 @@ TEST_F(StatusTest, RegisteredEnums)
 {
     batt::Status s2 = MyCodes::BAD;
     EXPECT_EQ(s2.code(), batt::Status::kGroupSize * 2 + 1);
-    EXPECT_THAT(s2.group().name(), ::testing::StrEq("(anonymous namespace)::MyCodes"));
+
+    EXPECT_THAT(s2.group().name(), ::testing::MatchesRegex("[^:]*::MyCodes"));
+
+    EXPECT_NE(s2.code(), 2);
+    EXPECT_EQ(s2.code_index_within_group(), 1);
+    EXPECT_EQ(s2.code_entry().enum_value, 2);
 
     EXPECT_EQ(s2, MyCodes::BAD);
     EXPECT_EQ(MyCodes::BAD, s2);
@@ -73,6 +78,19 @@ TEST_F(StatusTest, RegisteredEnums)
     EXPECT_THAT(batt::Status{HttpCode::REDIRECT}.message(), ::testing::StrEq("HTTP Redirect"));
     EXPECT_THAT(batt::Status{HttpCode::CLIENT_ERROR}.message(), ::testing::StrEq("HTTP Client Error"));
     EXPECT_THAT(batt::Status{HttpCode::SERVER_ERROR}.message(), ::testing::StrEq("HTTP Server Error"));
+
+    EXPECT_THAT(batt::Status{HttpCode::OK}.group().name(), ::testing::MatchesRegex("[^:]*::HttpCode"));
+
+    EXPECT_EQ(batt::Status{HttpCode::OK}.code_index_within_group(), 0);
+    EXPECT_EQ(batt::Status{HttpCode::OK}.code_entry().enum_value, 200);
+    EXPECT_EQ(batt::Status{HttpCode::CONTINUE}.code_index_within_group(), 1);
+    EXPECT_EQ(batt::Status{HttpCode::CONTINUE}.code_entry().enum_value, 100);
+    EXPECT_EQ(batt::Status{HttpCode::REDIRECT}.code_index_within_group(), 2);
+    EXPECT_EQ(batt::Status{HttpCode::REDIRECT}.code_entry().enum_value, 300);
+    EXPECT_EQ(batt::Status{HttpCode::CLIENT_ERROR}.code_index_within_group(), 3);
+    EXPECT_EQ(batt::Status{HttpCode::CLIENT_ERROR}.code_entry().enum_value, 400);
+    EXPECT_EQ(batt::Status{HttpCode::SERVER_ERROR}.code_index_within_group(), 4);
+    EXPECT_EQ(batt::Status{HttpCode::SERVER_ERROR}.code_entry().enum_value, 500);
 }
 
 TEST_F(StatusTest, AllOkCodesAreEqual)
