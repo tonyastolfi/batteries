@@ -284,8 +284,8 @@ TEST(Metrics, StatsFocusedConcurrentTest)
         std::thread t7(run_update, 6);
         std::thread t8(run_update, 5);
         // Interim state:
-        EXPECT_LE(8, stats.max());
-        EXPECT_GE(1, stats.min());
+        EXPECT_LE(1, stats.min());
+        EXPECT_LE(stats.max(), 8);
         t1.join();
         t2.join();
         t3.join();
