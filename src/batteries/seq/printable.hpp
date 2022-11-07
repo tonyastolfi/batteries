@@ -10,6 +10,7 @@
 #include <batteries/assert.hpp>
 #include <batteries/optional.hpp>
 #include <batteries/seq/print_out.hpp>
+#include <batteries/stream_util.hpp>
 #include <batteries/utility.hpp>
 
 namespace batt {

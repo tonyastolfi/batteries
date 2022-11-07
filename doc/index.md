@@ -13,6 +13,7 @@ Features:
  - A la carte: only include what you need, don't pay for the rest
  - Many useful facilities, including:
      - [Enhanced Runtime Checks/Assertions](assert.hpp/)
+     - [Composable Sequences (like Java Streams or Rust Iter)](seq/)
      - [Fast, User-Space Asynchronous Tasks](async/)
      - [batt::case_of, An Ergonomic Replacement For std::visit](case_of.hpp/)
      - [Support for Exception-Free Coding in C++](status.hpp/)
