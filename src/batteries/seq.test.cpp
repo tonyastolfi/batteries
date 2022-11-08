@@ -734,4 +734,10 @@ TEST(SeqTest, RunningTotalTest)
               as_seq(boost::irange(0, 8)) | seq::running_total() | seq::collect_vec());
 }
 
+TEST(SeqTest, RollingSumTest)
+{
+    EXPECT_EQ((std::vector<int>{0, 1, 3, 6, 10, 15, 21, 28}),
+              as_seq(boost::irange(0, 8)) | seq::rolling_sum() | seq::collect_vec());
+}
+
 }  // namespace
