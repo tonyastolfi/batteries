@@ -23,7 +23,7 @@ Now you should be able to navigate to [http://localhost:8000/](http://localhost:
 make mkdocs
 ```
 
-_** NOTE: ** The shell commands in this document assume you have the documentation tools installed.  If you want to do install them on your machine natively, you can check `batteries/docker/Dockerfile` to see how they are installed for CI pipelines.  The recommended method, however, is do run all commands inside a Docker container using the `batteries/script/run-with-docker.sh` script.  Example:_
+_** NOTE: ** The shell commands in this document assume you have the documentation tools installed.  If you want to install them on your machine natively, you can check `batteries/docker/Dockerfile` to see how they are installed for CI pipelines.  The recommended method, however, is to run all commands inside a Docker container using the `batteries/script/run-with-docker.sh` script.  Example:
 
 ```shell
 script/run-with-docker.sh make serve-docs
