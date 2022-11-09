@@ -848,7 +848,8 @@ batt::Mutex<std::string> s;
 {
   batt::Mutex<std::string>::Lock lock{s};
   
-  // Once the lock is acquired, you can access the protected object via pointer...
+  // Once the lock is acquired, you can access the protected object
+  // via pointer...
   //
   std::string* ptr = lock.get();
 
@@ -874,8 +875,10 @@ batt::Mutex<std::string> s;
 {
   auto locked = s.lock();
   
-  static_assert(std::is_same_v<decltype(locked), batt::Mutex<std::string>::Lock>, 
-                "It is nice to use auto in this case!");
+  static_assert(
+    std::is_same_v<decltype(locked), 
+                   batt::Mutex<std::string>::Lock>, 
+    "It is nice to use auto in this case!");
 }
 ```
 
@@ -896,16 +899,25 @@ s.with_lock([](std::string& locked_s) {
 Even though access to the protected object of type `T` mostly happens via a lock, `batt::Mutex` supports types with a partial interface that is thread-safe without locking.  Example:
 
 ```c++
+// Since lock-free access to a type is by definition
+// a subset of all access to that type, we define
+// a base class containing all lock-free fields and
+// member functions.
+//
 struct MyStateBase {
   explicit MyStateBase(std::string&& init_val) 
     : initial_value{std::move(init_val)}
   {}
  
+  // This is safe to access concurrently because it is
+  // const.
+  //
   const std::string initial_value;
 };
 
 struct MyState : MyStateBase {
-  // IMPORTANT: this member type alias tells batt::Mutex to enable the `no_lock()` method/feature.
+  // IMPORTANT: this member type alias tells batt::Mutex to
+  // enable the `no_lock()` method/feature.
   //
   using ThreadSafeBase = MyStateBase;
 
@@ -913,22 +925,33 @@ struct MyState : MyStateBase {
     : MyStateBase{init_val}
     , current_value{init_val}
   {}
+  
+  // Because this field is non-const, it must be accessed
+  // while holding a lock.
+  //
+  std::string current_value;
 };
 
 batt::Mutex<MyState> state{"initial"};
 
-// No lock needed to read a const value.
-//
-std::cout << "initial value = " << state.no_lock().initial_value << std::endl;
-
-// We still need to acquire the lock to access the derived class.
-//
-state.with_lock([](MyState& s) {
-  std::cout << "current value = " << s.current_value << std::endl;
-  s.current_value = "changed";
-});
-
-// batt::Mutex::nolock returns a reference to the ThreadSafeBase type declared in MyState.
+// batt::Mutex::nolock returns a reference to the 
+// ThreadSafeBase type declared in MyState.
 //
 MyStateBase& base = state.no_lock();
+
+// No lock needed to read a const value.
+//
+std::cout << "initial value = " 
+          << base.initial_value << std::endl;
+
+// We still need to acquire the lock to access the derived
+// class.
+//
+state.with_lock([](MyState& s) {
+  std::cout << "current value = " 
+            << s.current_value << std::endl;
+  s.current_value = "changed";
+});
 ```
+
+
