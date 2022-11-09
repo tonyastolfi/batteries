@@ -53,16 +53,19 @@ An important feature of `batt::Task` to highlight is the static method [batt::Ta
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 
-// Some function to get a server endpoint to which to connect.
+// Some function to get a server endpoint to which 
+// to connect.
 //
 extern boost::asio::ip::tcp::endpoint get_server_endpoint();
 
 int main() {
-  // Create an io_context to schedule our Task and manage all asynchronous I/O.
+  // Create an io_context to schedule our Task and manage 
+  // all asynchronous I/O.
   //
   boost::asio::io_context io;
   
-  // Create a TCP/IP socket; we will use this to connect to the server endpoint.
+  // Create a TCP/IP socket; we will use this to connect 
+  // to the server endpoint.
   //
   boost::asio::ip::tcp::socket s{io};
   
@@ -71,12 +74,16 @@ int main() {
   batt::Task client_task{io.get_executor(), 
     /*body_fn=*/[&] 
     {
-      // Connect to the server.  batt::Task::await will not return until the handler passed
-      // to `async_connect` has been invoked.
+      // Connect to the server.  batt::Task::await will not 
+      // return until the handler passed to `async_connect`
+      // has been invoked.
       //
-      boost::system::error_code ec = batt::Task::await<boost::system::error_code>([&](auto&& handler){
-        s.async_connect(get_server_endpoint(), BATT_FORWARD(handler));
-      });
+      boost::system::error_code ec = 
+        batt::Task::await<boost::system::error_code>(
+          [&](auto&& handler){
+            s.async_connect(get_server_endpoint(), 
+                            BATT_FORWARD(handler));
+          });
       
       BATT_CHECK(!ec);
       
