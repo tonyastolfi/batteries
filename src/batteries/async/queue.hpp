@@ -18,35 +18,49 @@
 
 namespace batt {
 
+/** \brief Type-agnostic base class for all Queue types.
+ */
 class QueueBase
 {
    public:
+    /** \brief Test whether the Queue is in an open state.
+     */
     bool is_open() const
     {
         return !this->pending_count_.is_closed();
     }
 
+    /** \brief Test whether the Queue is in a closed state.
+     */
     bool is_closed() const
     {
         return !this->is_open();
     }
 
+    /** \brief The number of items currently in the Queue.
+     */
     i64 size() const
     {
         return this->pending_count_.get_value();
     }
 
+    /** \brief Test whether this->size() is zero.
+     */
     bool empty() const
     {
         return this->size() == 0;
     }
 
+    /** \brief Blocks the current Task/thread until this->size() satisfies the given predicate.
+     */
     template <typename Predicate = bool(i64)>
     StatusOr<i64> await_size_is_truly(Predicate&& predicate)
     {
         return this->pending_count_.await_true(BATT_FORWARD(predicate));
     }
 
+    /** \brief Blocks the current Task/thread until the Queue is empty.
+     */
     StatusOr<i64> await_empty()
     {
         return this->await_size_is_truly([](i64 count) {
@@ -55,6 +69,8 @@ class QueueBase
         });
     }
 
+    /** \brief Close the queue, causing all current/future read operations to fail/unblock immediately.
+     */
     void close()
     {
         this->pending_count_.close();
@@ -98,10 +114,17 @@ class QueueBase
     Watch<i64> pending_count_{0};
 };
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+/** \brief Unbounded multi-producer/multi-consumer (MPMC) FIFO queue.
+ */
 template <typename T>
 class Queue : public QueueBase
 {
    public:
+    /** \brief Emplace a single instance of T into the back of the queue using the passed arguments.
+     *
+     * \return true if the push succeeded; false if the queue was closed.
+     */
     template <typename... Args>
     bool push(Args&&... args)
     {
@@ -113,6 +136,8 @@ class Queue : public QueueBase
         return true;
     }
 
+    /** \brief Atomically invoke the factory_fn to create an instance of T to push into the Queue.
+     */
     template <typename FactoryFn>
     bool push_with_lock(FactoryFn&& factory_fn)
     {
@@ -127,8 +152,13 @@ class Queue : public QueueBase
         return true;
     }
 
-    // `items` should be an STL sequence; i.e., something that can be iterated via a for-each loop.
-    //
+    /** \brief Insert multiple items atomically into the Queue.
+     *
+     * Queue::push_all guarantees that the passed items will be inserted in the given order, with no other
+     * items interposed (via concurrent calls to Queue::push or similar).
+     *
+     * `items` should be an STL sequence; i.e., something that can be iterated via a for-each loop.
+     */
     template <typename Items>
     bool push_all(Items&& items)
     {
@@ -143,6 +173,10 @@ class Queue : public QueueBase
         return true;
     }
 
+    /** \brief Read a single item from the Queue.
+     *
+     * Blocks until an item is available or the Queue is closed.
+     */
     StatusOr<T> await_next()
     {
         Status acquired = this->await_one();
@@ -151,6 +185,10 @@ class Queue : public QueueBase
         return this->pop_next_or_panic();
     }
 
+    /** \brief Attempt to read a single item from the Queue (non-blocking).
+     *
+     * \return The extracted item if successful; batt::None otherwise
+     */
     Optional<T> try_pop_next()
     {
         if (!this->try_acquire()) {
@@ -159,6 +197,8 @@ class Queue : public QueueBase
         return this->pop_next_or_panic();
     }
 
+    /** \brief Read a single item from the Queue (non-blocking), panicking if the Queue is empty.
+     */
     T pop_next_or_panic()
     {
         auto locked = this->pending_items_.lock();
@@ -171,6 +211,10 @@ class Queue : public QueueBase
         return std::forward<T>(locked->front());
     }
 
+    /** \brief Read and discard items from the Queue until it is observed to be empty.
+     *
+     * \return the number of items read.
+     */
     usize drain()
     {
         usize count = 0;

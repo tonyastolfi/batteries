@@ -24,12 +24,14 @@
 namespace batt {
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
-// A type-erased async completion handler with linked list pointers.
-//
+/** A type-erased async completion handler with linked list pointers.
+ */
 template <typename... Args>
 class AbstractHandler : public boost::intrusive::list_base_hook<>
 {
    public:
+    /** Deleter for use in std::unique_ptr.
+     */
     struct Deleter {
         void operator()(AbstractHandler* handler) const
         {
@@ -39,21 +41,25 @@ class AbstractHandler : public boost::intrusive::list_base_hook<>
         }
     };
 
-    // Non-copyable!
-    //
+    /** AbstractHandler is not copy-constructible.
+     */
     AbstractHandler(const AbstractHandler&) = delete;
+
+    /** AbstractHandler is not copy-assignable.
+     */
     AbstractHandler& operator=(const AbstractHandler&) = delete;
 
-    // `notify` should delete `this` as a side-effect.
-    //
+    /** Invoke the handler; notify should delete `this` as a side-effect.
+     */
     virtual void notify(Args... args) = 0;
 
-    // Release memory associated with this handler and destroy the implementation object, without invoking it.
-    //
+    /** Release memory associated with this handler and destroy the implementation object, without invoking
+     * it.
+     */
     virtual void destroy() = 0;
 
-    // Print the type and any other associated information about the handler.
-    //
+    /** Print the type and any other associated information about the handler.
+     */
     virtual void dump(std::ostream& out) = 0;
 
    protected:
@@ -252,9 +258,9 @@ HandlerBinder<std::decay_t<InnerFn>, std::decay_t<OuterFn>> bind_handler(InnerFn
 
 //#=##=##=#==#=#==#===#+==#+==========+==+=+=+=+=+=++=+++=+++++=-++++=-+++++++++++
 
-// Abstract base for HandlerMemory<kSize>.  Decouples users of HandlerMemory from knowledge of the static
-// memory size.
-//
+/** Abstract base for HandlerMemory<kSize>.  Decouples users of HandlerMemory from knowledge of the static
+ * memory size.
+ */
 class HandlerMemoryBase
 {
    public:
@@ -279,8 +285,8 @@ class HandlerMemoryBase
     bool in_use_ = false;
 };
 
-// A chunk of memory that can be attached to an async completion handler.
-//
+/** A chunk of memory that can be attached to an async completion handler.
+ */
 template <usize kSize>
 class HandlerMemory : public HandlerMemoryBase
 {
@@ -317,10 +323,10 @@ class HandlerMemory : public HandlerMemoryBase
     std::aligned_storage_t<kSize> storage_;
 };
 
-// An allocator associated with a completion handler.
-//
-// Designed to satisfy the C++11 minimal allocator requirements.
-//
+/** An allocator associated with a completion handler.
+ *
+ * Designed to satisfy the C++11 minimal allocator requirements.
+ */
 template <typename T>
 class HandlerAllocator
 {
@@ -365,9 +371,9 @@ class HandlerAllocator
     HandlerMemoryBase& memory_;
 };
 
-// Wrapper for an async completion handler type `Handler`.  Provides an associated allocator that allocates
-// from a `HandlerMemory` instance.
-//
+/** Wrapper for an async completion handler type `Handler`.  Provides an associated allocator that allocates
+ * from a `HandlerMemory` instance.
+ */
 template <typename Handler>
 class CustomAllocHandler
 {
@@ -402,8 +408,8 @@ class CustomAllocHandler
     Handler handler_;
 };
 
-// Helper function to wrap a handler object to add custom allocation.
-//
+/** Helper function to wrap a handler object to add custom allocation.
+ */
 template <typename Handler>
 inline CustomAllocHandler<std::decay_t<Handler>> make_custom_alloc_handler(HandlerMemoryBase& m, Handler&& h)
 {

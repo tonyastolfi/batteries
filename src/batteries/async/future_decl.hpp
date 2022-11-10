@@ -23,6 +23,8 @@ class FutureImpl;
 template <typename T>
 class Future;
 
+/** An obligation to provide a value of type T to a Future.
+ */
 template <typename T>
 class Promise
 {
@@ -38,6 +40,10 @@ class Promise
     boost::intrusive_ptr<detail::FutureImpl<T>> impl_;
 };
 
+/** A value of type T that will be provided at some point in the future.
+ *
+ * To block on a Future being ready, use Task::await.
+ */
 template <typename T>
 class Future
 {

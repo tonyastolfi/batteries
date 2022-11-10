@@ -20,14 +20,16 @@ namespace batt {
 template <typename T>
 class Latch;
 
-// A write-once, single-value synchronized container.
-//
-// Similar to a Future/Promise pair, but Latch has no defined copy/move semantics.
-//
+/** A write-once, single-value synchronized container.
+ *
+ * Similar to a Future/Promise pair, but Latch has no defined copy/move semantics.
+ */
 template <typename T>
 class Latch : public RefCounted<Latch<T>>
 {
    public:
+    /** \brief The possible states for the Latch.
+     */
     enum State : u32 {
         kInitial = 0,
         kSetting = 1,
@@ -35,14 +37,28 @@ class Latch : public RefCounted<Latch<T>>
         kReady = 3,
     };
 
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
+    /** \brief Default construct an empty Latch.
+     */
     Latch() = default;
 
+    /** \brief Latch is not copy/move-constructible.
+     */
     Latch(const Latch&) = delete;
+
+    /** \brief Latch is not copy/move-assignable.
+     */
     Latch& operator=(const Latch&) = delete;
 
-    // Sets the value, closing the latch.  `args` are used to construct a `StatusOr<T>`, so you can pass an
-    // instance of `T` to `set_value`, or a `Status` to indicate an error occurred.
-    //
+    /** \brief Sets the value, closing the latch.
+     *
+     * \detail `args` are used to construct a StatusOr<T>, so you can pass an instance of `T` to set_value, or
+     * a Status to indicate an error occurred.
+     *
+     * \return true if the Latch was not previously set and this call succeeded in setting its value, or false
+     * if the value was previously/concurrently set by another thread.
+     */
     template <typename... Args>
     bool set_value(Args&&... args)
     {
@@ -55,15 +71,15 @@ class Latch : public RefCounted<Latch<T>>
         return true;
     }
 
-    // Returns true iff the latch is in the ready state.
-    //
+    /** Returns true iff the latch is in the ready state.
+     */
     bool is_ready() const
     {
         return this->state_.get_value() == kReady;
     }
 
-    // Block the current task until the Latch is ready, then return the set value (or Status).
-    //
+    /** Block the current task until the Latch is ready, then return the set value (or Status).
+     */
     StatusOr<T> await()
     {
         Status status = this->state_.await_equal(kReady);
@@ -72,9 +88,9 @@ class Latch : public RefCounted<Latch<T>>
         return this->get_ready_value_or_panic();
     }
 
-    // Same as `await()`, except this method never blocks; if the Latch isn't ready yet, it immediately
-    // returns `StatusCode::kUnavailable`.
-    //
+    /** Same as await(), except this method never blocks; if the Latch isn't ready yet, it immediately
+     * returns `StatusCode::kUnavailable`.
+     */
     StatusOr<T> poll()
     {
         if (this->state_.get_value() != kReady) {
@@ -83,8 +99,8 @@ class Latch : public RefCounted<Latch<T>>
         return this->get_ready_value_or_panic();
     }
 
-    // Returns the value of the Latch (non-blocking), panicking if it is not in the ready state.
-    //
+    /** Returns the value of the Latch (non-blocking), panicking if it is not in the ready state.
+     */
     StatusOr<T> get_ready_value_or_panic()
     {
         BATT_CHECK_EQ(this->state_.get_value(), kReady);
@@ -93,14 +109,14 @@ class Latch : public RefCounted<Latch<T>>
         return *this->value_;
     }
 
-    // Invokes `handler` when the Latch value is set (i.e., when it enters the ready state); invokes handler
-    // immediately if the Latch is ready when this method is called.
-    //
+    /** Invokes `handler` when the Latch value is set (i.e., when it enters the ready state); invokes handler
+     *  immediately if the Latch is ready when this method is called.
+     */
     template <typename Handler>
     void async_get(Handler&& handler);
 
-    // Force the latch into an invalid state (for testing mostly).
-    //
+    /** Force the latch into an invalid state (for testing mostly).
+     */
     void invalidate()
     {
         this->state_.close();

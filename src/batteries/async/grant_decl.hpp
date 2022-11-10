@@ -17,29 +17,69 @@
 
 namespace batt {
 
+/**
+ * \brief A claim on some counted resource.
+ *
+ * The unit of a Grant's size is not specified and depends on the application context.
+ */
 class Grant
 {
    public:
+    /**
+     * \brief A pool from which Grant instances are allocated.
+     */
     class Issuer
     {
         friend class Grant;
 
        public:
+        /**
+         * \brief Construct an empty pool.
+         */
         Issuer() = default;
 
+        /**
+         * \brief Construct a pool with the given initial size.
+         */
         explicit Issuer(u64 initial_count) noexcept;
 
+        /** \brief Grant::Issuer is not copy-construcible.
+         */
         Issuer(const Issuer&) = delete;
+
+        /** \brief Grant::Issuer is not copy-assignable.
+         */
         Issuer& operator=(const Issuer&) = delete;
 
+        /** \brief Destroy the pool.
+         *
+         * All Grant instances issued from this object MUST be released prior to destroying the Issuer, or the
+         * program will panic.
+         */
         ~Issuer() noexcept;
 
+        /** \brief Allocate a portion of the pool to create a new Grant.
+         *
+         * This function may block or not depending on the value of `wait_for_resource`.
+         *
+         * \return The newly allocated Grant if successful; `batt::StatusCode::kGrantUnavailable` if
+         * `wait_for_resource` is false and there is not enought count in the pool to satisfy the request.
+         */
         StatusOr<Grant> issue_grant(u64 count, WaitForResource wait_for_resource);
 
+        /**
+         * \brief Increase the pool size by the specified amount.
+         */
         void grow(u64 count);
 
+        /**
+         * \brief Shut down the pool, denying all future `issue_grant` requests.
+         */
         void close();
 
+        /**
+         * \brief The current count available for allocation via `issue_grant`.
+         */
         u64 available() const
         {
             return this->available_.get_value();
@@ -60,38 +100,61 @@ class Grant
     // Grant::Issuer unless it has gone out of scope via move, which is equivalent to destruction.)
     //----- --- -- -  -  -   -
 
+    /** \brief Grant is not copy-constructible.
+     */
     Grant(const Grant&) = delete;
+
+    /** \brief Grant is not copy-assignable.
+     */
     Grant& operator=(const Grant&) = delete;
 
-    // A Grant may be move-constructed, but not move-assigned (like a built-in reference type).
-    //
+    /** \brief Grant is move-constructible.
+     */
     Grant(Grant&& that) noexcept;
+
+    /** \brief Grant is not move-assignable.
+     */
     Grant& operator=(Grant&&) = delete;
 
+    /**
+     * \brief Destroy the Grant, releasing its allocation back to the Grant::Issuer that created it.
+     */
     ~Grant() noexcept;
 
     //----- --- -- -  -  -   -
 
+    /**
+     * \brief The Issuer from which this Grant was created.
+     */
     const Issuer* get_issuer() const
     {
         return this->issuer_.get();
     }
 
+    /** \brief Test whether `this->size()` is 0.
+     */
     bool empty() const
     {
         return this->size() == 0;
     }
 
+    /** \brief Equivalent to `this->is_valid()`.
+     */
     explicit operator bool() const
     {
         return this->is_valid();
     }
 
+    /** \brief Test whether this Grant has non-zero size and is connected to an Issuer.  A Grant that has been
+     * moved from is no longer valid.
+     */
     bool is_valid() const
     {
         return this->size() != 0 && this->issuer_;
     }
 
+    /** \brief Test whether revoke has been called on this Grant.
+     */
     bool is_revoked() const
     {
         return this->size_.is_closed();
@@ -104,35 +167,35 @@ class Grant
     //  - `Grant other = std::move(*this);`
     //----- --- -- -  -  -   -
 
-    // Permanently invalidate this Grant, waking all waiters with error status.
-    //
+    /** Permanently invalidate this Grant, waking all waiters with error status.
+     */
     void revoke();
 
-    // The current count available for spending on this Grant.
-    //
+    /** The current count available for spending on this Grant.
+     */
     u64 size() const;
 
-    // Spend part of the grant, returning a new Grant representing the spent amount if successful; otherwise:
-    //  - `batt::StatusCode::kGrantUnavailable` if the remaining size of this grant isn't big enough
-    //  - `batt::StatusCode::kGrantRevoked` if this Grant has been revoked
-    //  - `batt::StatusCode::kFailedPrecondition` if this Grant has been invalidated by a move
-    //
+    /** Spend part of the grant, returning a new Grant representing the spent amount if successful; otherwise:
+     *   - `batt::StatusCode::kGrantUnavailable` if the remaining size of this grant isn't big enough
+     *   - `batt::StatusCode::kGrantRevoked` if this Grant has been revoked
+     *   - `batt::StatusCode::kFailedPrecondition` if this Grant has been invalidated by a move
+     */
     StatusOr<Grant> spend(u64 count, WaitForResource wait_for_resource = WaitForResource::kFalse);
 
-    // Spend all of the grant, returning the previous size.
-    //
+    /** Spend all of the grant, returning the previous size.
+     */
     u64 spend_all();
 
-    // Increase this grant by that.size() and set that to empty.
-    //
-    // Will panic unless all of the following are true:
-    //  - `this->get_issuer() != nullptr`
-    //  - `this->get_issuer() == that.get_issuer()`
-    //
+    /** Increase this grant by that.size() and set that to empty.
+     *
+     * Will panic unless all of the following are true:
+     *    - `this->get_issuer() != nullptr`
+     *    - `this->get_issuer() == that.get_issuer()`
+     */
     Grant& subsume(Grant&& that);
 
-    // Swap the values of this and that.
-    //
+    /** Swap the values of this and that.
+     */
     void swap(Grant& that);
 
    private:
