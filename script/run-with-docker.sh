@@ -3,6 +3,8 @@
 # Copyright (C) 2022 Anthony Paul Astolfi
 #
 
+docker_image=${IMAGE:-registry.gitlab.com/batteriescpp/batteries:latest.linux_gcc11_amd64}
+
 # Figure out if the current shell is a TTY.
 #
 if [ -t 0 ]; then
@@ -23,5 +25,5 @@ docker run ${DOCKER_FLAGS_INTERACTIVE} \
        -v "$(pwd)":"$(pwd)" \
        -v "$HOME/.conan":"$HOME/.conan" \
        -w "$(pwd)" \
-       registry.gitlab.com/batteriescpp/batteries:latest.linux_gcc11_amd64 \
+       ${docker_image} \
        "$@"
