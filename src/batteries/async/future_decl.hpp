@@ -24,13 +24,20 @@ template <typename T>
 class Future;
 
 /** An obligation to provide a value of type T to a Future.
+ *
+ * \see batt::Future
  */
 template <typename T>
 class Promise
 {
    public:
+    /** \brief Constructs a new empty Promise object.
+     */
     Promise();
 
+    /** \brief Sets the value of the promise, resolving the corresponding Future and unblocking any pending
+     * calls to await.
+     */
     void set_value(T&& value);
 
     template <typename U>
@@ -43,11 +50,20 @@ class Promise
 /** A value of type T that will be provided at some point in the future.
  *
  * To block on a Future being ready, use Task::await.
+ *
+ * \see batt::Promise
  */
 template <typename T>
 class Future
 {
    public:
+    /** \brief Registers the passed handler to be invoked once the Future is resolved (via
+     * Promise::set_value).  If the Future is already in a ready state, then the handler will be executed
+     * immediately.
+     *
+     * \param handler Invoked with the future value; must have signature
+     *                 `#!cpp void(` \ref StatusOr `#!cpp <T>)`
+     */
     template <typename Handler>
     void async_wait(Handler&& handler) const;
 
@@ -58,6 +74,8 @@ class Future
     template <typename U>
     friend Future<U> get_future(const Promise<U>& promise);
 
+    /** \brief Tests whether the Future value is ready to be read.
+     */
     bool is_ready() const;
 
    private:
@@ -66,6 +84,8 @@ class Future
     boost::intrusive_ptr<detail::FutureImpl<T>> impl_;
 };
 
+/** \brief Returns the Future object corresponding to the Promise.
+ */
 template <typename T>
 Future<T> get_future(const Promise<T>& promise);
 

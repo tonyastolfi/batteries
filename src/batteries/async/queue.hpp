@@ -19,18 +19,20 @@
 namespace batt {
 
 /** \brief Type-agnostic base class for all Queue types.
+ *
+ * \see Queue
  */
 class QueueBase
 {
    public:
-    /** \brief Test whether the Queue is in an open state.
+    /** \brief Tests whether the Queue is in an open state.
      */
     bool is_open() const
     {
         return !this->pending_count_.is_closed();
     }
 
-    /** \brief Test whether the Queue is in a closed state.
+    /** \brief Tests whether the Queue is in a closed state.
      */
     bool is_closed() const
     {
@@ -44,7 +46,7 @@ class QueueBase
         return this->pending_count_.get_value();
     }
 
-    /** \brief Test whether this->size() is zero.
+    /** \brief Tests whether this->size() is zero.
      */
     bool empty() const
     {
@@ -69,7 +71,7 @@ class QueueBase
         });
     }
 
-    /** \brief Close the queue, causing all current/future read operations to fail/unblock immediately.
+    /** \brief Closes the queue, causing all current/future read operations to fail/unblock immediately.
      */
     void close()
     {
@@ -116,12 +118,14 @@ class QueueBase
 
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 /** \brief Unbounded multi-producer/multi-consumer (MPMC) FIFO queue.
+ *
+ * \see QueueBase
  */
 template <typename T>
 class Queue : public QueueBase
 {
    public:
-    /** \brief Emplace a single instance of T into the back of the queue using the passed arguments.
+    /** \brief Emplaces a single instance of T into the back of the queue using the passed arguments.
      *
      * \return true if the push succeeded; false if the queue was closed.
      */
@@ -136,7 +140,7 @@ class Queue : public QueueBase
         return true;
     }
 
-    /** \brief Atomically invoke the factory_fn to create an instance of T to push into the Queue.
+    /** \brief Atomically invokes the factory_fn to create an instance of T to push into the Queue.
      */
     template <typename FactoryFn>
     bool push_with_lock(FactoryFn&& factory_fn)
@@ -152,7 +156,7 @@ class Queue : public QueueBase
         return true;
     }
 
-    /** \brief Insert multiple items atomically into the Queue.
+    /** \brief Inserts multiple items atomically into the Queue.
      *
      * Queue::push_all guarantees that the passed items will be inserted in the given order, with no other
      * items interposed (via concurrent calls to Queue::push or similar).
@@ -173,7 +177,7 @@ class Queue : public QueueBase
         return true;
     }
 
-    /** \brief Read a single item from the Queue.
+    /** \brief Reads a single item from the Queue.
      *
      * Blocks until an item is available or the Queue is closed.
      */
@@ -185,9 +189,9 @@ class Queue : public QueueBase
         return this->pop_next_or_panic();
     }
 
-    /** \brief Attempt to read a single item from the Queue (non-blocking).
+    /** \brief Attempts to read a single item from the Queue (non-blocking).
      *
-     * \return The extracted item if successful; batt::None otherwise
+     * \return The extracted item if successful; \ref batt::None otherwise
      */
     Optional<T> try_pop_next()
     {
@@ -197,7 +201,7 @@ class Queue : public QueueBase
         return this->pop_next_or_panic();
     }
 
-    /** \brief Read a single item from the Queue (non-blocking), panicking if the Queue is empty.
+    /** \brief Reads a single item from the Queue (non-blocking), panicking if the Queue is empty.
      */
     T pop_next_or_panic()
     {
@@ -211,7 +215,7 @@ class Queue : public QueueBase
         return std::forward<T>(locked->front());
     }
 
-    /** \brief Read and discard items from the Queue until it is observed to be empty.
+    /** \brief Reads and discards items from the Queue until it is observed to be empty.
      *
      * \return the number of items read.
      */

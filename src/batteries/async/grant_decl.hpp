@@ -21,12 +21,16 @@ namespace batt {
  * \brief A claim on some counted resource.
  *
  * The unit of a Grant's size is not specified and depends on the application context.
+ *
+ * \see Grant::Issuer
  */
 class Grant
 {
    public:
     /**
      * \brief A pool from which Grant instances are allocated.
+     *
+     * \see Grant
      */
     class Issuer
     {
@@ -34,12 +38,12 @@ class Grant
 
        public:
         /**
-         * \brief Construct an empty pool.
+         * \brief Constructs an empty pool.
          */
         Issuer() = default;
 
         /**
-         * \brief Construct a pool with the given initial size.
+         * \brief Constructs a pool with the given initial size.
          */
         explicit Issuer(u64 initial_count) noexcept;
 
@@ -51,10 +55,10 @@ class Grant
          */
         Issuer& operator=(const Issuer&) = delete;
 
-        /** \brief Destroy the pool.
+        /** \brief Destroys the pool.
          *
-         * All Grant instances issued from this object MUST be released prior to destroying the Issuer, or the
-         * program will panic.
+         * All Grant instances issued from this object MUST be released prior to destroying the Grant::Issuer,
+         * or the program will panic.
          */
         ~Issuer() noexcept;
 
@@ -73,12 +77,12 @@ class Grant
         void grow(u64 count);
 
         /**
-         * \brief Shut down the pool, denying all future `issue_grant` requests.
+         * \brief Shut down the pool, denying all future issue_grant requests.
          */
         void close();
 
         /**
-         * \brief The current count available for allocation via `issue_grant`.
+         * \brief The current count available for allocation via issue_grant.
          */
         u64 available() const
         {
@@ -95,7 +99,7 @@ class Grant
     //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
     //----- --- -- -  -  -   -
-    // (Grant has no default constructor; you must create a new one by calling `Grant::Issuer::issue_grant` or
+    // (Grant has no default constructor; you must create a new one by calling Grant::Issuer::issue_grant or
     // by spending part of an existing Grant.  This guarantees that a Grant is never detached from a
     // Grant::Issuer unless it has gone out of scope via move, which is equivalent to destruction.)
     //----- --- -- -  -  -   -
@@ -117,43 +121,43 @@ class Grant
     Grant& operator=(Grant&&) = delete;
 
     /**
-     * \brief Destroy the Grant, releasing its allocation back to the Grant::Issuer that created it.
+     * \brief Destroys the Grant, releasing its allocation back to the Grant::Issuer that created it.
      */
     ~Grant() noexcept;
 
     //----- --- -- -  -  -   -
 
     /**
-     * \brief The Issuer from which this Grant was created.
+     * \brief The Grant::Issuer from which this Grant was created.
      */
     const Issuer* get_issuer() const
     {
         return this->issuer_.get();
     }
 
-    /** \brief Test whether `this->size()` is 0.
+    /** \brief Tests whether `this->size()` is 0.
      */
     bool empty() const
     {
         return this->size() == 0;
     }
 
-    /** \brief Equivalent to `this->is_valid()`.
+    /** \brief Equivalent to this->is_valid().
      */
     explicit operator bool() const
     {
         return this->is_valid();
     }
 
-    /** \brief Test whether this Grant has non-zero size and is connected to an Issuer.  A Grant that has been
-     * moved from is no longer valid.
+    /** \brief Tests whether this Grant has non-zero size and is connected to an Grant::Issuer.  A Grant that
+     * has been moved from is no longer valid.
      */
     bool is_valid() const
     {
         return this->size() != 0 && this->issuer_;
     }
 
-    /** \brief Test whether revoke has been called on this Grant.
+    /** \brief Tests whether revoke has been called on this Grant.
      */
     bool is_revoked() const
     {
@@ -167,7 +171,7 @@ class Grant
     //  - `Grant other = std::move(*this);`
     //----- --- -- -  -  -   -
 
-    /** Permanently invalidate this Grant, waking all waiters with error status.
+    /** Permanently invalidates this Grant, waking all waiters with error status.
      */
     void revoke();
 
@@ -175,26 +179,27 @@ class Grant
      */
     u64 size() const;
 
-    /** Spend part of the grant, returning a new Grant representing the spent amount if successful; otherwise:
+    /** Spends part of the grant, returning a new Grant representing the spent amount if successful;
+     * otherwise:
      *   - `batt::StatusCode::kGrantUnavailable` if the remaining size of this grant isn't big enough
      *   - `batt::StatusCode::kGrantRevoked` if this Grant has been revoked
      *   - `batt::StatusCode::kFailedPrecondition` if this Grant has been invalidated by a move
      */
     StatusOr<Grant> spend(u64 count, WaitForResource wait_for_resource = WaitForResource::kFalse);
 
-    /** Spend all of the grant, returning the previous size.
+    /** Spends all of the grant, returning the previous size.
      */
     u64 spend_all();
 
-    /** Increase this grant by that.size() and set that to empty.
+    /** Increases this grant by that.size() and set that to empty.
      *
      * Will panic unless all of the following are true:
-     *    - `this->get_issuer() != nullptr`
-     *    - `this->get_issuer() == that.get_issuer()`
+     *    - this->get_issuer() != nullptr
+     *    - this->get_issuer() == that.get_issuer()
      */
     Grant& subsume(Grant&& that);
 
-    /** Swap the values of this and that.
+    /** Swaps the values of this and that.
      */
     void swap(Grant& that);
 

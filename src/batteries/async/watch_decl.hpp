@@ -68,14 +68,14 @@ class Watch
     {
     }
 
-    /** \brief Destroy the Watch, automatically calling Watch::close.
+    /** \brief Destroys the Watch, automatically calling Watch::close.
      */
     ~Watch()
     {
         this->close();
     }
 
-    /** \brief Set the Watch to the "closed" state, which disables all blocking/async synchronization on the
+    /** \brief Sets the Watch to the "closed" state, which disables all blocking/async synchronization on the
      *  Watch, immediately unblocking any currently waiting tasks/threads.
      *
      * This method is safe to call multiple times.  The Watch value can still be modified and retrieved after

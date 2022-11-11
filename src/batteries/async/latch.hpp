@@ -22,7 +22,7 @@ class Latch;
 
 /** A write-once, single-value synchronized container.
  *
- * Similar to a Future/Promise pair, but Latch has no defined copy/move semantics.
+ * Similar to a \ref Future / \ref Promise pair, but Latch has no defined copy/move semantics.
  */
 template <typename T>
 class Latch : public RefCounted<Latch<T>>
@@ -39,7 +39,7 @@ class Latch : public RefCounted<Latch<T>>
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
-    /** \brief Default construct an empty Latch.
+    /** \brief Default-constructs an empty Latch.
      */
     Latch() = default;
 
@@ -53,8 +53,8 @@ class Latch : public RefCounted<Latch<T>>
 
     /** \brief Sets the value, closing the latch.
      *
-     * \detail `args` are used to construct a StatusOr<T>, so you can pass an instance of `T` to set_value, or
-     * a Status to indicate an error occurred.
+     * \details `args` are used to construct a StatusOr<T>, so you can pass an instance of `T` to set_value,
+     * or a Status to indicate an error occurred.
      *
      * \return true if the Latch was not previously set and this call succeeded in setting its value, or false
      * if the value was previously/concurrently set by another thread.
@@ -111,6 +111,8 @@ class Latch : public RefCounted<Latch<T>>
 
     /** Invokes `handler` when the Latch value is set (i.e., when it enters the ready state); invokes handler
      *  immediately if the Latch is ready when this method is called.
+     *
+     * \param handler Should have signature `#!cpp void(`\ref StatusOr `<T>)`
      */
     template <typename Handler>
     void async_get(Handler&& handler);

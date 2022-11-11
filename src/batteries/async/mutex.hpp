@@ -19,7 +19,7 @@ namespace batt {
 /** \brief Provides mutually-exclusive access to an instance of type `T`.
  *
  * This class has two advantages over `std::mutex`:
- *     1. It will yield the current `batt::Task` (if there is one) when blocking to acquire a lock, allowing
+ *     1. It will yield the current batt::Task (if there is one) when blocking to acquire a lock, allowing
  *        the current thread to be used by other tasks
  *     2. By embedding the protected type `T` within the object, there is a much lower chance that state which
  *        should be accessed via a mutex will accidentally be accessed directly
@@ -27,7 +27,7 @@ namespace batt {
  * This mutex implementation is mostly fair because it uses a modified version of [Lamport's Bakery
  * Algorithm](https://en.wikipedia.org/wiki/Lamport's_bakery_algorithm).  It is non-recursive, so
  * threads/tasks that attempt to acquire a lock that they already have will deadlock.  Also, an attempt to
- * acquire a lock on a `batt::Mutex` can't be cancelled, so it is not possible to set a timeout on lock
+ * acquire a lock on a batt::Mutex can't be cancelled, so it is not possible to set a timeout on lock
  * acquisition.
  */
 template <typename T>
@@ -193,7 +193,7 @@ class Mutex
      */
     Mutex& operator=(const Mutex&) = delete;
 
-    /** \brief Default-initialize the protected object.
+    /** \brief Default-initializes the protected object.
      */
     Mutex() = default;
 
@@ -230,21 +230,21 @@ class Mutex
         return BATT_FORWARD(action)(value_);
     }
 
-    /** \brief Access the protected object's thread-safe base class members.
+    /** \brief Accesses the protected object's thread-safe base class members.
      */
     auto operator->()
     {
         return thread_safe_base(&this->value_);
     }
 
-    /** \brief Access the protected object's thread-safe base class by reference.
+    /** \brief Accesses the protected object's thread-safe base class by reference.
      */
     decltype(auto) no_lock()
     {
         return *thread_safe_base(&this->value_);
     }
 
-    /** \brief Access the protected object's thread-safe base class by pointer.
+    /** \brief Accesses the protected object's thread-safe base class by pointer.
      */
     decltype(auto) no_lock() const
     {
@@ -254,7 +254,7 @@ class Mutex
    private:
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
-    /** \brief Acquire exclusive access to the protected object via modified Bakery Algorithm.
+    /** \brief Acquires exclusive access to the protected object via modified Bakery Algorithm.
      *
      * 1. Atomically fetch_add to claim the next available "ticket"
      * 2. Wait on the current ticket Watch until it is equal to the ticket obtained in step 1.
@@ -275,7 +275,7 @@ class Mutex
         return value_;
     }
 
-    /** \brief Release the lock via modified Bakery Algorithm by incrementing the current ticket watch.
+    /** \brief Releases the lock via modified Bakery Algorithm by incrementing the current ticket watch.
      */
     void release() const
     {

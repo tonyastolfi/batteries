@@ -67,6 +67,8 @@ i32 next_thread_id();
 i32& this_thread_id();
 
 /** \brief A user-space cooperatively scheduled thread of control.
+ *
+ * Does not support preemption.
  */
 class Task
     : public boost::intrusive::list_base_hook<boost::intrusive::link_mode<boost::intrusive::auto_unlink>>
@@ -103,10 +105,10 @@ class Task
      */
     static usize& nesting_depth();
 
-    /** \brief The upper bound on `nesting_depth()`.
+    /** \brief The upper bound on \ref nesting_depth.
      *
      * When scheduling a task to run via `dispatch` would increase the nesting depth on the current thread to
-     * greater than `kMaxNestingDepth`, `post` is used instead.
+     * greater than \ref kMaxNestingDepth, `post` is used instead.
      */
     static constexpr usize kMaxNestingDepth = 8;
 
@@ -144,7 +146,7 @@ class Task
      */
     static constexpr state_type kCompletionHandlersLock = state_type{1} << 6;
 
-    /** Used to save the value of the `kSleepTimerLock` bit when the Task is suspended (e.g., in `await` or
+    /** Used to save the value of the \ref kSleepTimerLock bit when the Task is suspended (e.g., in `await` or
      * `yield`).  The Task should not hold any spinlocks while it is suspended, so we don't deadlock.  Rather,
      * the sleep timer lock is temporarily released while suspended and then re-acquired when the task is
      * resumed.
@@ -220,7 +222,7 @@ class Task
     static std::mutex& global_mutex();
 
     /** \brief Returns a reference to the global task list.  Must only be accessed while holding a lock on
-     * `Task::global_mutex()`.
+     * \ref Task::global_mutex().
      */
     static AllTaskList& all_tasks();
 
@@ -257,7 +259,7 @@ class Task
 
     /** \brief Returns the current stack position, if currently inside a task.
      *
-     * \return If called from inside a task, the current stack position in bytes, else `batt::None`
+     * \return If called from inside a task, the current stack position in bytes, else \ref batt::None
      */
     static Optional<usize> current_stack_pos();
 
@@ -268,7 +270,7 @@ class Task
      * number, but it will be essentially a garbage value.  It's up to the caller to make sure that `ptr`
      * points at something on the task stack.
      *
-     * \return  If called from inside a task, the stack offset in bytes of `ptr`, else `batt::None`
+     * \return  If called from inside a task, the stack offset in bytes of `ptr`, else \ref batt::None
      */
     static Optional<usize> current_stack_pos_of(const volatile void* ptr);
 
@@ -291,15 +293,15 @@ class Task
 
     /** \brief Puts the current Task/thread to sleep for the specified duration.
      *
-     * This operation can be interrupted by a [batt::Task::wake()](#batttaskwake), in which case a "cancelled"
+     * This operation can be interrupted by a \ref batt::Task::wake(), in which case a "cancelled"
      * error code is returned instead of success (no error).
      *
      * This method is safe to call outside a task; in this case, it is implemented via
      * `std::this_task::sleep_for`.
      *
      * \return `batt::ErrorCode{}` (no error) if the specified duration passed, else
-     * `boost::asio::error::operation_aborted` (indicating that `batt::Task::wake()` was called on the given
-     * task)
+     * `boost::asio::error::operation_aborted` (indicating that \ref batt::Task::wake() was called on the
+     * given task)
      */
     template <typename Duration = boost::posix_time::ptime>
     static ErrorCode sleep(const Duration& duration)
@@ -315,9 +317,9 @@ class Task
 
     /** \brief Suspends the current thread/Task until an asynchronous event occurs.
      *
-     *  The param `fn` is passed a continuation handler that will cause this Task to wake up, causing `await`
-     *  to return an instance of type `R` constructed from the arguments passed to the handler.  For example,
-     *  `await` can be used to turn an async socket read into a synchronous call:
+     *  The param `fn` is passed a continuation handler that will cause this Task to wake up, causing \ref
+     * await to return an instance of type `R` constructed from the arguments passed to the handler.  For
+     * example, `await` can be used to turn an async socket read into a synchronous call:
      *
      * ```
      * boost::asio::ip::tcp::socket s;
@@ -453,7 +455,7 @@ class Task
         });
     }
 
-    /** \brief The name given to a `batt::Task` if none is passed into the constructor.
+    /** \brief The name given to a \ref batt::Task if none is passed into the constructor.
      */
     static std::string default_name()
     {
@@ -498,7 +500,7 @@ class Task
      */
     Task& operator=(const Task&) = delete;
 
-    /** \brief Create a new Task with a custom stack size.
+    /** \brief Creates a new Task with a custom stack size.
      */
     template <typename BodyFn = void()>
     explicit Task(const boost::asio::any_io_executor& ex, StackSize stack_size, BodyFn&& body_fn) noexcept
@@ -545,9 +547,9 @@ class Task
         this->handle_event(kSuspended | kHaveSignal);
     }
 
-    /** \brief Destroy the Task.
+    /** \brief Destroys the Task.
      *
-     * A Task must be terminated when it is destroyed, or the program will panic.  Calling `Task::join()`
+     * A Task must be terminated when it is destroyed, or the program will panic.  Calling \ref Task::join()
      * prior to destroying a Task object is sufficient.
      */
     ~Task() noexcept;
@@ -584,7 +586,7 @@ class Task
     /** \brief The current byte offset of the top of this Task's stack.
      *
      * This value is only meaningful if this method is called while on the current task.  Usually you should
-     * just call `batt::Task::current_stack_pos()` instead.
+     * just call \ref batt::Task::current_stack_pos() instead.
      */
     usize stack_pos() const;
 
@@ -593,17 +595,18 @@ class Task
      */
     usize stack_pos_of(const volatile void* ptr) const;
 
-    /** \brief Block the current Task/thread until this Task has finished.
+    /** \brief Blocks the current Task/thread until this Task has finished.
      */
     void join();
 
-    /** \brief Returns whether or not this Task is finished. Equivalent to `is_done()`.
+    /** \brief Returns whether or not this Task is finished. Equivalent to \ref is_done().
      *
      * This function is guaranteed never to block.
      */
     IsDone try_join();
 
-    /** \brief Interrupts a call to `sleep` on this Task.  Has no effect if the Task is not inside `sleep`.
+    /** \brief Interrupts a call to \ref sleep on this Task.  Has no effect if the Task is not inside \ref
+     * sleep.
      */
     bool wake();
 
@@ -614,16 +617,17 @@ class Task
         return this->ex_;
     }
 
-    /** \brief Returns whether or not this Task is finished.  Equivalent to `try_join()`.
+    /** \brief Returns whether or not this Task is finished.  Equivalent to \ref try_join().
      */
     IsDone is_done() const;
 
     /** \brief Attaches a listener callback to the task; this callback will be invoked when the task completes
      * execution.
      *
-     * This method can be thought of as an asynchronous version of batt::Task::join.
+     * This method can be thought of as an asynchronous version of \ref batt::Task::join.
      *
-     * \param handler The handler to invoke when the Task has finished; should have the signature `void()`
+     * \param handler The handler to invoke when the Task has finished; should have the signature
+                      `#!cpp void()`
      */
     template <typename F = void()>
     void call_when_done(F&& handler)
