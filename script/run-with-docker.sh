@@ -32,4 +32,4 @@ docker run ${DOCKER_FLAGS_INTERACTIVE} \
        -v "$HOME/.conan":"$HOME/.conan" \
        -w "$(pwd)" \
        ${docker_image} \
-       "$@"
+       "{ test -f ${project_dir}/_batt-docker-profile && source ${project_dir}/_batt-docker-profile || true } && $@"
