@@ -220,13 +220,15 @@ struct BasicInterval {
             return TraitsL::empty(r.lower_bound, l.upper_bound);
         }
 
-        template <typename L, typename TraitsR>
+        template <typename L, typename TraitsR,
+                  typename = std::enable_if_t<!std::is_base_of_v<BasicInterval<TraitsR>, L>>>
         bool operator()(const L& l, const BasicInterval<TraitsR>& r) const
         {
             return TraitsR::x_excluded_by_lower(l, r.lower_bound);
         }
 
-        template <typename TraitsL, typename R>
+        template <typename TraitsL, typename R,
+                  typename = std::enable_if_t<!std::is_base_of_v<BasicInterval<TraitsL>, R>>>
         bool operator()(const BasicInterval<TraitsL>& l, const R& r) const
         {
             return TraitsL::upper_excludes_x(l.upper_bound, r);
