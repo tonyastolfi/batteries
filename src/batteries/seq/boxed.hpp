@@ -102,6 +102,16 @@ class BoxedSeq
     BoxedSeq& operator=(BoxedSeq&&) = default;
     BoxedSeq& operator=(const BoxedSeq& that) = default;
 
+    bool is_valid() const
+    {
+        return this->storage_.is_valid();
+    }
+
+    explicit operator bool() const
+    {
+        return this->is_valid();
+    }
+
     Optional<Item> peek()
     {
         return this->storage_->peek();
