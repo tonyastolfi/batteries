@@ -1,3 +1,6 @@
+- 0.16.2 (2022/11/30)
+    - Fixed a broken link in the release notes.
+
 - 0.16.1 (2022/11/30)
     - Added release notes (this document) to the doc pages.
 
