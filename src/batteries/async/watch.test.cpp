@@ -954,4 +954,143 @@ TEST(AsyncWatchTest, AtomicAwaitEqual)
     EXPECT_TRUE(result.ok());
 }
 
+TEST(AsyncWatchTest, ClampMinMax)
+{
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    // Case 1-10: clamp min/max with non-atomic type std::string
+    //
+    batt::Watch<std::string> s;
+
+    s.set_value("horse");
+
+    //----- --- -- -  -  -   -
+
+    // Case 1: clamp min with value less than current, no effect
+    //
+    s.clamp_min_value("goblin");
+    EXPECT_THAT(s.get_value(), ::testing::StrEq("horse"));
+
+    // Case 2: clamp min with value greater than current, value changed
+    //
+    s.clamp_min_value("jungle");
+    EXPECT_THAT(s.get_value(), ::testing::StrEq("jungle"));
+
+    // Case 3: clamp max with value greater than current, no effect
+    //
+    s.clamp_max_value("manifold");
+    EXPECT_THAT(s.get_value(), ::testing::StrEq("jungle"));
+
+    // Case 4: clamp max with value less than current, value changed
+    //
+    s.clamp_max_value("helium");
+    EXPECT_THAT(s.get_value(), ::testing::StrEq("helium"));
+
+    //----- --- -- -  -  -   -
+    // Cases 5-10: clamp min/max with alternative ordering function.
+    //
+    const auto order_by_len = [](const auto& l, const auto& r) -> bool {
+        return l.length() < r.length();
+    };
+
+    // Case 5: clamp min (by len) with same len but less-than in dictionary order; no change
+    //
+    s.clamp_min_value("aaaaaa", order_by_len);
+    EXPECT_THAT(s.get_value(), ::testing::StrEq("helium"));
+
+    // Case 6: clamp min (by len) with same len but greater-than in dictionary order; no change
+    //
+    s.clamp_min_value("zzzzzz", order_by_len);
+    EXPECT_THAT(s.get_value(), ::testing::StrEq("helium"));
+
+    // Case 7: clamp min (by len) with greater len; value changed
+    //
+    s.clamp_min_value("android", order_by_len);
+    EXPECT_THAT(s.get_value(), ::testing::StrEq("android"));
+
+    // Case 8: clamp max (by len) with same len but less-than in dictionary order; no change
+    //
+    s.clamp_max_value("aaaaaaa", order_by_len);
+    EXPECT_THAT(s.get_value(), ::testing::StrEq("android"));
+
+    // Case 9: clamp max (by len) with same len but greater-than in dictionary order; no change
+    //
+    s.clamp_max_value("zzzzzzz", order_by_len);
+    EXPECT_THAT(s.get_value(), ::testing::StrEq("android"));
+
+    // Case 10: clamp max (by len) with lesser len but greater-than in dictionary order; value changed
+    //
+    s.clamp_max_value("cat", order_by_len);
+    EXPECT_THAT(s.get_value(), ::testing::StrEq("cat"));
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+    // Case 10-20: clamp min/max with atomic type i32
+    //
+    batt::Watch<i32> n;
+
+    n.set_value(7);
+
+    //----- --- -- -  -  -   -
+
+    // Case 10: clamp min with value less than current, no effect
+    //
+    n.clamp_min_value(6);
+    EXPECT_THAT(n.get_value(), ::testing::Eq(7));
+
+    // Case 11: clamp min with value greater than current, value changed
+    //
+    n.clamp_min_value(8);
+    EXPECT_THAT(n.get_value(), ::testing::Eq(8));
+
+    // Case 12: clamp max with value greater than current, no effect
+    //
+    n.clamp_max_value(9);
+    EXPECT_THAT(n.get_value(), ::testing::Eq(8));
+
+    // Case 13: clamp max with value less than current, value changed
+    //
+    n.clamp_max_value(4);
+    EXPECT_THAT(n.get_value(), ::testing::Eq(4));
+
+    //----- --- -- -  -  -   -
+    // Cases 14-19: clamp min/max with alternative ordering function.
+    //
+    const auto less_than_mod_4 = [](const auto& l, const auto& r) -> bool {
+        return (l % 4) < (r % 4);
+    };
+
+    // Case 14: clamp min (by mod 4) with same mod 4 but less-than; no change
+    //
+    n.clamp_min_value(0, less_than_mod_4);
+    EXPECT_THAT(n.get_value(), ::testing::Eq(4));
+
+    // Case 15: clamp min (by mod 4) with same mod 4 but greater-than; no change
+    //
+    n.clamp_min_value(8, less_than_mod_4);
+    EXPECT_THAT(n.get_value(), ::testing::Eq(4));
+
+    // Case 16: clamp min (by mod 4) with greater mod 4; value changed
+    //
+    n.clamp_min_value(1, less_than_mod_4);
+    EXPECT_THAT(n.get_value(), ::testing::Eq(1));
+
+    // Reset to a larger value to avoid taking mod of negative numbers.
+    //
+    n.set_value(5);
+
+    // Case 17: clamp max (by mod 4) with same mod 4 but less-than; no change
+    //
+    n.clamp_max_value(1, less_than_mod_4);
+    EXPECT_THAT(n.get_value(), ::testing::Eq(5));
+
+    // Case 18: clamp max (by mod 4) with same mod 4 but greater-than; no change
+    //
+    n.clamp_max_value(9, less_than_mod_4);
+    EXPECT_THAT(n.get_value(), ::testing::Eq(5));
+
+    // Case 19: clamp max (by mod 4) with lesser mod 4 but greater-than; value changed
+    //
+    n.clamp_max_value(8, less_than_mod_4);
+    EXPECT_THAT(n.get_value(), ::testing::Eq(8));
+}
+
 }  // namespace

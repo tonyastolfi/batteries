@@ -8,6 +8,7 @@
 #include <batteries/async/handler.hpp>
 #include <batteries/finally.hpp>
 #include <batteries/optional.hpp>
+#include <batteries/seq/natural_order.hpp>
 #include <batteries/status.hpp>
 #include <batteries/type_traits.hpp>
 
@@ -210,6 +211,54 @@ class Watch
         }
 
         return last_seen;
+    }
+
+    /** \brief Modify the value to be at least `lower_bound`.
+     *
+     * \param lower_bound The (inclusive) lower bound value to enforce
+     * \param order_fn A callable object taking two T values and returning bool that returns true iff the
+     * first argument is less-than the second.
+     */
+    template <typename OrderFn = bool(const T&, const T&)>
+    void clamp_min_value(const T& lower_bound, OrderFn&& order_fn)
+    {
+        this->modify([&](const T& observed) -> const T& {
+            if (order_fn(observed, lower_bound)) {
+                return lower_bound;
+            }
+            return observed;
+        });
+    }
+
+    /** \brief Modify the value to be at most `upper_bound`.
+     *
+     * \param upper_bound The (inclusive) upper bound value to enforce
+     * \param order_fn A callable object taking two T values and returning bool that returns true iff the
+     * first argument is less-than the second.
+     */
+    template <typename OrderFn = bool(const T&, const T&)>
+    void clamp_max_value(const T& upper_bound, OrderFn&& order_fn)
+    {
+        this->modify([&](const T& observed) -> const T& {
+            if (order_fn(upper_bound, observed)) {
+                return upper_bound;
+            }
+            return observed;
+        });
+    }
+
+    /** \brief Modify the value to be at least `lower_bound`, using the default ordering for T.
+     */
+    void clamp_min_value(const T& lower_bound)
+    {
+        this->clamp_min_value(lower_bound, seq::NaturalOrder{});
+    }
+
+    /** \brief Modify the value to be at most `upper_bound`, using the default ordering for T.
+     */
+    void clamp_max_value(const T& upper_bound)
+    {
+        this->clamp_max_value(upper_bound, seq::NaturalOrder{});
     }
 
    private:
@@ -579,6 +628,54 @@ class WatchAtomic
                 return observed == val;
             })
             .status();
+    }
+
+    /** \brief Modify the value to be at least `lower_bound`.
+     *
+     * \param lower_bound The (inclusive) lower bound value to enforce
+     * \param order_fn A callable object taking two T values and returning bool that returns true iff the
+     * first argument is less-than the second.
+     */
+    template <typename OrderFn = bool(T, T)>
+    void clamp_min_value(T lower_bound, OrderFn&& order_fn)
+    {
+        this->modify([&](T observed) -> T {
+            if (order_fn(observed, lower_bound)) {
+                return lower_bound;
+            }
+            return observed;
+        });
+    }
+
+    /** \brief Modify the value to be at most `upper_bound`.
+     *
+     * \param upper_bound The (inclusive) upper bound value to enforce
+     * \param order_fn A callable object taking two T values and returning bool that returns true iff the
+     * first argument is less-than the second.
+     */
+    template <typename OrderFn = bool(T, T)>
+    void clamp_max_value(T upper_bound, OrderFn&& order_fn)
+    {
+        this->modify([&](T observed) -> T {
+            if (order_fn(upper_bound, observed)) {
+                return upper_bound;
+            }
+            return observed;
+        });
+    }
+
+    /** \brief Modify the value to be at least `lower_bound`, using the default ordering for T.
+     */
+    void clamp_min_value(T lower_bound)
+    {
+        this->clamp_min_value(lower_bound, seq::NaturalOrder{});
+    }
+
+    /** \brief Modify the value to be at most `upper_bound`, using the default ordering for T.
+     */
+    void clamp_max_value(T upper_bound)
+    {
+        this->clamp_max_value(upper_bound, seq::NaturalOrder{});
     }
 
    private:
