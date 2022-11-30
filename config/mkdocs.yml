@@ -17,6 +17,7 @@ nav:
   - Reference:
       - Files: _autogen/Files/
       - Classes: _autogen/Classes/
+  - Release Notes: release_notes
   - Developers:
       - Coding Style: coding_style
       - Configuring CI Pipelines: how-to/configure-ci-pipelines
