@@ -147,7 +147,9 @@ BATT_INLINE_IMPL void Task::pre_body_fn_entry(Continuation&& scheduler) noexcept
     // Transfer control back to the Task ctor.  This Task will be scheduled to run (activated) at the end of
     // the ctor.
     //
+    ++this->suspend_count_;
     this->scheduler_ = scheduler.resume();
+    ++this->resume_count_;
 
     BATT_VLOG(1) << "Task{.name=" << this->name_ << ",} started on thread " << this_thread_id();
 }
@@ -387,7 +389,9 @@ BATT_INLINE_IMPL void Task::yield_impl()
     BATT_CHECK(this->scheduler_) << StateBitset{this->state_.load()};
 
     for (;;) {
+        ++this->suspend_count_;
         this->scheduler_ = this->scheduler_.resume();
+        ++this->resume_count_;
 
         // If a stack trace has been requested, print it and suspend.
         //
@@ -443,7 +447,8 @@ BATT_INLINE_IMPL i32 Task::backtrace_all(bool force)
     std::unique_lock<std::mutex> lock{global_mutex()};
     std::cerr << std::endl;
     for (auto& t : all_tasks()) {
-        std::cerr << "-- Task{id=" << t.id() << ", name=" << t.name_ << "} -------------" << std::endl;
+        std::cerr << "-- Task{id=" << t.id() << ", name=" << t.name_ << ", suspend=" << t.suspend_count_
+                  << ", resume=" << t.resume_count_ << "} -------------" << std::endl;
         if (!t.try_dump_stack_trace(force)) {
             std::cerr << " <no stack available>" << std::endl;
         }

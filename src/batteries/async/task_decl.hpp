@@ -873,6 +873,9 @@ class Task
     bool is_preempted_ = false;
 
     bool is_inside_work_fn_ = false;
+
+    volatile usize suspend_count_ = 0;
+    volatile usize resume_count_ = 0;
 };
 
 }  // namespace batt

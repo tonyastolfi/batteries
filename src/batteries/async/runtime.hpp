@@ -48,14 +48,24 @@ class Runtime
         Mutex<NoneType> mutex;
     };
 
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
+
     static Runtime& instance()
     {
-        // Intentionally leaked to avoid any potential static deinit order issues.
-        //
-        static Runtime* const instance_ = new Runtime;
-
-        return *instance_;
+        return *Runtime::instance_ptr();
     }
+
+    static void reset()
+    {
+        BATT_CHECK(Runtime::instance().is_halted());
+
+        delete Runtime::instance_ptr();
+        Runtime::instance_ptr() = new Runtime;
+
+        BATT_CHECK(!Runtime::instance().is_halted());
+    }
+
+    //+++++++++++-+-+--+----- --- -- -  -  -   -
 
     explicit Runtime() noexcept;
 
@@ -85,6 +95,11 @@ class Runtime
         detail::SigInfoHandler::instance().halt();
         this->default_scheduler_->halt();
         this->scheduler_.load()->halt();
+    }
+
+    bool is_halted() const
+    {
+        return this->halted_.load();
     }
 
     void join()
@@ -143,6 +158,14 @@ class Runtime
     }
 
    private:
+    static Runtime*& instance_ptr()
+    {
+        // Intentionally leaked to avoid any potential static deinit order issues.
+        //
+        static Runtime* instance_ = new Runtime;
+        return instance_;
+    }
+
     ~Runtime() noexcept
     {
         this->halt();
