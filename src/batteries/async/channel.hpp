@@ -52,6 +52,15 @@ class Channel
 
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
+    /** \brief Start a new read and invoke the passed handler when the next value is written to the channel.
+     *
+     * Will invoke the handler immediately with batt::StatusCode::kClosed if either:
+     *     - The channel was closed for read prior to calling async_read
+     *     - The channel is closed for write, before or after the call to async_read
+     */
+    template <typename Handler = void(StatusOr<T&>)>
+    void async_read(Handler&& handler);
+
     /** Wait for an object to be written to the Channel, then return a reference to that object.  The referred
      *  object will stay valid until Channel::consume is called.
      */
@@ -100,12 +109,44 @@ class Channel
 //
 template <typename T>
 template <typename Handler>
+void Channel<T>::async_read(Handler&& handler)
+{
+    if (this->read_count_.is_closed()) {
+        handler(StatusOr<T&>{StatusCode::kClosed});
+        return;
+    }
+
+    const i32 observed_write_count = this->write_count_.get_value();
+    const i32 observed_read_count = this->read_count_.get_value();
+
+    if (observed_write_count > observed_read_count) {
+        handler(StatusOr<T&>{*this->value_});
+        return;
+    }
+
+    this->write_count_.async_wait(
+        observed_write_count,
+        bind_handler(BATT_FORWARD(handler),
+                     [this, observed_read_count](Handler&& handler, StatusOr<i32> updated_write_count) {
+                         if (!updated_write_count.ok()) {
+                             handler(StatusOr<T&>{updated_write_count.status()});
+                             return;
+                         }
+                         BATT_CHECK_GT(*updated_write_count, observed_read_count);
+                         handler(StatusOr<T&>{*this->value_});
+                     }));
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+template <typename T>
+template <typename Handler>
 void Channel<T>::async_write(T& value, Handler&& handler)
 {
     BATT_CHECK(!this->is_active());
 
     if (this->write_count_.is_closed()) {
-        handler({StatusCode::kClosed});
+        handler(Status{StatusCode::kClosed});
         return;
     }
 

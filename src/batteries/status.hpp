@@ -329,10 +329,22 @@ template <typename T>
 class StatusOrValueContainer
 {
    public:
+    using Self = StatusOrValueContainer;
+
     template <typename... Args>
     void construct(Args&&... args)
     {
         new (&this->storage_) T(BATT_FORWARD(args)...);
+    }
+
+    void construct(const Self& that)
+    {
+        this->construct(that.reference());
+    }
+
+    void construct(Self&& that)
+    {
+        this->construct(std::move(that.reference()));
     }
 
     T* pointer() noexcept
@@ -368,9 +380,21 @@ template <typename T>
 class StatusOrValueContainer<T&>
 {
    public:
-    void construct(T& obj)
+    using Self = StatusOrValueContainer<T&>;
+
+    void construct(T& value)
     {
-        this->ptr_ = &obj;
+        this->ptr_ = &value;
+    }
+
+    void construct(const Self& that)
+    {
+        this->ptr_ = that.ptr_;
+    }
+
+    void construct(Self&& that)
+    {
+        this->ptr_ = that.ptr_;
     }
 
     T* pointer() const noexcept
@@ -419,7 +443,7 @@ class StatusOr
     StatusOr(StatusOr&& that) : status_{StatusCode::kUnknown}
     {
         if (that.ok()) {
-            this->value_.construct(std::move(that.value()));
+            this->value_.construct(std::move(that.value_));
             this->status_ = OkStatus();
 
             that.value_.destroy();
@@ -432,7 +456,7 @@ class StatusOr
     StatusOr(const StatusOr& that) : status_{that.status_}
     {
         if (this->ok()) {
-            this->value_.construct(that.value());
+            this->value_.construct(that.value_);
         }
     }
 
