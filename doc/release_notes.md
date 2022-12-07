@@ -1,3 +1,6 @@
+- 0.18.0 (2022/12/07)
+    - Added `batt::Channel<T>::async_read`, along with unit tests for the async methods of `batt::Channel<T>`.
+
 - 0.17.1 (2022/12/02)
     - Added `batt::Runtime::reset()` and `batt::Runtime::is_halted()` so that downstream libraries that use a Google Test global environment to start/stop batt::Runtime can restart the default thread pool, for GTEST_REPEAT/--gtest_repeat testing.
 
