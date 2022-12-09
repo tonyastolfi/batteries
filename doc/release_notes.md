@@ -1,3 +1,6 @@
+- 0.18.1 (2022/12/09)
+    - Added `batt::PinnablePtr<T>`.
+
 - 0.18.0 (2022/12/07)
     - Added `batt::Channel<T>::async_read`, along with unit tests for the async methods of `batt::Channel<T>`.
 
