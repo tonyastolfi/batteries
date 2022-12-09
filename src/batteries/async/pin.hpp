@@ -229,6 +229,58 @@ inline bool operator!=(std::nullptr_t, const Pin<U>& r)
     return !(nullptr == r);
 }
 
+//=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+/** \brief A raw pointer augmented to support the batt::Pinnable interface, so that a
+ * batt::Pin<batt::PinnablePtr<T>> can be created to block the destruction of the pointer.
+ */
+template <typename T>
+class PinnablePtr : public Pinnable
+{
+   public:
+    /** \brief Initializes a PinnablePtr pointing to the given object.
+     */
+    explicit PinnablePtr(T* ptr) noexcept : ptr_{ptr}
+    {
+    }
+
+    /** \brief Initializes a nullptr PinnablePtr.
+     */
+    PinnablePtr() = default;
+
+    /** \brief Returns the value of the pointer passed in at construction.
+     */
+    T* get() const noexcept
+    {
+        return this->ptr_;
+    }
+
+    /** \brief Returns true iff the pointer is not nullptr.
+     */
+    explicit operator bool() const noexcept
+    {
+        return this->get() != nullptr;
+    }
+
+    /** \brief Dereferences the contained pointer; behavior is undefined if the pointer is nullptr.
+     */
+    T& operator*() const noexcept
+    {
+        return *this->get();
+    }
+
+    /** \brief Provides access to members of the object pointed to by this.
+     */
+    T* operator->() const noexcept
+    {
+        return this->get();
+    }
+
+   private:
+    /** \brief A raw pointer to the pinnable object.
+     */
+    T* ptr_ = nullptr;
+};
+
 }  // namespace batt
 
 #endif  // BATTERIES_ASYNC_PIN_HPP
