@@ -51,6 +51,16 @@ class Latch : public RefCounted<Latch<T>>
      */
     Latch& operator=(const Latch&) = delete;
 
+    /** \brief Sets the Latch to an error status value.  status.ok() must be false, or else this function will
+     * panic.
+     */
+    bool set_error(const batt::Status& status)
+    {
+        BATT_CHECK(!status.ok()) << "Latch::set_error must be called with a non-ok Status value";
+
+        return this->set_value(status);
+    }
+
     /** \brief Sets the value, closing the latch.
      *
      * \details `args` are used to construct a StatusOr<T>, so you can pass an instance of `T` to set_value,

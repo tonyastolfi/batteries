@@ -1,3 +1,9 @@
+- 0.19.0 (2022/12/14)
+    - Added `batt::Latch<T>::set_error` to explicitly set the Latch to an error status for better readability.
+    - Added new header batteries/async/fetch.hpp with:
+        - `batt::fetch_chunk`: blocking API for no-copy input streams with an async_fetch method
+        - `batt::BasicScopedChunk<Stream>`: automatically calls consume on fetched data at scope exit
+
 - 0.18.1 (2022/12/09)
     - Added `batt::PinnablePtr<T>`.
 
