@@ -1,4 +1,5 @@
-// Copyright 2021 Anthony Paul Astolfi
+//#=##=##=#==#=#==#===#+==#+==========+==+=+=+=+=+=++=+++=+++++=-++++=-+++++++++++
+// Copyright 2021-2022 Anthony Paul Astolfi
 //
 #include <batteries/status.hpp>
 //
@@ -6,6 +7,8 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <batteries/static_assert.hpp>
 
 namespace {
 
@@ -452,6 +455,18 @@ TEST(ToStatusTest, SystemErrorCodeToStatus)
 
     EXPECT_EQ(batt::to_status(boost::system::error_code{boost::asio::error::access_denied}),
               batt::status_from_errno(EACCES));
+
+    EXPECT_EQ(batt::to_status(boost::system::error_code{boost::asio::error::access_denied}),
+              batt::Status{boost::asio::error::access_denied});
+
+    BATT_STATIC_ASSERT_TYPE_EQ(boost::asio::error::basic_errors, decltype(boost::asio::error::access_denied));
+
+    static_assert(boost::system::is_error_code_enum<boost::asio::error::basic_errors>::value, "");
+
+    EXPECT_EQ(batt::status_from_errno(EACCES), boost::asio::error::access_denied);
+
+    EXPECT_THAT(batt::to_string(batt::Status{boost::asio::error::access_denied}),
+                ::testing::EndsWith(":Permission denied"));
 }
 
 }  // namespace

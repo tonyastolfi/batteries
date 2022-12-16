@@ -78,6 +78,13 @@ enum ErrnoValue {};
 
 class BATT_WARN_UNUSED_RESULT Status;
 
+template <typename T>
+constexpr bool IsStatusEnum = std::is_enum_v<T> &&                                  //
+                              !boost::system::is_error_code_enum<T>::value &&       //
+                              !boost::system::is_error_condition_enum<T>::value &&  //
+                              !std::is_error_code_enum_v<T> &&                      //
+                              !std::is_error_condition_enum_v<T>;
+
 class Status : private detail::StatusBase
 {
    public:
@@ -159,7 +166,7 @@ class Status : private detail::StatusBase
     // Implicitly convert enumerated types to Status.  The given type `EnumT` must have been registered
     // via `Status::register_codes` prior to invoking this constructor.
     //
-    template <typename EnumT, typename = std::enable_if_t<std::is_enum_v<EnumT>>>
+    template <typename EnumT, typename = std::enable_if_t<IsStatusEnum<EnumT>>>
     /*implicit*/ Status(EnumT enum_value) noexcept
     {
         const CodeGroup& group = code_group_for_type<EnumT>();
@@ -180,8 +187,16 @@ class Status : private detail::StatusBase
 #endif
     }
 
+    template <typename EnumT, typename = std::enable_if_t<boost::system::is_error_code_enum<EnumT>::value>,
+              typename = void>
+    /*implicit*/ Status(EnumT enum_value) noexcept;
+
+    template <typename EnumT, typename = std::enable_if_t<std::is_error_code_enum<EnumT>::value>,
+              typename = void, typename = void>
+    /*implicit*/ Status(EnumT enum_value) noexcept;
+
 #ifdef BATT_STATUS_CUSTOM_MESSSAGES
-    template <typename EnumT, typename = std::enable_if_t<std::is_enum_v<EnumT>>>
+    template <typename EnumT, typename = std::enable_if_t<IsStatusEnum<EnumT>>>
     explicit Status(EnumT enum_value, const std::string_view& custom_message) noexcept : Status{enum_value}
     {
         this->message_ = custom_message;
@@ -222,7 +237,7 @@ class Status : private detail::StatusBase
         const usize index_of_group = get_index_of_group(this->value_);
         const auto& all_groups = registered_groups();
 
-        BATT_ASSERT_LT(index_of_group, all_groups.size());
+        BATT_CHECK_LT(index_of_group, all_groups.size());
         BATT_ASSERT_NOT_NULLPTR(all_groups[index_of_group]);
 
         return *all_groups[index_of_group];
@@ -1256,6 +1271,21 @@ inline bool Status::register_codes_internal(const std::vector<std::pair<EnumT, s
     }();
 
     return exactly_once;
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+template <typename EnumT, typename, typename>
+inline /*implicit*/ Status::Status(EnumT enum_value) noexcept
+    : Status{to_status(boost::system::error_code{enum_value})}
+{
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+template <typename EnumT, typename, typename, typename>
+inline /*implicit*/ Status::Status(EnumT enum_value) noexcept : Status{to_status(std::error_code{enum_value})}
+{
 }
 
 }  // namespace batt
