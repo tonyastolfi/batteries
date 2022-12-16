@@ -1,3 +1,6 @@
+- 0.19.3 (2022/12/16)
+    - Fixed crash bug caused by accidental implicit conversion from error_code enum values to batt::Status.
+
 - 0.19.2 (2022/12/16)
     - Fixed test regression by updating the expected error status to match the boost::system::error_code value.
 
