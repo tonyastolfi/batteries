@@ -1,4 +1,4 @@
-- 0.19.3 (2022/12/16)
+- 0.19.5 (2022/12/16)
     - Fixed crash bug caused by accidental implicit conversion from error_code enum values to batt::Status.
 
 - 0.19.2 (2022/12/16)
