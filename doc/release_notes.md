@@ -1,3 +1,6 @@
+- 0.19.1 (2022/12/16)
+    - Added accurate translation of more boost::system::error_code values into batt::Status.
+
 - 0.19.0 (2022/12/14)
     - Added `batt::Latch<T>::set_error` to explicitly set the Latch to an error status for better readability.
     - Added new header batteries/async/fetch.hpp with:

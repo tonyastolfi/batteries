@@ -14,6 +14,7 @@
 #include <batteries/strong_typedef.hpp>
 #include <batteries/utility.hpp>
 
+#include <boost/asio/error.hpp>
 #include <boost/preprocessor/cat.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -932,6 +933,8 @@ class NotOkStatusWrapper
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
+Status status_from_errno(int code);
+
 template <typename T,
           typename = std::enable_if_t<IsStatusOr<T>{} && !std::is_same_v<std::decay_t<T>, StatusOr<Status>>>>
 inline decltype(auto) to_status(T&& v)
@@ -957,6 +960,133 @@ inline Status to_status(const T& ec)
     // TODO [tastolfi 2021-10-13] support these so we don't lose information.
     if (!ec) {
         return OkStatus();
+    }
+    if (&(ec.category()) == &(boost::asio::error::get_misc_category())) {
+        switch (ec.value()) {
+        case boost::asio::error::eof:
+            return Status{StatusCode::kEndOfStream};
+
+        case boost::asio::error::not_found:
+            return Status{StatusCode::kNotFound};
+
+        default:
+            return Status{StatusCode::kInternal};
+        }
+    } else if (&(ec.category()) == &(boost::asio::error::get_system_category())) {
+        switch (ec.value()) {
+        case boost::asio::error::access_denied:
+            return status_from_errno(EACCES);
+
+        case boost::asio::error::address_family_not_supported:
+            return status_from_errno(EAFNOSUPPORT);
+
+        case boost::asio::error::address_in_use:
+            return status_from_errno(EADDRINUSE);
+
+        case boost::asio::error::already_connected:
+            return status_from_errno(EISCONN);
+
+        case boost::asio::error::already_started:
+            return status_from_errno(EALREADY);
+
+        case boost::asio::error::broken_pipe:
+            // TODO [tastolfi 2022-12-16] On Windows: ERROR_BROKEN_PIPE
+            return status_from_errno(EPIPE);
+
+        case boost::asio::error::connection_aborted:
+            return status_from_errno(ECONNABORTED);
+
+        case boost::asio::error::connection_refused:
+            return status_from_errno(ECONNREFUSED);
+
+        case boost::asio::error::connection_reset:
+            return status_from_errno(ECONNRESET);
+
+        case boost::asio::error::bad_descriptor:
+            return status_from_errno(EBADF);
+
+        case boost::asio::error::fault:
+            return status_from_errno(EFAULT);
+
+        case boost::asio::error::host_unreachable:
+            return status_from_errno(EHOSTUNREACH);
+
+        case boost::asio::error::in_progress:
+            return status_from_errno(EINPROGRESS);
+
+        case boost::asio::error::interrupted:
+            return status_from_errno(EINTR);
+
+        case boost::asio::error::invalid_argument:
+            return status_from_errno(EINVAL);
+
+        case boost::asio::error::message_size:
+            return status_from_errno(EMSGSIZE);
+
+        case boost::asio::error::name_too_long:
+            return status_from_errno(ENAMETOOLONG);
+
+        case boost::asio::error::network_down:
+            return status_from_errno(ENETDOWN);
+
+        case boost::asio::error::network_reset:
+            return status_from_errno(ENETRESET);
+
+        case boost::asio::error::network_unreachable:
+            return status_from_errno(ENETUNREACH);
+
+        case boost::asio::error::no_descriptors:
+            return status_from_errno(EMFILE);
+
+        case boost::asio::error::no_buffer_space:
+            return status_from_errno(ENOBUFS);
+
+        case boost::asio::error::no_memory:
+            // TODO [tastolfi 2022-12-16] Windows: ERROR_OUTOFMEMORY
+            return status_from_errno(ENOMEM);
+
+        case boost::asio::error::no_permission:
+            // TODO [tastolfi 2022-12-16] Windows: ERROR_ACCESS_DENIED
+            return status_from_errno(EPERM);
+
+        case boost::asio::error::no_protocol_option:
+            return status_from_errno(ENOPROTOOPT);
+
+        case boost::asio::error::no_such_device:
+            // TODO [tastolfi 2022-12-16] Windows: ERROR_BAD_UNIT
+            return status_from_errno(ENODEV);
+
+        case boost::asio::error::not_connected:
+            return status_from_errno(ENOTCONN);
+
+        case boost::asio::error::not_socket:
+            return status_from_errno(ENOTSOCK);
+
+        case boost::asio::error::operation_aborted:
+            // TODO [tastolfi 2022-12-16] Windows: ERROR_OPERATION_ABORTED
+            return status_from_errno(ECANCELED);
+
+        case boost::asio::error::operation_not_supported:
+            return status_from_errno(EOPNOTSUPP);
+
+        case boost::asio::error::shut_down:
+            return status_from_errno(ESHUTDOWN);
+
+        case boost::asio::error::timed_out:
+            return status_from_errno(ETIMEDOUT);
+
+        case boost::asio::error::try_again:
+            // TODO [tastolfi 2022-12-16] Windows: ERROR_RETRY
+            return status_from_errno(EAGAIN);
+
+#ifndef __linux__
+        case boost::asio::error::would_block:
+            return status_from_errno(EWOULDBLOCK);
+#endif  // __linux__
+
+        default:
+            return Status{StatusCode::kInternal};
+        }
     }
     return Status{StatusCode::kInternal};
 }

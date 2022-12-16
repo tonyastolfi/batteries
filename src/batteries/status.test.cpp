@@ -439,4 +439,19 @@ TEST(StatusOrTest, References)
     EXPECT_EQ((const void*)x.c_str(), (const void*)z->c_str());
 }
 
+TEST(ToStatusTest, SystemErrorCodeToStatus)
+{
+    EXPECT_EQ(batt::to_status(boost::system::error_code{boost::asio::error::eof}),
+              (batt::Status{batt::StatusCode::kEndOfStream}));
+
+    EXPECT_EQ(batt::to_status(boost::system::error_code{boost::asio::error::not_found}),
+              (batt::Status{batt::StatusCode::kNotFound}));
+
+    EXPECT_EQ(batt::to_status(boost::system::error_code{boost::asio::error::already_open}),
+              (batt::Status{batt::StatusCode::kInternal}));
+
+    EXPECT_EQ(batt::to_status(boost::system::error_code{boost::asio::error::access_denied}),
+              batt::status_from_errno(EACCES));
+}
+
 }  // namespace
