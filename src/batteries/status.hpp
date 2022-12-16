@@ -1091,6 +1091,17 @@ inline Status to_status(const T& ec)
     return Status{StatusCode::kInternal};
 }
 
+template <typename T,
+          typename = std::enable_if_t<std::is_same_v<std::decay_t<T>, boost::asio::error::basic_errors> ||
+                                      std::is_same_v<std::decay_t<T>, boost::asio::error::netdb_errors> ||
+                                      std::is_same_v<std::decay_t<T>, boost::asio::error::addrinfo_errors> ||
+                                      std::is_same_v<std::decay_t<T>, boost::asio::error::misc_errors>>,
+          typename = void, typename = void, typename = void>
+inline Status to_status(T&& code_value)
+{
+    return to_status(boost::system::error_code(code_value));
+}
+
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 
 #define BATT_REQUIRE_OK(expr)                                                                                \

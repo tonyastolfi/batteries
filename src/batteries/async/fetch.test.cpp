@@ -103,7 +103,7 @@ TEST_F(AsyncFetchTest, FetchError)
         batt::StatusOr<ScopedChunk> chunk = batt::fetch_chunk(this->mock_stream, /*min_size=*/1);
 
         EXPECT_FALSE(chunk.ok());
-        EXPECT_EQ(chunk.status(), batt::StatusCode::kInternal);
+        EXPECT_EQ(chunk.status(), batt::to_status(boost::asio::error::access_denied));
     });
 }
 

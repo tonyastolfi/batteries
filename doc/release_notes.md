@@ -1,3 +1,6 @@
+- 0.19.2 (2022/12/16)
+    - Fixed test regression by updating the expected error status to match the boost::system::error_code value.
+
 - 0.19.1 (2022/12/16)
     - Added accurate translation of more boost::system::error_code values into batt::Status.
 
