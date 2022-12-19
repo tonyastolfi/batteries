@@ -1,3 +1,6 @@
+- 0.19.6 (2022/12/19)
+    - Fixed build error with `batt::to_status(std::error_code)`
+
 - 0.19.5 (2022/12/16)
     - Fixed crash bug caused by accidental implicit conversion from error_code enum values to batt::Status.
 

@@ -467,6 +467,8 @@ TEST(ToStatusTest, SystemErrorCodeToStatus)
 
     EXPECT_THAT(batt::to_string(batt::Status{boost::asio::error::access_denied}),
                 ::testing::EndsWith(":Permission denied"));
+
+    EXPECT_EQ(batt::to_status(std::error_code{}), batt::OkStatus());
 }
 
 }  // namespace

@@ -966,13 +966,21 @@ inline decltype(auto) to_status(T&& s)
     return BATT_FORWARD(s);
 }
 
-template <typename T,
-          typename = std::enable_if_t<std::is_same_v<std::decay_t<T>, boost::system::error_code> ||
-                                      std::is_same_v<std::decay_t<T>, std::error_code>>,
-          typename = void, typename = void>
+template <typename T, typename = std::enable_if_t<std::is_same_v<std::decay_t<T>, std::error_code>>,
+          typename = void, typename = void, typename = void, typename = void>
 inline Status to_status(const T& ec)
 {
     // TODO [tastolfi 2021-10-13] support these so we don't lose information.
+    if (!ec) {
+        return OkStatus();
+    }
+    return Status{StatusCode::kInternal};
+}
+
+template <typename T, typename = std::enable_if_t<std::is_same_v<std::decay_t<T>, boost::system::error_code>>,
+          typename = void, typename = void>
+inline Status to_status(const T& ec)
+{
     if (!ec) {
         return OkStatus();
     }
