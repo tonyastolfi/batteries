@@ -71,6 +71,7 @@ $(DOCKER_TS_DIR)/%.build.ts: $(PROJECT_DIR)/docker/Dockerfile.% $(MAKEFILE_LIST)
 	(cd "$(PROJECT_DIR)/docker" && docker build -t $(DOCKER_IMAGE_PREFIX):$(DOCKER_TAG_VERSION_PREFIX).$* -f Dockerfile.$* .)
 	docker tag $(DOCKER_IMAGE_PREFIX):$(DOCKER_TAG_VERSION_PREFIX).$* $(DOCKER_IMAGE_PREFIX):latest.$*
 	docker tag $(DOCKER_IMAGE_PREFIX):$(DOCKER_TAG_VERSION_PREFIX).$* $(DOCKER_IMAGE_PREFIX):latest
+	echo "$(DOCKER_IMAGE_PREFIX):$(DOCKER_TAG_VERSION_PREFIX).$*" > "$@"
 	touch "$@"
 
 
