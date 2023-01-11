@@ -60,7 +60,7 @@ RUN curl --location --output /usr/local/bin/release-cli \
 #=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 # Install Clang Toolchain
 #
-RUN apt update && apt install -y lsb-release wget software-properties-common
+RUN apt-get update && apt-get install -y lsb-release wget software-properties-common
 RUN wget https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh && chmod +x /tmp/llvm.sh
 RUN /tmp/llvm.sh 14 all
 RUN ln -s /usr/lib/llvm-14/lib/libclang.so /usr/lib/libclang.so
@@ -68,22 +68,33 @@ RUN ln -s /usr/bin/clang++-14 /usr/bin/clang++
 RUN ln -s /usr/bin/clang-format-14 /usr/bin/clang-format
 RUN ln -s /usr/bin/clang-doc-14 /usr/bin/clang-doc
 
-RUN pip install mkdocs mkdocs-material mkdocs-autorefs
-
 RUN apt-get update && apt-get install --no-install-recommends -y doxygen
 RUN curl -L https://github.com/matusnovak/doxybook2/releases/download/v1.4.0/doxybook2-linux-amd64-v1.4.0.zip -o /tmp/doxybook2.zip -s
 RUN cd /tmp/ && unzip doxybook2.zip && mv bin/* /usr/bin/ && mv include/* /usr/include/ && mv lib/* /usr/lib/
 
 RUN rm -rf /tmp/*
 
+#=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 # Needed for some downstream applications...
 #
-RUN apt update && apt install -y libcap-dev libxt-dev
+RUN apt-get update && apt-get install -y libcap-dev libxt-dev
+
+#=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+# Clean up apt caches.
+#
+RUN rm -rf /var/lib/apt/lists/*
+
+#=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+# Configure PIP and install packages.
+#
+ENV HOME=/root
+RUN pip3 install --upgrade pip
+RUN pip install mkdocs mkdocs-material mkdocs-autorefs
 
 #=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 # Configure Conan. 
 #
-RUN pip3 install conan==1.53.0
+RUN pip3 install conan==1.56.0
 RUN conan config init
 
 # Use libstdc++11, c++17 by default; enable accurate stack traces.
@@ -101,14 +112,9 @@ RUN conan remote add mw-insidelabs-gitlab https://insidelabs-git.mathworks.com/a
 
 # Copy the profile to a location that won't be remapped by docker when the pipeline runs.
 #
-RUN cp ~/.conan/profiles/default /etc/conan_profile.linux_gcc9_amd64
+RUN cp ${HOME}/.conan/profiles/default /etc/conan_profile.linux_gcc9_amd64
 RUN ln -s /etc/conan_profile.linux_gcc9_amd64 /etc/conan_profile.default
 
 # Allow all users to see the default .conan config files.
 #
-RUN chmod a+x /root && chmod a+r -R /root/.conan
-
-#=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
-# Clean up apt caches.
-#
-RUN rm -rf /var/lib/apt/lists/*
+RUN chmod a+x ${HOME} && chmod a+r -R ${HOME}/.conan
