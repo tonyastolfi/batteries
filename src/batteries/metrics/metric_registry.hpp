@@ -1,5 +1,5 @@
 //######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
-// Copyright 2021-2022 Anthony Paul Astolfi
+// Copyright 2021-2023 Anthony Paul Astolfi, Eitan Steiner
 //
 #pragma once
 #ifndef BATTERIES_METRICS_METRIC_REGISTRY_HPP
@@ -84,32 +84,44 @@ class MetricExporter
 };
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
-// Exports a CountMetric<T>.
+/*! \brief Exports a single value metric. */
 //
-template <typename T>
-class CountMetricExporter : public MetricExporter
+template <class T>
+class ScalarMetricExporter : public MetricExporter
 {
    public:
-    explicit CountMetricExporter(const std::string& name, CountMetric<T>& counter) noexcept
-        : name_{name}
-        , counter_{counter}
+    explicit ScalarMetricExporter(const std::string& name, T& metric) noexcept : name_{name}, metric_{metric}
     {
     }
 
+    /*! \return The metric name. */
     Token get_name() const override
     {
         return this->name_;
     }
 
+    /*! \return The metric value. */
     double get_value() const override
     {
-        return static_cast<double>(this->counter_.load());
+        return static_cast<double>(this->metric_.load());
     }
 
    private:
     Token name_;
-    CountMetric<T>& counter_;
+    T& metric_;
 };
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+/*! \brief Exports a CountMetric<T>. */
+//
+template <typename T>
+using CountMetricExporter = ScalarMetricExporter<CountMetric<T>>;
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+/*! \brief Exports a GaugeMetric<T>. */
+//
+template <typename T>
+using GaugeMetricExporter = ScalarMetricExporter<GaugeMetric<T>>;
 
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 // Exports a DerivedMetric<T>.
@@ -256,6 +268,18 @@ class MetricRegistry
         this->add_exporter(
             &latency, std::make_unique<CountMetricExporter<u64>>(to_string(name, "_count"), latency.count),
             std::move(labels));
+
+        return *this;
+    }
+
+    template <typename T>
+    MetricRegistry& add(std::string_view name, GaugeMetric<T>& gauge,
+                        MetricLabelSet&& labels = MetricLabelSet{})
+    {
+        BATT_VLOG(1) << "adding GaugeMetric:" << name;
+
+        this->add_exporter(&gauge, std::make_unique<GaugeMetricExporter<T>>(to_string(name, "_gauge"), gauge),
+                           std::move(labels));
 
         return *this;
     }

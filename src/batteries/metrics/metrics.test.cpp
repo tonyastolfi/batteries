@@ -1,5 +1,5 @@
 //######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
-// Copyright 2022 Anthony Paul Astolfi, Eitan Steiner
+// Copyright 2022-2023 Anthony Paul Astolfi, Eitan Steiner
 //
 #include <batteries/metrics/metric_collectors.hpp>
 #include <batteries/metrics/metric_csv_formatter.hpp>
@@ -149,6 +149,62 @@ TEST(Metrics, RateMetricTest)
     const double actual_rate = rate.get();
     const double expect_rate = 400;                                                 // (1+3)/0.01
     EXPECT_THAT(actual_rate, testing::DoubleNear(expect_rate, 0.4 * expect_rate));  // 40% for robustness
+}
+
+TEST(Metrics, GaugeMetricInt64Test)
+{
+    const batt::int_types::i64 zero_value = 0;
+    const batt::int_types::i64 positive_value = 7;
+    const batt::int_types::i64 negative_value = -42;
+    batt::GaugeMetric<batt::int_types::i64> gauge;
+    EXPECT_EQ(zero_value, gauge.load());
+    gauge.set(positive_value);
+    EXPECT_EQ(positive_value, gauge.load());
+    gauge.set(negative_value);
+    EXPECT_EQ(negative_value, gauge.load());
+}
+
+TEST(Metrics, GaugeMetricDoubleTest)
+{
+    const double zero = 0.0;
+    const double pi = 3.14159;
+    const double euler = 2.71828;
+    batt::GaugeMetric<double> gauge;
+    EXPECT_EQ(zero, gauge.load());
+    gauge.set(pi);
+    EXPECT_EQ(pi, gauge.load());
+    gauge.set(euler);
+    EXPECT_EQ(euler, gauge.load());
+}
+
+TEST(Metrics, GaugeRegistryTest)
+{
+    const batt::MetricLabel label{batt::Token("Delay"), batt::Token("ping")};
+    const batt::int_types::u64 zero_value = 0;
+    const batt::int_types::u64 first_value = 26;
+    const batt::int_types::u64 second_value = 18;
+    batt::GaugeMetric<batt::int_types::u64> gauge;
+    EXPECT_EQ(zero_value, gauge.load());
+    gauge.set(first_value);
+    EXPECT_EQ(first_value, gauge.load());
+    gauge.set(second_value);
+    EXPECT_EQ(second_value, gauge.load());
+
+    batt::MetricRegistry& registry = ::batt::global_metric_registry();
+    registry.add("test_ping", gauge, batt::MetricLabelSet{label});
+    auto on_test_exit = batt::finally([&] {
+        registry.remove(gauge);
+    });
+
+    std::ostringstream oss;
+    batt::MetricCsvFormatter csv;
+    csv.initialize(registry, oss);
+    EXPECT_THAT(oss.str(), testing::StrEq("id,time_usec,date_time,test_ping_gauge\n"));
+
+    csv.format_values(registry, oss);
+    const auto& actual = oss.str();
+    EXPECT_THAT(actual, testing::StartsWith("id,time_usec,date_time,test_ping_gauge\n1,"));
+    EXPECT_THAT(actual, testing::EndsWith(/* skip time_usec,date_time timestamps */ ",18\n"));
 }
 
 TEST(Metrics, StatsMetricTest)
