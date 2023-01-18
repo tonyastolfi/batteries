@@ -1,3 +1,6 @@
+- 0.20.0 (2023/01/18)
+    - Added `batt::transfer_chunked_data` (in batteries/async/fetch.hpp).
+
 - 0.19.8 (2023/01/11)
     - Upgrade to Conan 1.56 (from 1.53).
 
