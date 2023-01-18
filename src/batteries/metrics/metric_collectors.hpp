@@ -1,5 +1,5 @@
 //######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
-// Copyright 2021-2022 Anthony Paul Astolfi, Eitan Steiner
+// Copyright 2021-2023 Anthony Paul Astolfi, Eitan Steiner
 //
 #pragma once
 #ifndef BATTERIES_METRICS_METRIC_COLLECTORS_HPP
@@ -243,6 +243,32 @@ class RateMetric
             .count()};
     std::atomic<T> start_value_{0};
     std::atomic<T> current_value_;
+};
+
+/*! \brief A Metric collector that stores and reports a single instantaneous value. */
+template <typename T>
+class GaugeMetric
+{
+   public:
+    /*! \brief Initializes an empty metric. */
+    GaugeMetric() = default;
+
+    /*! \brief Sets the stored value to a given sample.
+     *  \param sample value. */
+    template <typename D>
+    void set(D sample) noexcept
+    {
+        this->value_.store(sample, std::memory_order_relaxed);
+    }
+
+    /*! \return The gauge value. */
+    T load() const noexcept
+    {
+        return this->value_.load(std::memory_order_relaxed);
+    }
+
+   private:
+    std::atomic<T> value_{0};
 };
 
 /*! \brief Collect count, total, max and min values for multiple samples */
