@@ -1,4 +1,4 @@
-- 0.20.0 (2023/01/18)
+- 0.20.1 (2023/01/18)
     - Added `batt::transfer_chunked_data` (in batteries/async/fetch.hpp).
 
 - 0.19.8 (2023/01/11)
