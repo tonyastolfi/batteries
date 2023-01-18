@@ -39,6 +39,24 @@ class MockAsyncFetchStream
     MOCK_METHOD(void, consume, (usize count), ());
 };
 
+class MockFetchStream
+{
+   public:
+    using Self = MockFetchStream;
+
+    MOCK_METHOD(batt::StatusOr<batt::BasicScopedChunk<Self>>, fetch_chunk, (), ());
+
+    MOCK_METHOD(void, consume, (usize count), ());
+};
+
+class MockWriteStream
+{
+   public:
+    using Self = MockWriteStream;
+
+    MOCK_METHOD(batt::StatusOr<usize>, write, (const batt::ConstBuffer& chunk), ());
+};
+
 //=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 //
 // Test Plan:
@@ -290,6 +308,66 @@ TEST_F(AsyncFetchTest, FetchManyChunksGatherConsumeNone)
 
         EXPECT_CALL(this->mock_stream, consume(0u))  //
             .WillOnce(::testing::Return());
+    });
+}
+
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+//
+TEST_F(AsyncFetchTest, TransferChunkedData)
+{
+    using ScopedChunk = batt::BasicScopedChunk<MockFetchStream>;
+
+    ::testing::StrictMock<MockFetchStream> src;
+    ::testing::StrictMock<MockWriteStream> dst;
+
+    this->run_test([this, &src, &dst] {
+        ::testing::Sequence seq;
+
+        // First iteration: return a chunk of data, short write all but one byte.
+        //
+        EXPECT_CALL(src, fetch_chunk())  //
+            .InSequence(seq)             //
+            .WillOnce(::testing::Return(::testing::ByMove(ScopedChunk{&src, kHelloChunk})));
+
+        EXPECT_CALL(dst, write(::testing::Truly([](const batt::ConstBuffer& written) {
+                        return written.data() == kHelloChunk.data() && written.size() == kHelloChunk.size();
+                    })))      //
+            .InSequence(seq)  //
+            .WillOnce(::testing::Return(kHelloChunk.size() - 1));
+
+        EXPECT_CALL(src, consume(kHelloChunk.size() - 1))  //
+            .InSequence(seq);
+
+        // Second iteration: fully write all remaining data.
+        //
+        EXPECT_CALL(src, fetch_chunk())  //
+            .InSequence(seq)             //
+            .WillOnce(::testing::Return(
+                ::testing::ByMove(ScopedChunk{&src, kHelloChunk + (kHelloChunk.size() - 1)})));
+
+        EXPECT_CALL(dst, write(::testing::Truly([](const batt::ConstBuffer& written) {
+                        batt::ConstBuffer expected = kHelloChunk + (kHelloChunk.size() - 1);
+                        return written.data() == expected.data() && written.size() == expected.size();
+                    })))      //
+            .InSequence(seq)  //
+            .WillOnce(::testing::Return(1));
+
+        EXPECT_CALL(src, consume(1))  //
+            .InSequence(seq);
+
+        // Third iteration: end-of-stream.
+        //
+        EXPECT_CALL(src, fetch_chunk())  //
+            .InSequence(seq)             //
+            .WillOnce(
+                ::testing::Return(::testing::ByMove(batt::StatusOr<ScopedChunk>{{boost::asio::error::eof}})));
+
+        // Go!
+        //
+        batt::StatusOr<usize> result = batt::transfer_chunked_data(src, dst);
+
+        ASSERT_TRUE(result.ok()) << BATT_INSPECT(result);
+        EXPECT_EQ(*result, kHelloChunk.size());
     });
 }
 

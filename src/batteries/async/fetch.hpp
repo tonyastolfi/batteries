@@ -244,6 +244,42 @@ batt::StatusOr<ScopedChunk> fetch_chunk(AsyncFetchStreamT& stream, usize min_siz
     return ScopedChunk{&stream, std::move(storage)};
 }
 
+/** \brief Fetches data from the first arg and writes it to the second arg, until an error or
+ * end-of-file/stream occurs.
+ *
+ * In this overload, From should have a public member function `fetch_chunk` which returns
+ * batt::StatusOr<batt::BasicScopedChunk>.  To should have a public member function `write` which takes a
+ * boost::asio::const_buffer (batt::ConstBuffer) and returns batt::StatusOr<usize>, indicating the number of
+ * bytes actually written to the destination stream.
+ *
+ * \return The number of bytes transferred if successful, error Status otherwise
+ */
+template <typename From, typename To>
+inline StatusOr<usize> transfer_chunked_data(From& from, To& to)
+{
+    usize bytes_transferred = 0;
+    for (;;) {
+        auto chunk = from.fetch_chunk();
+        if (!chunk.ok()) {
+            if (chunk.status() != boost::asio::error::eof) {
+                return chunk.status();
+            }
+            break;
+        }
+
+        auto n_written = to.write(chunk->buffer());
+        BATT_REQUIRE_OK(n_written);
+        if (*n_written == 0) {
+            return {batt::StatusCode::kClosedBeforeEndOfStream};
+        }
+        chunk->back_up(chunk->size() - *n_written);
+
+        bytes_transferred += *n_written;
+    }
+
+    return bytes_transferred;
+}
+
 }  // namespace batt
 
 #endif  // BATTERIES_ASYNC_FETCH_HPP
