@@ -33,6 +33,13 @@ enum struct HttpCode {
     SERVER_ERROR = 500,
 };
 
+enum /* non-struct */ CodesEnumOldStyle {
+    CODE_VALUE_A = 0,
+    CODE_VALUE_B = 1,
+    CODE_VALUE_C = 2,
+    CODE_VALUE_D = 3,
+};
+
 class StatusTest : public ::testing::Test
 {
    protected:
@@ -451,7 +458,7 @@ TEST(ToStatusTest, SystemErrorCodeToStatus)
               (batt::Status{batt::StatusCode::kNotFound}));
 
     EXPECT_EQ(batt::to_status(boost::system::error_code{boost::asio::error::already_open}),
-              (batt::Status{batt::StatusCode::kInternal}));
+              (batt::Status{batt::StatusCode::kUnknown}));
 
     EXPECT_EQ(batt::to_status(boost::system::error_code{boost::asio::error::access_denied}),
               batt::status_from_errno(EACCES));
@@ -469,6 +476,120 @@ TEST(ToStatusTest, SystemErrorCodeToStatus)
                 ::testing::EndsWith(":Permission denied"));
 
     EXPECT_EQ(batt::to_status(std::error_code{}), batt::OkStatus());
+}
+
+class MyErrorCategory : public boost::system::error_category
+{
+   public:
+    virtual ~MyErrorCategory() = default;
+
+    const char* name() const noexcept override
+    {
+        return "MyErrorCategory";
+    }
+
+    using boost::system::error_category::message;
+
+    std::string message(int code) const override
+    {
+        switch (code) {
+        case CODE_VALUE_A:
+            return "A";
+        case CODE_VALUE_B:
+            return "B";
+        case CODE_VALUE_C:
+            return "C";
+        case CODE_VALUE_D:
+            return "D";
+        default:
+            BATT_PANIC() << "Bad code value: " << code;
+            BATT_UNREACHABLE();
+        }
+    }
+};
+
+const MyErrorCategory my_category;
+
+TEST_F(StatusTest, StatusFromErrorCategory)
+{
+    boost::system::error_code a(CODE_VALUE_A, my_category);
+    boost::system::error_code b(CODE_VALUE_B, my_category);
+    boost::system::error_code c(CODE_VALUE_C, my_category);
+    boost::system::error_code d(CODE_VALUE_D, my_category);
+
+    // Before we register the error category, the status values should be "Unknown".
+    //
+    for (int n = 0; n < 3; ++n) {
+        batt::Status status_a = batt::status_from_error_code(a);
+        EXPECT_FALSE(status_a.ok());
+        EXPECT_EQ(status_a, batt::StatusCode::kUnknown);
+
+        batt::Status status_b = batt::status_from_error_code(b);
+        EXPECT_FALSE(status_b.ok());
+        EXPECT_EQ(status_b, batt::StatusCode::kUnknown);
+
+        batt::Status status_c = batt::status_from_error_code(c);
+        EXPECT_FALSE(status_c.ok());
+        EXPECT_EQ(status_c, batt::StatusCode::kUnknown);
+
+        batt::Status status_d = batt::status_from_error_code(d);
+        EXPECT_FALSE(status_d.ok());
+        EXPECT_EQ(status_d, batt::StatusCode::kUnknown);
+    }
+
+    // Now register the error category so that batt::Status can see it.
+    //
+    const bool registered = batt::register_error_category<CodesEnumOldStyle>(my_category,  //
+                                                                             {
+                                                                                 CODE_VALUE_A,
+                                                                                 CODE_VALUE_B,
+                                                                                 CODE_VALUE_C,
+                                                                                 CODE_VALUE_D,
+                                                                             });
+    ASSERT_TRUE(registered);
+
+    EXPECT_EQ(&my_category, &(a.category()));
+    EXPECT_EQ(&my_category, &(b.category()));
+    EXPECT_EQ(&my_category, &(c.category()));
+    EXPECT_EQ(&my_category, &(d.category()));
+
+    // Do this several times to hit cached and non-cached states.
+    //
+    for (int n = 0; n < 10; ++n) {
+        batt::Status status_a = batt::status_from_error_code(a);
+        EXPECT_TRUE(status_a.ok());
+        EXPECT_THAT(status_a.message(), ::testing::StrEq(a.message()));
+
+        batt::Status status_b = batt::status_from_error_code(b);
+        EXPECT_FALSE(status_b.ok());
+        EXPECT_THAT(status_b.message(), ::testing::StrEq(b.message()));
+
+        batt::Status status_c = batt::status_from_error_code(c);
+        EXPECT_FALSE(status_c.ok());
+        EXPECT_THAT(status_c.message(), ::testing::StrEq(c.message()));
+
+        batt::Status status_d = batt::status_from_error_code(d);
+        EXPECT_FALSE(status_d.ok());
+        EXPECT_THAT(status_d.message(), ::testing::StrEq(d.message()));
+    }
+
+    for (int n = 0; n < 10; ++n) {
+        batt::Status status_a = batt::to_status(a);
+        EXPECT_TRUE(status_a.ok());
+        EXPECT_THAT(status_a.message(), ::testing::StrEq("Ok"));
+
+        batt::Status status_b = batt::to_status(b);
+        EXPECT_FALSE(status_b.ok());
+        EXPECT_THAT(status_b.message(), ::testing::StrEq(b.message()));
+
+        batt::Status status_c = batt::to_status(c);
+        EXPECT_FALSE(status_c.ok());
+        EXPECT_THAT(status_c.message(), ::testing::StrEq(c.message()));
+
+        batt::Status status_d = batt::to_status(d);
+        EXPECT_FALSE(status_d.ok());
+        EXPECT_THAT(status_d.message(), ::testing::StrEq(d.message()));
+    }
 }
 
 }  // namespace

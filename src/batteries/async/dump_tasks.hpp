@@ -55,7 +55,9 @@ class SigInfoHandler
     void start()
     {
         BATT_CHECK(this->sig_info_);
-        this->sig_info_->async_wait(std::ref(*this));
+        this->sig_info_->async_wait([this](auto&&... args) {
+            return this->handle_signal(BATT_FORWARD(args)...);
+        });
     }
 
     void halt()
@@ -81,7 +83,7 @@ class SigInfoHandler
         }
     }
 
-    void operator()(const boost::system::error_code& ec, int signal_n)
+    void handle_signal(const boost::system::error_code& ec, int signal_n)
     {
         this->sig_info_->async_wait([this](const batt::ErrorCode& ec, int n) {
             if (ec || this->halted_.load()) {

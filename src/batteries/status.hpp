@@ -25,6 +25,7 @@
 #include <string>
 #include <typeindex>
 #include <typeinfo>
+#include <unordered_map>
 #include <vector>
 
 namespace batt {
@@ -96,6 +97,12 @@ class Status : private detail::StatusBase
     static constexpr i32 kMaxGroups = 0x7fffff00l - kGroupSize;
     //+++++++++++-+-+--+----- --- -- -  -  -   -
 
+    /** \brief Sentinel type passed to Status constructor to force the passed code enum value to be treated as
+     * a non-error_code type.
+     */
+    struct ForceLookup {
+    };
+
     struct CodeEntry {
         value_type code;
         int enum_value;
@@ -166,8 +173,8 @@ class Status : private detail::StatusBase
     // Implicitly convert enumerated types to Status.  The given type `EnumT` must have been registered
     // via `Status::register_codes` prior to invoking this constructor.
     //
-    template <typename EnumT, typename = std::enable_if_t<IsStatusEnum<EnumT>>>
-    /*implicit*/ Status(EnumT enum_value) noexcept
+    template <typename EnumT>
+    /*implicit*/ Status(ForceLookup, EnumT enum_value) noexcept
     {
         const CodeGroup& group = code_group_for_type<EnumT>();
         BATT_ASSERT_GE(static_cast<int>(enum_value), group.min_enum_value);
@@ -185,6 +192,11 @@ class Status : private detail::StatusBase
 
         this->message_ = group.entries[index_within_group].message;
 #endif
+    }
+
+    template <typename EnumT, typename = std::enable_if_t<IsStatusEnum<EnumT>>>
+    /*implicit*/ Status(EnumT enum_value) noexcept : Status{ForceLookup{}, enum_value}
+    {
     }
 
     template <typename EnumT, typename = std::enable_if_t<boost::system::is_error_code_enum<EnumT>::value>,
@@ -966,6 +978,139 @@ inline decltype(auto) to_status(T&& s)
     return BATT_FORWARD(s);
 }
 
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+namespace detail {
+
+/** \brief Returns a reference to a thread-local hash map from error_category* to another hash map from code
+ * value (int) to equivalent batt::Status.
+ */
+inline std::unordered_map<const boost::system::error_category*, const std::unordered_map<int, Status>>&
+thread_local_error_category_status_map()
+{
+    thread_local std::unordered_map<const boost::system::error_category*,
+                                    const std::unordered_map<int, Status>>
+        thread_cache_;
+
+    return thread_cache_;
+}
+
+inline std::mutex& global_error_category_status_map_mutex()
+{
+    static std::mutex mutex_;
+
+    return mutex_;
+}
+
+/** \brief Returns a reference to a global-scoped hash map from error_category* to another hash map from code
+ * value (int) to equivalent batt::Status.
+ *
+ * MUST be called while holding a lock on the mutex returned by
+ * batt::detail::global_error_category_status_map_mutex().
+ */
+inline std::unordered_map<const boost::system::error_category*, const std::unordered_map<int, Status>>&
+global_error_category_status_map()
+{
+    static std::unordered_map<const boost::system::error_category*, const std::unordered_map<int, Status>>
+        global_cache_;
+
+    return global_cache_;
+}
+//==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+
+}  // namespace detail
+
+/** \brief Registers a custom error_category so that error_code objects that use it can be converted to
+ * batt::Status via batt::to_status.
+ *
+ * \param category The category to register
+ * \param codes A list of error code values (int or enum type) to register
+ *
+ * \return true (to indicate the registration was successful)
+ */
+template <typename EnumT>
+[[maybe_ignored]] bool register_error_category(const boost::system::error_category& category,
+                                               const std::vector<EnumT>& codes, batt::StaticType<EnumT> = {})
+{
+    static_assert(std::is_enum_v<EnumT>, "The code value type must be an enum");
+
+    static bool result_ = [&category, &codes] {
+        {
+            std::vector<std::pair<EnumT, std::string>> codes_with_message;
+            for (const EnumT& code : codes) {
+                codes_with_message.emplace_back(code, category.message(static_cast<int>(code)));
+            }
+            Status::register_codes(codes_with_message);
+        }
+
+        std::unordered_map<int, Status> category_map;
+        for (const EnumT& code : codes) {
+            category_map.emplace(static_cast<int>(code), Status{Status::ForceLookup{}, code});
+        }
+
+        // Add the map of codes to Status values to the global cache.
+        {
+            std::unique_lock<std::mutex> lock{detail::global_error_category_status_map_mutex()};
+            detail::global_error_category_status_map().emplace(&category, std::move(category_map));
+        }
+        return true;
+    }();
+
+    return result_;
+}
+
+/** \brief Constructs and returns a batt::Status equivalent to the given code in the given category.
+ *
+ * The passed category must have been registered via batt::register_error_category prior to calling this
+ * function.
+ *
+ * \return the registered batt::Status value if code is valid; batt::StatusCode::kUnknown otherwise
+ */
+inline Status status_from_error_category(const boost::system::error_category& category, int code)
+{
+    // First check in the thread-local cache for the given category.
+    //
+    auto& thread_cache = detail::thread_local_error_category_status_map();
+    auto iter = thread_cache.find(&category);
+    if (iter != thread_cache.end()) {
+        //  The category was found in the local cache; look up the code value.
+        //
+        auto iter2 = iter->second.find(code);
+        if (iter2 != iter->second.end()) {
+            return iter2->second;
+        }
+    }
+
+    // Fall back on the global cache.  To access this, we need to grab the mutex.
+    {
+        std::unique_lock<std::mutex> lock{detail::global_error_category_status_map_mutex()};
+
+        auto& global_cache = detail::global_error_category_status_map();
+        auto iter2 = global_cache.find(&category);
+        if (iter2 != global_cache.end()) {
+            //  We found the category in the global cache; add it to the thread cache and retry.
+            //
+            thread_cache.emplace(*iter2);
+            return status_from_error_category(category, code);
+        }
+    }
+
+    // This code wasn't registered for this category, or the category wasn't found.  Return `kUnknown`.
+    //
+    return StatusCode::kUnknown;
+}
+
+/** \brief Constructs and returns a batt::Status equivalent to the given error_code.
+ *
+ * The error_category of the passed object must have been registered via batt::register_error_category prior
+ * to calling this function.
+ *
+ * \return the registered batt::Status value if code is valid; batt::StatusCode::kUnknown otherwise
+ */
+inline Status status_from_error_code(const boost::system::error_code& ec)
+{
+    return status_from_error_category(ec.category(), ec.value());
+}
+
 template <typename T, typename = std::enable_if_t<std::is_same_v<std::decay_t<T>, std::error_code>>,
           typename = void, typename = void, typename = void, typename = void>
 inline Status to_status(const T& ec)
@@ -993,7 +1138,7 @@ inline Status to_status(const T& ec)
             return Status{StatusCode::kNotFound};
 
         default:
-            return Status{StatusCode::kInternal};
+            break;
         }
     } else if (&(ec.category()) == &(boost::asio::error::get_system_category())) {
         switch (ec.value()) {
@@ -1108,10 +1253,10 @@ inline Status to_status(const T& ec)
 #endif  // __linux__
 
         default:
-            return Status{StatusCode::kInternal};
+            break;
         }
     }
-    return Status{StatusCode::kInternal};
+    return status_from_error_code(ec);
 }
 
 template <typename T,

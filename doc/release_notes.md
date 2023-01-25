@@ -1,3 +1,8 @@
+- 0.21.0 (2023/01/25)
+    - Added `batt::register_error_category` to allow applications to specify how `error_code` values with custom `error_category` objects should be converted to `batt::Status`.
+    - Upgraded boost to 1.81.0
+    - Upgraded gtest to 1.13.0
+
 - 0.20.1 (2023/01/18)
     - Added `batt::transfer_chunked_data` (in batteries/async/fetch.hpp).
 
