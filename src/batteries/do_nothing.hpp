@@ -1,5 +1,5 @@
 //######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
-// Copyright 2021-2022 Anthony Paul Astolfi
+// Copyright 2021-2023 Anthony Paul Astolfi
 //
 #pragma once
 #ifndef BATTERIES_DO_NOTHING_HPP
@@ -11,7 +11,7 @@
 namespace batt {
 
 template <typename... Args>
-void do_nothing(Args&&...)
+constexpr void do_nothing(Args&&...) noexcept
 {
 }
 
@@ -19,7 +19,7 @@ struct DoNothing {
     using result_type = void;
 
     template <typename... Args>
-    void operator()(Args&&...) const
+    void operator()(Args&&...) const noexcept
     {
     }
 };

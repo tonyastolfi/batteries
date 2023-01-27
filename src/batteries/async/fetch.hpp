@@ -244,6 +244,36 @@ batt::StatusOr<ScopedChunk> fetch_chunk(AsyncFetchStreamT& stream, usize min_siz
     return ScopedChunk{&stream, std::move(storage)};
 }
 
+enum struct TransferStep { kNone, kFetch, kWrite };
+
+template <typename From, typename To>
+inline StatusOr<usize> transfer_chunked_data(From& from, To& to, TransferStep& step)
+{
+    usize bytes_transferred = 0;
+    for (;;) {
+        step = TransferStep::kFetch;
+        auto chunk = from.fetch_chunk();
+        if (!chunk.ok()) {
+            if (chunk.status() != boost::asio::error::eof) {
+                return chunk.status();
+            }
+            break;
+        }
+
+        step = TransferStep::kWrite;
+        auto n_written = to.write(chunk->buffer());
+        BATT_REQUIRE_OK(n_written);
+        if (*n_written == 0) {
+            return {batt::StatusCode::kClosedBeforeEndOfStream};
+        }
+        chunk->back_up(chunk->size() - *n_written);
+
+        bytes_transferred += *n_written;
+    }
+
+    return bytes_transferred;
+}
+
 /** \brief Fetches data from the first arg and writes it to the second arg, until an error or
  * end-of-file/stream occurs.
  *
@@ -257,27 +287,8 @@ batt::StatusOr<ScopedChunk> fetch_chunk(AsyncFetchStreamT& stream, usize min_siz
 template <typename From, typename To>
 inline StatusOr<usize> transfer_chunked_data(From& from, To& to)
 {
-    usize bytes_transferred = 0;
-    for (;;) {
-        auto chunk = from.fetch_chunk();
-        if (!chunk.ok()) {
-            if (chunk.status() != boost::asio::error::eof) {
-                return chunk.status();
-            }
-            break;
-        }
-
-        auto n_written = to.write(chunk->buffer());
-        BATT_REQUIRE_OK(n_written);
-        if (*n_written == 0) {
-            return {batt::StatusCode::kClosedBeforeEndOfStream};
-        }
-        chunk->back_up(chunk->size() - *n_written);
-
-        bytes_transferred += *n_written;
-    }
-
-    return bytes_transferred;
+    TransferStep step = TransferStep::kNone;
+    return transfer_chunked_data(from, to, step);
 }
 
 }  // namespace batt

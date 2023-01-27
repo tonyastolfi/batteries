@@ -512,10 +512,15 @@ const MyErrorCategory my_category;
 
 TEST_F(StatusTest, StatusFromErrorCategory)
 {
-    boost::system::error_code a(CODE_VALUE_A, my_category);
-    boost::system::error_code b(CODE_VALUE_B, my_category);
-    boost::system::error_code c(CODE_VALUE_C, my_category);
-    boost::system::error_code d(CODE_VALUE_D, my_category);
+    const boost::system::error_code a(CODE_VALUE_A, my_category);
+    const boost::system::error_code b(CODE_VALUE_B, my_category);
+    const boost::system::error_code c(CODE_VALUE_C, my_category);
+    const boost::system::error_code d(CODE_VALUE_D, my_category);
+
+    EXPECT_THAT(a.message(), ::testing::StrEq("A"));
+    EXPECT_THAT(b.message(), ::testing::StrEq("B"));
+    EXPECT_THAT(c.message(), ::testing::StrEq("C"));
+    EXPECT_THAT(d.message(), ::testing::StrEq("D"));
 
     // Before we register the error category, the status values should be "Unknown".
     //
@@ -558,35 +563,35 @@ TEST_F(StatusTest, StatusFromErrorCategory)
     for (int n = 0; n < 10; ++n) {
         batt::Status status_a = batt::status_from_error_code(a);
         EXPECT_TRUE(status_a.ok());
-        EXPECT_THAT(status_a.message(), ::testing::StrEq(a.message()));
+        EXPECT_THAT(status_a.message(), ::testing::StrEq("A"));
 
         batt::Status status_b = batt::status_from_error_code(b);
         EXPECT_FALSE(status_b.ok());
-        EXPECT_THAT(status_b.message(), ::testing::StrEq(b.message()));
+        EXPECT_THAT(status_b.message(), ::testing::StrEq("B"));
 
         batt::Status status_c = batt::status_from_error_code(c);
         EXPECT_FALSE(status_c.ok());
-        EXPECT_THAT(status_c.message(), ::testing::StrEq(c.message()));
+        EXPECT_THAT(status_c.message(), ::testing::StrEq("C"));
 
         batt::Status status_d = batt::status_from_error_code(d);
         EXPECT_FALSE(status_d.ok());
-        EXPECT_THAT(status_d.message(), ::testing::StrEq(d.message()));
+        EXPECT_THAT(status_d.message(), ::testing::StrEq("D"));
     }
 
     for (int n = 0; n < 10; ++n) {
-        batt::Status status_a = batt::to_status(a);
+        const batt::Status status_a = batt::to_status(a);
         EXPECT_TRUE(status_a.ok());
-        EXPECT_THAT(status_a.message(), ::testing::StrEq("Ok"));
+        EXPECT_EQ(status_a, batt::OkStatus());
 
-        batt::Status status_b = batt::to_status(b);
+        const batt::Status status_b = batt::to_status(b);
         EXPECT_FALSE(status_b.ok());
         EXPECT_THAT(status_b.message(), ::testing::StrEq(b.message()));
 
-        batt::Status status_c = batt::to_status(c);
+        const batt::Status status_c = batt::to_status(c);
         EXPECT_FALSE(status_c.ok());
         EXPECT_THAT(status_c.message(), ::testing::StrEq(c.message()));
 
-        batt::Status status_d = batt::to_status(d);
+        const batt::Status status_d = batt::to_status(d);
         EXPECT_FALSE(status_d.ok());
         EXPECT_THAT(status_d.message(), ::testing::StrEq(d.message()));
     }

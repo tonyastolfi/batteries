@@ -112,6 +112,17 @@ void make_default()
 {
 }
 
+/** \brief A single type that implicitly converts to any default-constructible type (via
+ * batt::make_default()).
+ */
+struct DefaultInitialized {
+    template <typename T>
+    /*implicit*/ operator T() const noexcept(noexcept(make_default<T>()))
+    {
+        return make_default<T>();
+    }
+};
+
 //==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 //
 template <typename T>
