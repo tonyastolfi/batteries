@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y -q dialog apt-u
 
 # Basic CLI tools.
 #
-RUN apt-get update && apt-get install --no-install-recommends -y nano sed locales time unzip
+RUN apt-get update && apt-get install --no-install-recommends -y nano sed locales time unzip xxd
 
 # Developer/Build tools.
 #
