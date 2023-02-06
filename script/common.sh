@@ -17,10 +17,14 @@ fi
 # file; if this fails, then use the parent of the script dir.
 #
 function find_project_dir() {
-    git rev-parse --show-toplevel || { cd ${script_dir}/.. && pwd; }
+    {
+        git rev-parse --show-toplevel
+    } || {
+        cd ${script_dir}/.. && pwd
+    }
 }
 
-project_dir=$(find_project_dir)
+project_dir=${project_dir:-$(find_project_dir)}
 local_conan_parent_dir=${project_dir}/
 local_conan_dir=${local_conan_parent_dir}/.conan
 default_conan_dir=${HOME}/.conan
@@ -33,7 +37,7 @@ cd "$project_dir"
 # Prints arguments like `echo`, iff VERBOSE=1
 #
 function verbose() {
-    if [[ "$VERBOSE" == "1" ]]; then
+    if [[ "${VERBOSE:-0}" == "1" ]]; then
         echo "($@)" >&2
     fi
 }
@@ -108,10 +112,9 @@ function working_tree_is_clean() {
 # Print the most recent release tag on the current branch.
 #
 function find_release_tag() {
-    local current_release=${OVERRIDE_RELEASE_TAG:-$(git tag --list \
-                                                        --merged HEAD \
-                                                        --sort=-version:refname \
-                                                        release-* | head -1)}
+    local current_release=${OVERRIDE_RELEASE_TAG:-$(git tag --list release-* \
+                                                        | sort -Vr \
+                                                        | head -1)}
     if [ "${current_release}" != "" ]; then
         echo $current_release
     else
@@ -131,7 +134,7 @@ function find_git_hash() {
 # If OVERRIDE_RELEASE_TAG is set, then prints the SHA hash of HEAD.
 #
 function find_release_commit_hash() {
-    if [ "${OVERRIDE_RELEASE_TAG}" != "" ]; then
+    if [ "${OVERRIDE_RELEASE_TAG:-}" != "" ]; then
         find_git_hash "HEAD"
     else
         find_git_hash "${latest_release_tag}"
@@ -190,4 +193,20 @@ function find_conan_dir() {
 #
 function find_conan_version() {
     NO_CHECK_CONAN=1 conan inspect --raw 'version' "$(find_conan_dir)"
+}
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+# Portable wrapper around `sed -i ...`
+#
+function replace_in_file() {
+    local os_name=$(uname)
+    if [ "${os_name}" == "Darwin" ]; then
+        sed -i '~' "$@"
+        return 0
+    elif [ "${os_name}" == "Linux" ]; then
+        sed -i'' "$@"
+        return 0
+    else
+        echo "Error: unknown os name '${os_name}'"
+        return 1
+    fi
 }
