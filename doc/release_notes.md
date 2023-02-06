@@ -1,3 +1,7 @@
+- 0.23.1 (2023/02/06)
+    - Fixed bug in script/run-with-docker.sh
+    - Added xxd to docker images
+
 - 0.22.1 (2023/01/27)
     - Added `batt::DefaultInitialized`, a type that implicitly converts to any default-constructible type.
     - Added a `step` parameter (type `batt::TransferStep &`, batteries/async/fetch.hpp) that allows callers to determine which step failed when `batt::transfer_chunked_data` returns an error.
