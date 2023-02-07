@@ -4,3 +4,4 @@ build/
 .conan/
 .DS_Store
 __pycache__/
+.vscode/

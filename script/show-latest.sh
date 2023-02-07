@@ -19,6 +19,7 @@ fi
 echo "${output}" \
     | grep -v "JulesTheGreat" \
     | grep -v "gtest/cci" \
+    | grep -v -E "yaml-cpp.*\@signal9" \
     | sort -h \
     | sort -Vr \
     | head -1

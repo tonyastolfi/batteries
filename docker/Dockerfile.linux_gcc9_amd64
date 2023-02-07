@@ -94,7 +94,7 @@ RUN pip install mkdocs mkdocs-material mkdocs-autorefs
 #=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
 # Configure Conan. 
 #
-RUN pip3 install conan==1.56.0
+RUN pip3 install conan==1.58.0
 RUN conan config init
 
 # Use libstdc++11, c++17 by default; enable accurate stack traces.
