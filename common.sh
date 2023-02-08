@@ -18,9 +18,11 @@ fi
 #
 function find_project_dir() {
     {
+        git rev-parse --show-superproject-working-tree
+    } || {
         git rev-parse --show-toplevel
     } || {
-        cd ${script_dir}/.. && pwd
+        cd "${script_dir}/.." && pwd
     }
 }
 
@@ -154,7 +156,7 @@ function version_from_release_tag() {
 #
 function require_env_var() {
     local var_name=$1
-    if [ "${!var_name}" = "" ]; then
+    if [ "${!var_name:-}" = "" ]; then
         echo "Error: env var '${var_name}' not specified!" >&2
         return 1
     fi

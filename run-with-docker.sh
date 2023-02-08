@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/bin/bash -x
 #
-# Copyright (C) 2022 Anthony Paul Astolfi
+# Copyright (C) 2022-2023 Anthony Paul Astolfi
 #
 
-project_dir=$(git rev-parse --show-toplevel)
+script_dir=$(cd $(dirname $0) && pwd)
+source "${script_dir}/common.sh"
 
 if [ -f "${project_dir}/_batt-docker-image" ]; then
     BATT_DOCKER_IMAGE=$(cat "${project_dir}/_batt-docker-image")
@@ -19,6 +20,8 @@ else
     DOCKER_FLAGS_INTERACTIVE=
 fi
 
+real_pwd=$(realpath $(pwd))
+
 # Run the passed arguments as a shell command in a fresh docker
 # container based on our CI image.
 #
@@ -29,6 +32,7 @@ docker run ${DOCKER_FLAGS_INTERACTIVE} \
        --user $(id -u):$(id -g) \
        --network host \
        -v "$(pwd)":"$(pwd)" \
+       -v "$real_pwd":"$real_pwd" \
        -v "$HOME/.conan":"$HOME/.conan" \
        -w "$(pwd)" \
        ${docker_image} \
