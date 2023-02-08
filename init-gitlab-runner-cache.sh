@@ -4,7 +4,7 @@
 #
 local_cache_dir=/local/gitlab-runner-local-cache
 (
-    set -Eeuo pipeline
+    set -Eeuo pipefail
     
     test -d "${local_cache_dir}" || {
         echo "FATAL: no local docker cache volume mapped"
