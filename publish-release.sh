@@ -51,8 +51,8 @@ EOF
     exit 1
 fi
 
-if [ "$CI_COMMIT_TAG" != "" ]; then
-    if [ "$CI_COMMIT_TAG" != "release-${release_version}" ]; then
+if [ "${CI_COMMIT_TAG:-}" != "" ]; then
+    if [ "${CI_COMMIT_TAG:-}" != "release-${release_version}" ]; then
         echo $(cat <<EOF
                Warning: the active version (${active_version}) does not match
                the GitLab CI_COMMIT_TAG (${CI_COMMIT_TAG})!
