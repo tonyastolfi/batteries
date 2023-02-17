@@ -17,13 +17,17 @@ fi
 # file; if this fails, then use the parent of the script dir.
 #
 function find_project_dir() {
-    {
-        git rev-parse --show-superproject-working-tree
-    } || {
-        git rev-parse --show-toplevel
-    } || {
-        cd "${script_dir}/.." && pwd
-    }
+    local ans=$(git rev-parse --show-superproject-working-tree)    
+    if [ "0" == "$?" ]; then
+        echo "$ans"
+    else
+        local ans2=$(git rev-parse --show-toplevel)
+        if [ "0" == "$?" ]; then
+            echo "$ans2"
+        else
+            cd "${script_dir}/.." && pwd
+        fi
+    fi
 }
 
 project_dir=${project_dir:-$(find_project_dir)}

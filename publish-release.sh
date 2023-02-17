@@ -4,6 +4,8 @@
 #
 set -e
 
+echo "pwd=$(pwd)"
+
 script_dir=$(cd $(dirname $0) && pwd)
 source "${script_dir}/common.sh"
 source "${script_dir}/conan-login.sh"
