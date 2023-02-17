@@ -18,11 +18,11 @@ fi
 #
 function find_project_dir() {
     local ans=$(git rev-parse --show-superproject-working-tree)    
-    if [ "0" == "$?" ]; then
+    if [ "0" == "$?" ] && [ "$ans" != "" ]; then
         echo "$ans"
     else
         local ans2=$(git rev-parse --show-toplevel)
-        if [ "0" == "$?" ]; then
+        if [ "0" == "$?" ] && [ "$ans2" != "" ]; then
             echo "$ans2"
         else
             cd "${script_dir}/.." && pwd
