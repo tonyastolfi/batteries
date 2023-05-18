@@ -10,7 +10,7 @@ if [ -f "${project_dir}/_batt-docker-image" ]; then
     BATT_DOCKER_IMAGE=$(cat "${project_dir}/_batt-docker-image")
 fi
 
-docker_image=${BATT_DOCKER_IMAGE:-registry.gitlab.com/batteriescpp/batteries:latest.linux_gcc11_amd64}
+docker_image=${BATT_DOCKER_IMAGE:-registry.gitlab.com/batteriescpp/batteries:v0.30.2.linux_gcc11_amd64}
 
 # Figure out if the current shell is a TTY.
 #
