@@ -34,6 +34,7 @@ project_dir=${project_dir:-$(find_project_dir)}
 local_conan_parent_dir=${project_dir}/
 local_conan_dir=${local_conan_parent_dir}/.conan
 default_conan_dir=${HOME}/.conan
+conan_version_2=$({ conan --version | grep -i 'conan version 1' ; } && echo 1 || echo 0)
 
 cd "$project_dir"
 
@@ -198,7 +199,11 @@ function find_conan_dir() {
 # Print the current conan version.
 #
 function find_conan_version() {
-    NO_CHECK_CONAN=1 conan inspect --raw 'version' "$(find_conan_dir)"
+    if [ "${conan_version_2}" == "1" ]; then
+        NO_CHECK_CONAN=1 conan inspect -f json "$(find_conan_dir)" | jq -r ".version"
+    else
+        NO_CHECK_CONAN=1 conan inspect --raw 'version' "$(find_conan_dir)"
+    fi
 }
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 # Portable wrapper around `sed -i ...`

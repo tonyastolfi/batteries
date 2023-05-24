@@ -24,9 +24,15 @@ project_is_dirty=$(working_tree_is_clean && echo "0" || echo "1")
 # Extract the required dependencies from the project via conan inspect
 # as a bash list.
 #
-all_deps=($(conan inspect --raw=requires "${project_dir}" \
-                | sed -e "s,',\",g" \
-                | jq -r '.[]'))
+if [ "${conan_version_2}" == "1" ]; then
+    all_deps=($(conan inspect --raw=requires "${project_dir}" \
+                    | sed -e "s,',\",g" \
+                    | jq -r '.[]'))
+else
+    all_deps=($(conan inspect --raw=requires "${project_dir}" \
+                    | sed -e "s,',\",g" \
+                    | jq -r '.[]'))
+fi
 
 up_to_date=1
 

@@ -8,6 +8,12 @@ import os, sys, re
 #
 VERBOSE = os.getenv('VERBOSE') and True or False
 
+# Detect whether we are on Conan version 2.
+#
+CONAN_VERSION_2 = (
+    os.popen(
+        '{ conan --version | grep -i "conan version 2" >/dev/null; } && echo 1 || echo 0'
+    )).read().strip() == '1'
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
@@ -118,7 +124,10 @@ def find_conan_dir():
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
 def find_conan_version():
-    command = f'NO_CHECK_CONAN=1 conan inspect --raw \'version\' "{find_conan_dir()}\"'
+    if CONAN_VERSION_2:
+        command = f'NO_CHECK_CONAN=1 conan inspect -f json "{find_conan_dir()}" | jq -r ".version"'
+    else:
+        command = f'NO_CHECK_CONAN=1 conan inspect --raw \'version\' "{find_conan_dir()}\"'
     return os.popen(command).read().strip()
     
 
