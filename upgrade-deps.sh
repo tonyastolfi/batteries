@@ -24,6 +24,7 @@ project_is_dirty=$(working_tree_is_clean && echo "0" || echo "1")
 # Extract the required dependencies from the project via conan inspect
 # as a bash list.
 #
+#  conan graph info -vquiet -f json . | jq '.nodes[0]|.requires|to_entries|map(.value)'
 if [ "${conan_version_2}" == "1" ]; then
     all_deps=($(conan inspect --raw=requires "${project_dir}" \
                     | sed -e "s,',\",g" \
