@@ -45,6 +45,13 @@ fi
 
 #----- --- -- -  -  -   -
 
+os_name=$(uname -s)
+if [ "${os_name}" == "Darwin" ]; then
+    with_execute_permission="-perm -0111"
+else
+    with_execute_permission="-perm /111"
+fi
+
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 # build_info_json
 #
@@ -70,9 +77,9 @@ for build_type in ${build_types[@]}; do
     user_test_env_file=${project_dir}/build/user_test_env.${build_type}.json
     
     echo "checking for ${compile_commands_file}"
-    
+
     if [ -e "${compile_commands_file}" ]; then    
-        find "${project_dir}/build/${build_type}" -type f -perm /111 \
+        find "${project_dir}/build/${build_type}" -type f ${with_execute_permission} \
             | grep -iE 'test' \
             | xargs -I {} bash -c "export file={} ; echo \$file ; echo \$(basename \$file)" \
             | jq -R \
