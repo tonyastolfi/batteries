@@ -36,7 +36,7 @@ cd "${project_dir}/script"
 git fetch origin
 
 current_commit=$(find_git_hash HEAD)
-latest_commit=$(find_git_hash origin/main)
+latest_commit=$(find_git_hash origin/script)
 
 if [ "${old_commit}" != "${current_commit}" ]; then
     echo $(cat <<EOF
