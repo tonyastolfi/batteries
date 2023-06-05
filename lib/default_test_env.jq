@@ -1,3 +1,10 @@
+# default_test_env - The default set of environment variables that control unit tests
+#
+# input: null
+# env:
+#  - project_dir: the top-level git repo directory for the project
+#  - build_type: one of "Release", "Debug", "RelWithDebInfo"
+#
 {
   "GTEST_FILTER": "*",
   "GTEST_REPEAT": "1",

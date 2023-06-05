@@ -1,3 +1,7 @@
+#------------------------------------------------------------------------------
+# include_path_args - translates a two-element array with adjacent compiler
+#     flags into an include path (or nothing)
+#
 def include_path_args:
   if (.[0] | startswith("-I")) then
     ["-isystem", (.[0]|.[2:])]
@@ -11,7 +15,9 @@ def include_path_args:
   end |
   select(strings);
 
-
+#------------------------------------------------------------------------------
+# The c_cpp_properties.json object.
+#
 {
     "configurations": map(. | {
             "name": (.build_type + "(gcc)"),
