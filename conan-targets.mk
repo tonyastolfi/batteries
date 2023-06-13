@@ -20,7 +20,7 @@
 #----- --- -- -  -  -   -
 
 ifeq ($(BUILD_TYPE),)
-BUILD_TYPE := RelWithDebInfo
+export BUILD_TYPE := RelWithDebInfo
 endif
 
 BUILD_DIR := $(PROJECT_DIR)/build/$(BUILD_TYPE)
