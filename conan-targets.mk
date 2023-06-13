@@ -39,7 +39,7 @@ else
 endif
 #----- --- -- -  -  -   -
 
-CONAN_CONFIG_FLAGS := $(shell "$(SCRIPT_DIR)/conan-config-flags.sh")
+CONAN_CONFIG_FLAGS := $(shell BUILD_TYPE=$(BUILD_TYPE) "$(SCRIPT_DIR)/conan-config-flags.sh")
 
 $(info CONAN_CONFIG_FLAGS is $(CONAN_CONFIG_FLAGS))
 
@@ -50,7 +50,7 @@ ifeq ($(CONAN_2),1)
   CONAN_CREATE     := conan create     $(CONAN_CONFIG_FLAGS)
 else
   CONAN_INSTALL    := conan install    $(CONAN_CONFIG_FLAGS) --build=missing
-  CONAN_BUILD      := conan build      -s build_type=$(BUILD_TYPE)
+  CONAN_BUILD      := conan build --install-folder "$(BUILD_DIR)"
   CONAN_EXPORT_PKG := conan export-pkg $(CONAN_CONFIG_FLAGS)
   CONAN_CREATE     := conan create     $(CONAN_CONFIG_FLAGS)
 endif
@@ -72,8 +72,7 @@ install:
 #----- --- -- -  -  -   -
 .PHONY: build
 build:
-	mkdir -p "$(BUILD_DIR)"
-	(cd "$(BUILD_DIR)" && $(CONAN_BUILD) "$(PROJECT_DIR)")
+	$(CONAN_BUILD) "$(PROJECT_DIR)"
 	"$(SCRIPT_DIR)/generate-vscode-config.sh"
 
 #----- --- -- -  -  -   -
