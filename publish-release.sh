@@ -65,19 +65,22 @@ fi
 
 conan_name=$(conan inspect --raw=name "${project_dir}")
 conan_recipe=${conan_name}/${release_version}@${conan_recipe_user}/${RELEASE_CONAN_CHANNEL}
+conan_build_type=${BUILD_TYPE:-Release}
+conan_build_dir=${project_dir}/build/${conan_build_type}
 
 verbose "Publishing ${conan_recipe}..."
 
 # This is just a sanity check; the project must be fully built before
 # we continue.
 #
-#( cd "${project_dir}" && make BUILD_TYPE=Release install build test create )
-( cd "${project_dir}" && make BUILD_TYPE=Release install )
+( cd "${project_dir}" && make BUILD_TYPE=${conan_build_type} install )
 
 # Create the release package...
 #
-conan_profile=$(test -f '/etc/conan_profile.default' && echo '/etc/conan_profile.default' || echo 'default')
-( cd "${project_dir}/build/Release" && conan create --profile "${conan_profile}"  ../.. ${conan_recipe} )
+conan_config_flags=$("${script_dir}/conan-config-flags.sh")
+conan_create_command="cd \"${conan_build_dir}\" && conan create ${conan_config_flags}  ../.. ${conan_recipe}"
+echo "${conan_create_command}"
+bash -c "${conan_create_command}"
 
 # ...and upload it!
 #
