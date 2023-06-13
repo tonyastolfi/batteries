@@ -1,6 +1,24 @@
 ##=##=##=#==#=#==#===#+==#+==========+==+=+=+=+=+=++=+++=+++++=-++++=-+++++++++++
+#
 # Copyright 2023, Anthony Paul Astolfi
 #
+#+++++++++++-+-+--+----- --- -- -  -  -   -
+
+#----- --- -- -  -  -   -
+# Required vars:
+#
+#  - PROJECT_DIR
+#  - PROJECT_NAME
+#  - SCRIPT_DIR
+#  - CONAN_2
+#
+# Output vars:
+#
+#  - BUILD_TYPE
+#  - BUILD_DIR
+#
+#----- --- -- -  -  -   -
+
 ifeq ($(BUILD_TYPE),)
 BUILD_TYPE := RelWithDebInfo
 endif
