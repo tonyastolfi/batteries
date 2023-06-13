@@ -72,7 +72,7 @@ install:
 #----- --- -- -  -  -   -
 .PHONY: build
 build:
-	$(CONAN_BUILD) "$(PROJECT_DIR)"
+	(cd "$(BUILD_DIR)" && $(CONAN_BUILD) "$(PROJECT_DIR)")
 	"$(SCRIPT_DIR)/generate-vscode-config.sh"
 
 #----- --- -- -  -  -   -
