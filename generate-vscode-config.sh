@@ -14,6 +14,13 @@ fi
 script_dir=$(cd $(dirname $0) && pwd)
 source "${script_dir}/common.sh"
 
+# Check for jq.
+#
+which jq >/dev/null || {
+    echo "Skipping vscode config generation (requires jq; not found)" >&2
+    exit 0
+}
+
 # build_types - a list of the default build configuration types supported by
 # cmake/conan.
 #
