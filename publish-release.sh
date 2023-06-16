@@ -70,20 +70,26 @@ conan_name=$(conan inspect --raw=name "${project_dir}")
 conan_recipe=${conan_name}/${release_version}@${conan_recipe_user}/${RELEASE_CONAN_CHANNEL}
 conan_build_type=${BUILD_TYPE:-Release}
 conan_build_dir=${project_dir}/build/${conan_build_type}
+conan_config_flags=$("${script_dir}/conan-config-flags.sh")
 
 verbose "Publishing ${conan_recipe}..."
 
-# This is just a sanity check; the project must be fully built before
-# we continue.
-#
-( cd "${project_dir}" && make BUILD_TYPE=${conan_build_type} install )
+if [ "${EXPORT_PKG_ONLY:-0}" == "1" ]; then
+    conan_export_pkg_command="( cd \"${project_dir}\" && conan export-pkg ${conan_config_flags} . ${conan_recipe} )"
+    echo "${conan_export_pkg_command}"
+    bash -c "${conan_export_pkg_command}"
+else
+    # This is just a sanity check; the project must be fully built before
+    # we continue.
+    #
+    ( cd "${project_dir}" && make BUILD_TYPE=${conan_build_type} install )
 
-# Create the release package...
-#
-conan_config_flags=$("${script_dir}/conan-config-flags.sh")
-conan_create_command="cd \"${conan_build_dir}\" && conan create ${conan_config_flags}  ../.. ${conan_recipe}"
-echo "${conan_create_command}"
-bash -c "${conan_create_command}"
+    # Create the release package...
+    #
+    conan_create_command="cd \"${conan_build_dir}\" && conan create ${conan_config_flags}  ../.. ${conan_recipe}"
+    echo "${conan_create_command}"
+    bash -c "${conan_create_command}"
+fi
 
 # ...and upload it!
 #
