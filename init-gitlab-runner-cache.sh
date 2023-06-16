@@ -27,4 +27,15 @@ if [ "$(uname -o)" != "Darwin" ]; then
         
     )
     export CONAN_USER_HOME=${local_cache_dir}
+
+    # Add batteriesincluded remote if not present.
+    {
+        conan remote list | grep batteriesincluded
+    } || {
+        conan remote add batteriesincluded https://batteriesincluded.cc/artifactory/api/conan/conan-local
+        conan remote list | grep batteriesincluded
+    } || {
+        echo "Failed to add conan remote 'batteriesincluded'" >&2
+        exit 1
+    }
 fi
