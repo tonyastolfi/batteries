@@ -89,4 +89,4 @@ bash -c "${conan_create_command}"
 #
 CONAN_PASSWORD=${conan_pass}        \
 CONAN_LOGIN_USERNAME=${conan_login} \
-  conan upload ${conan_recipe} --all --remote=${RELEASE_CONAN_REMOTE}
+  conan upload ${conan_recipe} --confirm --all --remote=${RELEASE_CONAN_REMOTE}
