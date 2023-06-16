@@ -67,7 +67,8 @@ EOF
 fi
 
 conan_name=$(conan inspect --raw=name "${project_dir}")
-conan_recipe=${conan_name}/${release_version}@${conan_recipe_user}/${RELEASE_CONAN_CHANNEL}
+#conan_recipe=${conan_name}/${release_version}@${conan_recipe_user}/${RELEASE_CONAN_CHANNEL}
+conan_recipe=${conan_name}/${release_version}
 conan_build_type=${BUILD_TYPE:-Release}
 conan_build_dir=${project_dir}/build/${conan_build_type}
 

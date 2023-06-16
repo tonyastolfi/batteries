@@ -32,7 +32,7 @@ github_repo=${GITHUB_PAGES_REPO:-batteriescpp.github.io}
 cd "${deploy_dir}"
 git clone "https://${github_user}:${GITHUB_PAGES_ACCESS_TOKEN}@github.com/${github_user}/${github_repo}"
 
-if [ "$CLONE_ONLY" == "1" ]; then
+if [ "${CLONE_ONLY:-}" == "1" ]; then
     exit 0
 fi
 
