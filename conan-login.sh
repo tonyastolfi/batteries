@@ -5,9 +5,6 @@
 # script/conan-login.sh - Log in to Conan Package Repo.
 #
 set -Eeuo pipefail
-if [ "${DEBUG:-}" == "1" ]; then
-    # Do not support debug output.
-fi
 
 script_dir=$(cd $(dirname $0) && pwd)
 source "${script_dir}/common.sh"
