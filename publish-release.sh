@@ -24,11 +24,13 @@ require_env_var RELEASE_CONAN_REMOTE
 # CI_PROJECT_NAMESPACE and CI_PROJECT_TITLE; if these too are not defined,
 # then show the error requiring RELEASE_CONAN_USER.
 #
-conan_recipe_user=${RELEASE_CONAN_USER:-"${CI_PROJECT_NAMESPACE:-}+${CI_PROJECT_TITLE:-}"}
-if [ "$conan_recipe_user" == "+" ]; then
-    require_env_var RELEASE_CONAN_USER
-    conan_recipe_user=${RELEASE_CONAN_USER}
-fi
+#conan_recipe_user=${RELEASE_CONAN_USER:-"${CI_PROJECT_NAMESPACE:-}+${CI_PROJECT_TITLE:-}"}
+#if [ "$conan_recipe_user" == "+" ]; then
+#    require_env_var RELEASE_CONAN_USER
+#    conan_recipe_user=${RELEASE_CONAN_USER}
+#fi
+conan_recipe_user=${RELEASE_CONAN_USER:-_}
+conan_recipe_channel=${RELEASE_CONAN_CHANNEL:-_}
 
 # The working tree must be clean before we continue...
 #
@@ -67,7 +69,7 @@ EOF
 fi
 
 conan_name=$(conan inspect --raw=name "${project_dir}")
-conan_recipe=${conan_name}/${release_version}@${conan_recipe_user}/${RELEASE_CONAN_CHANNEL}
+conan_recipe=${conan_name}/${release_version}@${conan_recipe_user}/${conan_recipe_channel}
 conan_build_type=${BUILD_TYPE:-Release}
 conan_build_dir=${project_dir}/build/${conan_build_type}
 conan_config_flags=$("${script_dir}/conan-config-flags.sh")
