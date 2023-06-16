@@ -1,16 +1,16 @@
-#!/bin/bash -x
+#!/bin/bash
 #
 # Copyright (C) 2022-2023 Anthony Paul Astolfi
 #
-
-script_dir=$(cd $(dirname $0) && pwd)
-source "${script_dir}/common.sh"
-
-if [ -f "${project_dir}/_batt-docker-image" ]; then
-    BATT_DOCKER_IMAGE=$(cat "${project_dir}/_batt-docker-image")
+set -Eeuo pipefail
+if [ "${DEBUG:-}" == "1" ]; then
+    set -x
 fi
 
-docker_image=${BATT_DOCKER_IMAGE:-registry.gitlab.com/batteriescpp/batteries:v0.34.7-devel.linux_gcc11_amd64@sha256:799fb68bb0d8236d5873e6586c684189374b70717ce8d8d00359ea9e747a8afb}
+script_dir=$(cd "$(dirname "$0")" && pwd)
+source "${script_dir}/common.sh"
+
+docker_image=${BATT_DOCKER_IMAGE:-$("${script_dir}/ci-docker-image.sh")}
 
 # Figure out if the current shell is a TTY.
 #

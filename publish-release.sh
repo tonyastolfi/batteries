@@ -2,7 +2,10 @@
 #
 # Copyright 2022 Anthony Paul Astolfi
 #
-set -e
+set -Eeuo pipefail
+if [ "${DEBUG:-}" == "1" ]; then
+    set -x
+fi
 
 echo "pwd=$(pwd)"
 
@@ -21,7 +24,7 @@ require_env_var RELEASE_CONAN_REMOTE
 # CI_PROJECT_NAMESPACE and CI_PROJECT_TITLE; if these too are not defined,
 # then show the error requiring RELEASE_CONAN_USER.
 #
-conan_recipe_user=${RELEASE_CONAN_USER:-"${CI_PROJECT_NAMESPACE}+${CI_PROJECT_TITLE}"}
+conan_recipe_user=${RELEASE_CONAN_USER:-"${CI_PROJECT_NAMESPACE:-}+${CI_PROJECT_TITLE:-}"}
 if [ "$conan_recipe_user" == "+" ]; then
     require_env_var RELEASE_CONAN_USER
     conan_recipe_user=${RELEASE_CONAN_USER}

@@ -2,7 +2,10 @@
 #
 # Copyright 2022 Anthony Paul Astolfi
 #
-set -e
+set -Eeuo pipefail
+if [ "${DEBUG:-}" == "1" ]; then
+    set -x
+fi
 
 script_dir=$(cd $(dirname $0) && pwd)
 source "${script_dir}/common.sh"

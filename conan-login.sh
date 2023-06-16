@@ -5,6 +5,9 @@
 # script/conan-login.sh - Log in to Conan Package Repo.
 #
 set -Eeuo pipefail
+if [ "${DEBUG:-}" == "1" ]; then
+    # Do not support debug output.
+fi
 
 script_dir=$(cd $(dirname $0) && pwd)
 source "${script_dir}/common.sh"
@@ -13,8 +16,8 @@ source "${script_dir}/common.sh"
 # package registry, if possible.  Otherwise fall back on env vars
 # RELEASE_CONAN_LOGIN_USERNAME, RELEASE_CONAN_PASSWORD.
 #
-conan_login=${CI_DEPLOY_USER:-${RELEASE_CONAN_LOGIN_USERNAME:-}}
-conan_pass=${CI_DEPLOY_PASSWORD:-${RELEASE_CONAN_PASSWORD:-}}
+conan_login=${RELEASE_CONAN_LOGIN_USERNAME:-${CI_DEPLOY_USER:-}}
+conan_pass=${RELEASE_CONAN_PASSWORD:-${CI_DEPLOY_PASSWORD:-}}
 
 # Verify all required variables are defined.
 #

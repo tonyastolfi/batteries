@@ -1,6 +1,11 @@
 #!/bin/bash
 #
-set -e
+# Copyright (C) 2023 Anthony Paul Astolfi
+#
+set -Eeuo pipefail
+if [ "${DEBUG:-}" == "1" ]; then
+    set -x
+fi
 
 deploy_repo_dir=$1
 
