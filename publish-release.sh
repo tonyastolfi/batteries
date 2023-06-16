@@ -17,7 +17,7 @@ echo "project_dir is '${project_dir}'"
 
 # Verify all required variables are defined.
 #
-require_env_var RELEASE_CONAN_CHANNEL
+#require_env_var RELEASE_CONAN_CHANNEL
 require_env_var RELEASE_CONAN_REMOTE
 
 # If RELEASE_CONAN_USER is not defined, then attempt to default to the GitLab
