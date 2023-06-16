@@ -8,4 +8,4 @@ if [ "${DEBUG:-}" == "1" ]; then
 fi
 
 script_dir=$(dirname "$0")
-PYTHONPATH=${script_dir}:${PYTHON_PATH} python3 -c 'import batt; batt.run_like_main(batt.get_version)'
+PYTHONPATH=${script_dir}:${PYTHON_PATH:-} python3 -c 'import batt; batt.run_like_main(batt.get_version)'
