@@ -212,6 +212,15 @@ function find_conan_version() {
         NO_CHECK_CONAN=1 conan inspect --raw 'version' "$(find_conan_dir)"
     fi
 }
+
+function find_conan_project_name() {
+    if [ "${conan_version_2}" == "1" ]; then
+        NO_CHECK_CONAN=1 conan inspect -f json "$(find_conan_dir)" | jq -r ".name"
+    else
+        NO_CHECK_CONAN=1 conan inspect --raw 'name' "$(find_conan_dir)"
+    fi
+}
+
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 # Portable wrapper around `sed -i ...`
 #
