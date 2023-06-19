@@ -29,8 +29,17 @@ require_env_var RELEASE_CONAN_REMOTE
 #    require_env_var RELEASE_CONAN_USER
 #    conan_recipe_user=${RELEASE_CONAN_USER}
 #fi
-conan_recipe_user=${RELEASE_CONAN_USER:-_}
-conan_recipe_channel=${RELEASE_CONAN_CHANNEL:-_}
+
+if [ "${conan_version_2}" == "1" ]; then
+    default_conan_recipe_user=
+    default_conan_recipe_channel=
+else
+    default_conan_recipe_user=_
+    default_conan_recipe_channel=_
+fi
+
+conan_recipe_user=${RELEASE_CONAN_USER:-${default_conan_recipe_user}}
+conan_recipe_channel=${RELEASE_CONAN_CHANNEL:-${default_conan_recipe_channel}}
 
 # The working tree must be clean before we continue...
 #
