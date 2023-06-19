@@ -88,7 +88,11 @@ else
 
     # Create the release package...
     #
-    conan_create_command="cd \"${conan_build_dir}\" && conan create ${conan_config_flags}  ../.. ${conan_recipe}"
+    if [ "${conan_version_2}" == "1" ]; then
+        conan_create_command="cd \"${conan_build_dir}\" && conan create ${conan_config_flags} --user=${conan_recipe_user} --channel=${conan_recipe_channel} ../.."
+    else
+        conan_create_command="cd \"${conan_build_dir}\" && conan create ${conan_config_flags}  ../.. ${conan_recipe}"
+    fi
     echo "${conan_create_command}"
     bash -c "${conan_create_command}"
 fi
