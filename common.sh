@@ -37,10 +37,10 @@ default_conan_dir=${HOME}/.conan
 conan_version_2=$({ conan --version | grep -i 'conan version 2' >/dev/null ; } && echo 1 || echo 0)
 
 if [ "${conan_version_2}" == "1" ]; then
-    export CONAN_HOME=$(cd "${CONAN_HOME:-${CONAN_USER_HOME:-${HOME}}/.conan2}" && pwd)
-    export CONAN_USER_HOME=$(cd "${CONAN_HOME}/.." && pwd)
+    export CONAN_HOME=$(realpath "${CONAN_HOME:-${CONAN_USER_HOME:-${HOME}}/.conan2}")
+    export CONAN_USER_HOME=$(realpath "${CONAN_HOME}/..")
 else
-    export CONAN_USER_HOME=$(cd "${CONAN_USER_HOME:-${HOME}}" && pwd)
+    export CONAN_USER_HOME=$(realpath "${CONAN_USER_HOME:-${HOME}}")
 fi
 
 cd "$project_dir"
