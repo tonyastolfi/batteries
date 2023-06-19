@@ -23,7 +23,11 @@ require_env_var RELEASE_CONAN_REMOTE
 # Apply Conan package registry credentials.
 #
 if [ "${conan_login}" != "" ] && [ "${conan_pass}" != "" ]; then
-    conan user --remote="${RELEASE_CONAN_REMOTE}" --password="${conan_pass}" "${conan_login}"
+    if [ "${conan_version_2}" == "1" ]; then
+        conan remote login -p "${conan_pass}" "${RELEASE_CONAN_REMOTE}" "${conan_login}"
+    else
+        conan user --remote="${RELEASE_CONAN_REMOTE}" --password="${conan_pass}" "${conan_login}" 
+   fi
 else
     echo "NO CI CREDENTIALS FOUND - not running 'conan user' command."
 fi
