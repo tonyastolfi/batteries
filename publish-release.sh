@@ -85,10 +85,26 @@ conan_build_type=${BUILD_TYPE:-Release}
 conan_build_dir=${project_dir}/build/${conan_build_type}
 conan_config_flags=$("${script_dir}/conan-config-flags.sh")
 
+if [ "${conan_version_2}" == "1" ]; then
+    # Remove trailing '@/' if conan 2.
+    #
+    conan_recipe=$(echo "${conan_recipe}" | sed -E 's,@/$,,g')
+
+    # Set the create/export args (Conan 2.x)
+    #
+    conan_export_args="--user=${conan_recipe_user} --channel=${conan_recipe_channel} ."
+    conan_create_args="--user=${conan_recipe_user} --channel=${conan_recipe_channel} ../.."
+else
+    # Set the create/export args (Conan 1.x)
+    #
+    conan_export_args=". ${conan_recipe}"
+    conan_create_args="../.. ${conan_recipe}"
+fi
+
 verbose "Publishing ${conan_recipe}..."
 
 if [ "${EXPORT_PKG_ONLY:-0}" == "1" ]; then
-    conan_export_pkg_command="( cd \"${project_dir}\" && conan export-pkg ${conan_config_flags} . ${conan_recipe} )"
+    conan_export_pkg_command="( cd \"${project_dir}\" && conan export-pkg ${conan_config_flags} ${conan_export_args} )"
     echo "${conan_export_pkg_command}"
     bash -c "${conan_export_pkg_command}"
 else
@@ -99,11 +115,7 @@ else
 
     # Create the release package...
     #
-    if [ "${conan_version_2}" == "1" ]; then
-        conan_create_command="cd \"${conan_build_dir}\" && conan create ${conan_config_flags} --user=${conan_recipe_user} --channel=${conan_recipe_channel} ../.."
-    else
-        conan_create_command="cd \"${conan_build_dir}\" && conan create ${conan_config_flags}  ../.. ${conan_recipe}"
-    fi
+    conan_create_command="cd \"${conan_build_dir}\" && conan create ${conan_config_flags} ${conan_create_args}"
     echo "${conan_create_command}"
     bash -c "${conan_create_command}"
 fi
