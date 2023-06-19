@@ -33,9 +33,11 @@ require_env_var RELEASE_CONAN_REMOTE
 if [ "${conan_version_2}" == "1" ]; then
     default_conan_recipe_user=
     default_conan_recipe_channel=
+    conan_upload_extra_args=
 else
     default_conan_recipe_user=_
     default_conan_recipe_channel=_
+    conan_upload_extra_args=--all
 fi
 
 conan_recipe_user=${RELEASE_CONAN_USER:-${default_conan_recipe_user}}
@@ -110,4 +112,4 @@ fi
 #
 CONAN_PASSWORD=${conan_pass}        \
 CONAN_LOGIN_USERNAME=${conan_login} \
-  conan upload ${conan_recipe} --confirm --all --remote=${RELEASE_CONAN_REMOTE}
+  conan upload ${conan_recipe} --confirm ${conan_upload_extra_args} --remote=${RELEASE_CONAN_REMOTE}
