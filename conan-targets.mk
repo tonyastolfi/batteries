@@ -19,7 +19,7 @@
 #----- --- -- -  -  -   -
 
 CONAN_VERSION := $(shell conan --version | sed -E 's,[Cc]onan version 2(\.[0-9]+)*,2,g' || echo '1')
-$(info conan version is $(CONAN_VERSION))
+$(info conan-targets.mk: Detected Conan Version==$(CONAN_VERSION))
 
 ifeq ($(BUILD_TYPE),)
 export BUILD_TYPE := RelWithDebInfo
