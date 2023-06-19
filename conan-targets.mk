@@ -10,7 +10,6 @@
 #  - PROJECT_DIR
 #  - PROJECT_NAME
 #  - SCRIPT_DIR
-#  - CONAN_2
 #
 # Output vars:
 #
@@ -18,6 +17,9 @@
 #  - BUILD_DIR
 #
 #----- --- -- -  -  -   -
+
+CONAN_VERSION := $(shell conan --version | sed -E 's,[Cc]onan version 2(\.[0-9]+)*,2,g' || echo '1')
+$(info conan version is $(CONAN_VERSION))
 
 ifeq ($(BUILD_TYPE),)
 export BUILD_TYPE := RelWithDebInfo
@@ -43,7 +45,7 @@ CONAN_CONFIG_FLAGS := $(shell BUILD_TYPE=$(BUILD_TYPE) "$(SCRIPT_DIR)/conan-conf
 
 $(info CONAN_CONFIG_FLAGS is $(CONAN_CONFIG_FLAGS))
 
-ifeq ($(CONAN_2),1)
+ifeq ($(CONAN_VERSION),2)
   CONAN_INSTALL    := conan install    $(CONAN_CONFIG_FLAGS) --build=missing
   CONAN_BUILD      := conan build      $(CONAN_CONFIG_FLAGS)
   CONAN_EXPORT_PKG := conan export-pkg $(CONAN_CONFIG_FLAGS)
