@@ -34,13 +34,24 @@ project_dir=${project_dir:-$(find_project_dir)}
 local_conan_parent_dir=${project_dir}/
 local_conan_dir=${local_conan_parent_dir}/.conan
 default_conan_dir=${HOME}/.conan
-conan_version_2=$({ conan --version | grep -i 'conan version 2' >/dev/null ; } && echo 1 || echo 0)
 
-if [ "${conan_version_2}" == "1" ]; then
-    export CONAN_HOME=$(realpath "${CONAN_HOME:-${CONAN_USER_HOME:-${HOME}}/.conan2}")
-    export CONAN_USER_HOME=$(realpath "${CONAN_HOME}/..")
-else
-    export CONAN_USER_HOME=$(realpath "${CONAN_USER_HOME:-${HOME}}")
+# Detect whether conan is available.
+{
+    which conan >/dev/null
+} && {
+    conan_available=1
+} || {
+    conan_available=0
+}
+
+if [ "${conan_available}" == "1" ]; then
+    conan_version_2=$({ conan --version | grep -i 'conan version 2' >/dev/null ; } && echo 1 || echo 0)
+    if [ "${conan_version_2}" == "1" ]; then
+        export CONAN_HOME=${CONAN_HOME:-${CONAN_USER_HOME:-${HOME}}/.conan2}
+        export CONAN_USER_HOME=${CONAN_USER_HOME:-${CONAN_HOME}/..}
+    else
+        export CONAN_USER_HOME=${CONAN_USER_HOME:-${HOME}}
+    fi
 fi
 
 cd "$project_dir"
