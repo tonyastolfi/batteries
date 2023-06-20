@@ -17,18 +17,7 @@ echo "project_dir is '${project_dir}'"
 
 # Verify all required variables are defined.
 #
-#require_env_var RELEASE_CONAN_CHANNEL
 require_env_var RELEASE_CONAN_REMOTE
-
-# If RELEASE_CONAN_USER is not defined, then attempt to default to the GitLab
-# CI_PROJECT_NAMESPACE and CI_PROJECT_TITLE; if these too are not defined,
-# then show the error requiring RELEASE_CONAN_USER.
-#
-#conan_recipe_user=${RELEASE_CONAN_USER:-"${CI_PROJECT_NAMESPACE:-}+${CI_PROJECT_TITLE:-}"}
-#if [ "$conan_recipe_user" == "+" ]; then
-#    require_env_var RELEASE_CONAN_USER
-#    conan_recipe_user=${RELEASE_CONAN_USER}
-#fi
 
 if [ "${conan_version_2}" == "1" ]; then
     default_conan_recipe_user=
