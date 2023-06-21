@@ -25,6 +25,8 @@ real_pwd=$(realpath $(pwd))
 mkdir -p "${HOME}/.conan"
 mkdir -p "${HOME}/.conan2"
 
+DOCKER_ENV=$(env | grep -Ei 'release|conan' | xargs -I {} echo '--env' {})
+
 # Run the passed arguments as a shell command in a fresh docker
 # container based on our CI image.
 #
@@ -39,5 +41,7 @@ docker run ${DOCKER_FLAGS_INTERACTIVE} \
        -v "$HOME/.conan":"$HOME/.conan" \
        -v "$HOME/.conan2":"$HOME/.conan2" \
        -w "$(pwd)" \
+       ${DOCKER_ENV} \
+       ${EXTRA_DOCKER_FLAGS:-} \
        ${docker_image} \
        bash -c "export CONAN_USER_HOME=${HOME} && export CONAN_HOME=${HOME}/.conan2 && { test -f ${project_dir}/_batt-docker-profile && source ${project_dir}/_batt-docker-profile || true; } && $*"
