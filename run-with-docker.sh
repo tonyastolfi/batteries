@@ -25,7 +25,7 @@ real_pwd=$(realpath $(pwd))
 mkdir -p "${HOME}/.conan"
 mkdir -p "${HOME}/.conan2"
 
-DOCKER_ENV=$(env | grep -Ei 'release|conan' | xargs -I {} echo '--env' {})
+DOCKER_ENV=$(env | { grep -Ei 'release|conan' || true } | xargs -I {} echo '--env' {})
 
 # Run the passed arguments as a shell command in a fresh docker
 # container based on our CI image.
