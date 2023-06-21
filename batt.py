@@ -208,6 +208,10 @@ def generate_conan_find_requirements(self):
 
     for requirement in conan_requirements:
         print(requirement)
+        if requirement.build:
+            print("... skipping build=True requirement")
+            continue
+
         package_name = str(requirement.ref).split('/')[0]
         candidates = set()
         for candidate in (file_name for file_name in cmake_config_files
