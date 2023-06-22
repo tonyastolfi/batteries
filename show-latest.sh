@@ -15,7 +15,8 @@ source "${script_dir}/common.sh"
 
     if [ "${conan_version_2}" == "1" ]; then
         output=$(conan search "${package_name}" -f json \
-                     | jq -r 'to_entries | map(.value | to_entries | map(.key)) | flatten | .[]')
+                     | jq -r 'to_entries | map(.value | to_entries | map(.key | select(. != "error"))) | flatten | .[]' \
+                     | grep "${package_name}")
     else
         output=$(conan search "${package_name}" -r all --raw \
                      | grep "${package_name}")
