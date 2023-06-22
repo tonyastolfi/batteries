@@ -93,7 +93,7 @@ fi
 verbose "Publishing ${conan_recipe}..."
 
 if [ "${EXPORT_PKG_ONLY:-0}" == "1" ]; then
-    conan_export_command="( cd \"${project_dir}\" && conan export ${conan_config_flags} ${conan_export_args} )"
+    conan_export_command="( cd \"${project_dir}\" && conan export ${conan_export_args} )"
     conan_export_pkg_command="( cd \"${project_dir}\" && conan export-pkg ${conan_config_flags} ${conan_export_args} )"
 
     echo "${conan_export_command}"
