@@ -10,7 +10,6 @@ fi
 script_dir=$(cd $(dirname $0) && pwd)
 
 project_dir=${1:-$(git rev-parse --show-toplevel)}
-project_name=$(conan inspect "${project_dir}" --raw=name)
 
 test -f "${project_dir}/conanfile.py" || exit 1
 
@@ -19,6 +18,8 @@ project_dir=$(pwd)
 
 source "${script_dir}/common.sh"
 
+project_name=$(find_conan_project_name)
+
 project_is_dirty=$(working_tree_is_clean && echo "0" || echo "1")
 
 # Extract the required dependencies from the project via conan inspect
@@ -26,13 +27,19 @@ project_is_dirty=$(working_tree_is_clean && echo "0" || echo "1")
 #
 #  conan graph info -vquiet -f json . | jq '.nodes[0]|.requires|to_entries|map(.value)'
 if [ "${conan_version_2}" == "1" ]; then
-    all_deps=($(conan inspect --raw=requires "${project_dir}" \
-                    | sed -e "s,',\",g" \
-                    | jq -r '.[]'))
+    conan_graph=$(conan graph info . --no-remote -f json 2>/dev/null \
+                      | jq '.')
+
+    all_deps=($(echo "${conan_graph}" \
+                    | jq -r | jq -r '(.graph | .root | to_entries | .[0] | .key) as $root | .graph | .nodes | .[$root] | .dependencies | to_entries | map(.value) | map(select(.direct == "True")|.ref)|.[]'))
 else
     all_deps=($(conan inspect --raw=requires "${project_dir}" \
                     | sed -e "s,',\",g" \
                     | jq -r '.[]'))
+fi
+
+if [ "${DEBUG:-}" == "1" ]; then
+    echo "all_deps = ${all_deps[@]}"
 fi
 
 up_to_date=1
