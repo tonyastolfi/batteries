@@ -208,8 +208,13 @@ def generate_conan_find_requirements(self):
 
     for requirement in conan_requirements:
         print(requirement)
+
         if requirement.build:
             print("... skipping build=True requirement")
+            continue
+
+        if not requirement.direct:
+            print("... skipping direct=False requirement")
             continue
 
         package_name = str(requirement.ref).split('/')[0]
@@ -223,7 +228,7 @@ def generate_conan_find_requirements(self):
 
         # Hopefully at this point there is exactly one candidate name!
         #
-        assert len(candidates) == 1
+        assert len(candidates) == 1, f"Ambiguous cmake name: {package_name}, candidates: {candidates}"
         conan_to_cmake_requirements[package_name] = list(candidates)[0]
 
     deps_helper_file = os.path.join(self.build_folder, "conan_find_requirements.cmake")
