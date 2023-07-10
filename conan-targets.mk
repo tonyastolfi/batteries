@@ -35,9 +35,6 @@ BUILD_FROM_SRC :=
 ifeq ($(OS),Windows_NT)
 else
   UNAME_S := $(shell uname -s)
-  ifeq ($(UNAME_S),Darwin)
-    #BUILD_FROM_SRC += --build=b2 --build=libbacktrace
-  endif
 endif
 #----- --- -- -  -  -   -
 
