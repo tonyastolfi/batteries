@@ -65,26 +65,30 @@ export CLICOLOR=0
 # Targets
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 
+.PHONY: setup-conan
+setup-conan:
+	(test -f /setup-conan.sh && /setup-conan.sh || echo "Using ambient Conan config (/setup-conan.sh not found)")
+
 #----- --- -- -  -  -   -
 .PHONY: install
-install:
+install: setup-conan
 	mkdir -p "$(BUILD_DIR)"
 	(cd "$(BUILD_DIR)" && $(CONAN_INSTALL) $(OPTIONS) $(BUILD_FROM_SRC) "$(PROJECT_DIR)")
 
 #----- --- -- -  -  -   -
 .PHONY: build
-build:
+build: setup-conan
 	(cd "$(BUILD_DIR)" && $(CONAN_BUILD) "$(PROJECT_DIR)")
 	"$(SCRIPT_DIR)/generate-vscode-config.sh"
 
 #----- --- -- -  -  -   -
 .PHONY: export-pkg
-export-pkg:
+export-pkg: setup-conan
 	$(CONAN_EXPORT_PKG) "$(PROJECT_DIR)"
 
 #----- --- -- -  -  -   -
 .PHONY: create
-create:
+create: setup-conan
 	$(CONAN_CREATE) "$(PROJECT_DIR)"
 
 #----- --- -- -  -  -   -
