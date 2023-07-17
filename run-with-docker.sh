@@ -27,12 +27,14 @@ mkdir -p "${HOME}/.conan2"
 
 DOCKER_ENV=$(env | { grep -Ei 'release|conan' || true ; } | xargs -I {} echo '--env' {})
 
+#       --privileged \
+
 # Run the passed arguments as a shell command in a fresh docker
 # container based on our CI image.
 #
 docker run ${DOCKER_FLAGS_INTERACTIVE} \
        --ulimit memlock=-1:-1 \
-       --privileged \
+       --cap-add SYS_ADMIN --device /dev/fuse \
        -v /etc/passwd:/etc/passwd \
        -v /etc/group:/etc/group \
        --user $(id -u):$(id -g) \
