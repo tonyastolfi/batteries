@@ -32,6 +32,7 @@ DOCKER_ENV=$(env | { grep -Ei 'release|conan' || true ; } | xargs -I {} echo '--
 #
 docker run ${DOCKER_FLAGS_INTERACTIVE} \
        --ulimit memlock=-1:-1 \
+       --privileged \
        -v /etc/passwd:/etc/passwd \
        -v /etc/group:/etc/group \
        --user $(id -u):$(id -g) \
