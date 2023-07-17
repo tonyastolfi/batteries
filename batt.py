@@ -209,13 +209,13 @@ def generate_conan_find_requirements(self):
     for requirement in conan_requirements:
         print(requirement)
 
-        if requirement.build:
+        if CONAN_VERSION_2 and requirement.build:
             print("... skipping build=True requirement")
             continue
 
         # (override==True implies direct==False, but does not set it explicitly)
         #
-        if not requirement.direct or requirement.override:
+        if CONAN_VERSION_2 and (not requirement.direct or requirement.override):
             print("... skipping direct=False requirement")
             continue
 
