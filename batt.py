@@ -1,7 +1,7 @@
 #
 # Copyright 2022 Anthony Paul Astolfi
 #
-import os, sys, re
+import os, sys, re, platform
 
 
 # Whether to emit verbose output; this can be overridden by client applications.
@@ -243,6 +243,18 @@ def generate_conan_find_requirements(self):
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
+def conanfile_requirements(self, deps, override_deps=[], platform_deps={}):
+    if platform.system() in platform_deps:
+        deps += platform_deps[platform.system()]
+    for dep_name in deps:
+        self.requires(dep_name,
+                      visible=True,
+                      transitive_headers=True,
+                      transitive_libs=True,
+                      force=True)
+    for override_name in override_deps:
+        self.requires(override_name,
+                      override=True)
 def run_like_main(fn):
     try:
         print(fn())
