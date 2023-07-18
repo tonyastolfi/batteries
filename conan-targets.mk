@@ -54,11 +54,13 @@ ifeq ($(CONAN_VERSION),2)
   CONAN_BUILD      := conan build      $(CONAN_CONFIG_FLAGS)
   CONAN_EXPORT_PKG := conan export-pkg $(CONAN_CONFIG_FLAGS)
   CONAN_CREATE     := conan create     $(CONAN_CONFIG_FLAGS)
+  CONAN_REMOTE     := conan remove --confirm
 else
   CONAN_INSTALL    := conan install    $(CONAN_CONFIG_FLAGS) --build=missing
   CONAN_BUILD      := conan build --install-folder "$(BUILD_DIR)"
   CONAN_EXPORT_PKG := conan export-pkg $(CONAN_CONFIG_FLAGS)
   CONAN_CREATE     := conan create     $(CONAN_CONFIG_FLAGS)
+  CONAN_REMOTE     := conan remove -f
 endif
 
 #----- --- -- -  -  -   -
@@ -98,7 +100,7 @@ create: setup-conan
 #----- --- -- -  -  -   -
 .PHONY: clean-pkg
 clean-pkg:
-	conan remove -f "$(PROJECT_NAME)/$(shell script/get-version.sh)"
+	$(CONAN_REMOVE) "$(PROJECT_NAME)/$(shell script/get-version.sh)"
 
 #----- --- -- -  -  -   -
 .PHONY: clean
