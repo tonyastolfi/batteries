@@ -26,6 +26,11 @@ export BUILD_TYPE := RelWithDebInfo
 endif
 
 BUILD_DIR := $(PROJECT_DIR)/build/$(BUILD_TYPE)
+ifeq ($(CONAN_VERSION),2)
+  BUILD_BIN_DIR := $(BUILD_DIR)
+else
+  BUILD_BIN_DIR := $(BUILD_DIR)/bin
+endif
 
 #----- --- -- -  -  -   -
 # Force some requirements to build from source to workaround
