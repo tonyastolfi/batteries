@@ -54,13 +54,13 @@ ifeq ($(CONAN_VERSION),2)
   CONAN_BUILD      := conan build      $(CONAN_CONFIG_FLAGS)
   CONAN_EXPORT_PKG := conan export-pkg $(CONAN_CONFIG_FLAGS)
   CONAN_CREATE     := conan create     $(CONAN_CONFIG_FLAGS)
-  CONAN_REMOTE     := conan remove --confirm
+  CONAN_REMOVE     := conan remove --confirm
 else
   CONAN_INSTALL    := conan install    $(CONAN_CONFIG_FLAGS) --build=missing
   CONAN_BUILD      := conan build --install-folder "$(BUILD_DIR)"
   CONAN_EXPORT_PKG := conan export-pkg $(CONAN_CONFIG_FLAGS)
   CONAN_CREATE     := conan create     $(CONAN_CONFIG_FLAGS)
-  CONAN_REMOTE     := conan remove -f
+  CONAN_REMOVE     := conan remove -f
 endif
 
 #----- --- -- -  -  -   -
