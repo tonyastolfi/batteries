@@ -107,3 +107,8 @@ clean-pkg:
 clean:
 	rm -rf "$(BUILD_DIR)"
 	rm -rf "$(PROJECT_DIR)/test_package/build"
+
+#----- --- -- -  -  -   -
+.PHONY: cmake-build
+cmake-build:
+	cmake --build "$(BUILD_DIR)" -- -j$(shell nproc)
