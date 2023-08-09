@@ -41,6 +41,7 @@ docker run ${DOCKER_FLAGS_INTERACTIVE} \
        --network host \
        -v "$(pwd)":"$(pwd)" \
        -v "$real_pwd":"$real_pwd" \
+       -v "$HOME/.cache":"$HOME/.cache" \
        -v "$HOME/.conan":"$HOME/.conan" \
        -v "$HOME/.conan2":"$HOME/.conan2" \
        -w "$(pwd)" \
