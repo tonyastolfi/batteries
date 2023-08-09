@@ -12,7 +12,8 @@ source "${script_dir}/common.sh"
 
 # Get the current package version.
 #
-package_version=$(cd "${script_dir}" && "${script_dir}/get-version.sh")
+package_version=$(cd "${script_dir}/.." && "${script_dir}/get-version.sh")
+echo "The current package version is ${package_version}"
 
 require_env_var GITHUB_PAGES_ACCESS_TOKEN
 
