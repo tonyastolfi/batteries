@@ -50,10 +50,10 @@ CONAN_CONFIG_FLAGS := $(shell BUILD_TYPE=$(BUILD_TYPE) "$(SCRIPT_DIR)/conan-conf
 $(info CONAN_CONFIG_FLAGS is $(CONAN_CONFIG_FLAGS))
 
 ifeq ($(CONAN_VERSION),2)
-  CONAN_INSTALL    := conan install    $(CONAN_CONFIG_FLAGS) --build=missing
-  CONAN_BUILD      := conan build      $(CONAN_CONFIG_FLAGS)
-  CONAN_EXPORT_PKG := conan export-pkg $(CONAN_CONFIG_FLAGS)
-  CONAN_CREATE     := conan create     $(CONAN_CONFIG_FLAGS)
+  CONAN_INSTALL    := conan install    $(CONAN_CONFIG_FLAGS) --build=missing $(OPTIONS)
+  CONAN_BUILD      := conan build      $(CONAN_CONFIG_FLAGS) $(OPTIONS)
+  CONAN_EXPORT_PKG := conan export-pkg $(CONAN_CONFIG_FLAGS) $(OPTIONS)
+  CONAN_CREATE     := conan create     $(CONAN_CONFIG_FLAGS) $(OPTIONS)
   CONAN_REMOVE     := conan remove --confirm
 else
   CONAN_INSTALL    := conan install    $(CONAN_CONFIG_FLAGS) --build=missing
@@ -79,7 +79,7 @@ setup-conan:
 .PHONY: install
 install: setup-conan
 	mkdir -p "$(BUILD_DIR)"
-	(cd "$(BUILD_DIR)" && $(CONAN_INSTALL) $(OPTIONS) $(BUILD_FROM_SRC) "$(PROJECT_DIR)")
+	(cd "$(BUILD_DIR)" && $(CONAN_INSTALL) $(BUILD_FROM_SRC) "$(PROJECT_DIR)")
 
 #----- --- -- -  -  -   -
 .PHONY: build
