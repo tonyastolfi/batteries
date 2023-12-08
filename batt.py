@@ -1,5 +1,5 @@
 #
-# Copyright 2022 Anthony Paul Astolfi
+# Copyright 2022-2023 Anthony Paul Astolfi
 #
 import os, sys, re, platform
 
@@ -229,7 +229,7 @@ VISIBLE={
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
-def set_version(self):
+def set_version_from_git_tags(self):
     """
     Mix-in implementation of ConanFile.set_version.
 
@@ -241,7 +241,19 @@ def set_version(self):
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
-def layout(self):
+def default_cmake_layout(self):
+    """
+    Mix-in implementation of ConanFile.layout.
+
+    Uses conan.tools.cmake.cmake_layout, with src_folder="src".
+    """
+    from conan.tools.cmake import cmake_layout
+    cmake_layout(self, src_folder)
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def cmake_in_src_layout(self):
     """
     Mix-in implementation of ConanFile.layout.
 
@@ -253,7 +265,7 @@ def layout(self):
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
-def generate(self):
+def default_cmake_generate(self):
     """
     Mix-in implementation of ConanFile.generate.
 
@@ -301,7 +313,7 @@ def generate(self):
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
-def build(self):
+def default_cmake_build(self):
     """
     Mix-in implementation of ConanFile.build.
 
@@ -316,7 +328,7 @@ def build(self):
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
-def package(self):
+def default_cmake_lib_package(self):
     """
     Mix-in implementation of ConanFile.package.
 
@@ -352,7 +364,7 @@ def package(self):
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
-def package_info(self):
+def default_lib_package_info(self):
     """
     Mix-in implementation of ConanFile.package_info.
 
@@ -382,7 +394,7 @@ def package_info(self):
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
-def package_id(self):
+def default_lib_package_id(self):
     """
     Mix-in implementation of ConanFile.package_id.
 
