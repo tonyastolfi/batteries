@@ -36,23 +36,8 @@ local_conan_dir=${local_conan_parent_dir}/.conan
 default_conan_dir=${HOME}/.conan
 
 # Detect whether conan is available.
-{
-    which conan >/dev/null
-} && {
-    conan_available=1
-} || {
-    conan_available=0
-}
-
-if [ "${conan_available}" == "1" ]; then
-    conan_version_2=$({ conan --version | grep -i 'conan version 2' >/dev/null ; } && echo 1 || echo 0)
-    if [ "${conan_version_2}" == "1" ]; then
-        export CONAN_HOME=${CONAN_HOME:-${CONAN_USER_HOME:-${HOME}}/.conan2}
-        export CONAN_USER_HOME=${CONAN_USER_HOME:-${CONAN_HOME}/..}
-    else
-        export CONAN_USER_HOME=${CONAN_USER_HOME:-${HOME}}
-    fi
-fi
+#
+source "${script_dir}/conan-version.sh"
 
 cd "$project_dir"
 
