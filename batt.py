@@ -245,10 +245,11 @@ def default_cmake_layout(self):
     """
     Mix-in implementation of ConanFile.layout.
 
-    Uses conan.tools.cmake.cmake_layout, with src_folder="src".
+    Uses conan.tools.cmake.cmake_layout, with default args
+    (CMakeLists.txt directly in project dir).
     """
     from conan.tools.cmake import cmake_layout
-    cmake_layout(self, src_folder)
+    cmake_layout(self)
 
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
