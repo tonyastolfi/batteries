@@ -15,6 +15,7 @@ CONAN_VERSION_2 = (
         '{ conan --version | grep -i "conan version 2" >/dev/null; } && echo 1 || echo 0'
     )).read().strip() == '1'
 
+
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
 def verbose(msg):
@@ -184,6 +185,231 @@ def get_version(no_check_conan = (os.getenv('NO_CHECK_CONAN') == '1')):
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
+def is_header_only_project(project):
+    options_header_only = False
+    try:
+        options_header_only = (
+            hasattr(project, 'options') and
+            hasattr(project.options, 'header_only') and
+            project.options.header_only
+        )
+    except:
+        pass
+
+    info_options_header_only = False
+    try:
+        info_options_header_only = (
+            hasattr(project, 'info') and
+            hasattr(project.info, 'options') and
+            hasattr(project.info.options, 'header_only') and
+            project.info.options.header_only
+        )
+    except:
+        pass
+
+    return options_header_only or info_options_header_only or (
+        hasattr(project, '_is_header_only') and
+        project._is_header_only
+    )
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+# OVERRIDE, VISIBLE - kwargs bundle dictionaries to be used with
+#  self.requires(ref, **OVERRIDE, ...), etc.
+#
+OVERRIDE={
+    "override": True,
+}
+VISIBLE={
+    "visible": True,
+    "transitive_headers": True,
+    "transitive_libs": True,
+}
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def set_version(self):
+    """
+    Mix-in implementation of ConanFile.set_version.
+
+    Uses GIT tags (release-MAJOR.MINOR.PATCH) to derive the version.
+    """
+    self.version = get_version(no_check_conan=True)
+    verbose(f'VERSION={self.version}')
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def layout(self):
+    """
+    Mix-in implementation of ConanFile.layout.
+
+    Uses conan.tools.cmake.cmake_layout, with src_folder="src".
+    """
+    from conan.tools.cmake import cmake_layout
+    cmake_layout(self, src_folder="src")
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def generate(self):
+    """
+    Mix-in implementation of ConanFile.generate.
+
+    Generates a file named <project_name>_options.cmake in the build directory
+    containing CMake variables for each declared option in the package.  The
+    variable names are constructed using the pattern:
+
+      <PROJECT_NAME>_OPTION_<OPTION_NAME>
+
+    If the ConanFile object has a _get_cxx_flags() method, then this method is
+    invoked to obtain a list of C++ compiler flags, which are also written to
+    the <project_name>_options.cmake file.
+
+    Uses CMakeToolchain and CMakeDeps to configure the project for build.
+    """
+    from conan.tools.files import save
+    from conan.tools.cmake import CMakeToolchain, CMakeDeps
+
+    # Write the current options to a .cmake file
+    #
+    opts_file = os.path.join(self.build_folder, f"{self.name}_options.cmake")
+
+    if hasattr(self, "_get_cxx_flags"):
+        save(self, opts_file,
+             '\n'.join([f"add_definitions(\"{flag}\")"
+                        for flag in self._get_cxx_flags()]))
+
+    # Configure CMake toolchain.
+    #
+    tc = CMakeToolchain(self, generator='Ninja')
+
+    for option_name, _ in self.options.possible_values.items():
+        var_name = f"{self.name.upper()}_OPTION_{option_name.upper()}"
+        tc.variables[var_name] = getattr(self.options, option_name)
+
+    tc.generate()
+
+    # Generate CMake files for required packages.
+    #
+    deps = CMakeDeps(self)
+    deps.generate()
+
+    generate_conan_find_requirements(self)
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def build(self):
+    """
+    Mix-in implementation of ConanFile.build.
+
+    Uses CMake to configure and build the package.
+    """
+    from conan.tools.cmake import CMake
+    cmake = CMake(self)
+    cmake.verbose = VERBOSE
+    cmake.configure()
+    cmake.build()
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def package(self):
+    """
+    Mix-in implementation of ConanFile.package.
+
+    Copies license files, header files, and all known library types
+    (.a, .so, .lib, .dll, and .dylib).  Also does cmake install.
+    """
+    from conan.tools.cmake import CMake
+    from conan.tools.files import copy
+
+    src_build = self.build_folder
+    src_include = os.path.join(self.source_folder, ".")
+    dst_licenses = os.path.join(self.package_folder, "licenses")
+    dst_include = os.path.join(self.package_folder, "include")
+    dst_lib = os.path.join(self.package_folder, "lib")
+    dst_bin = os.path.join(self.package_folder, "bin")
+
+    copy(self, "LICENSE", src=self.source_folder, dst=dst_licenses)
+    #----- --- -- -  -  -   -
+    copy(self, pattern="*.hpp", src=src_include, dst=dst_include)
+    copy(self, pattern="*.ipp", src=src_include, dst=dst_include)
+    #----- --- -- -  -  -   -
+    copy(self, pattern="*.a", src=src_build, dst=dst_lib, keep_path=False)
+    copy(self, pattern="*.so", src=src_build, dst=dst_lib, keep_path=False)
+    copy(self, pattern="*.lib", src=src_build, dst=dst_lib, keep_path=False)
+    #----- --- -- -  -  -   -
+    copy(self, pattern="*.dll", src=src_build, dst=dst_bin, keep_path=False)
+    copy(self, pattern="*.dylib", src=src_build, dst=dst_lib, keep_path=False)
+
+    cmake = CMake(self)
+    cmake.configure()
+    cmake.install()
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def package_info(self):
+    """
+    Mix-in implementation of ConanFile.package_info.
+
+    Configures the package to include system library 'libdl.so' on Linux.
+
+    If the passed ConanFile object (self) has a `_get_cxx_flags()` method,
+    then that method is invoked to obtain a list of C++ compiler flag args
+    to set when linking against the package.
+
+    Detects whether the package is header-only by checking (in this order):
+      - self.options.header_only (bool)
+      - self.info.options.header_only (bool)
+      - self._is_header_only (bool)
+
+    Iff the package _is not_ header-only, configures link options for the
+    exported library (of the same name as the project: self.name).
+    """
+    if hasattr(self, "_get_cxx_flags"):
+        self.cpp_info.cxxflags = list(self._get_cxx_flags())
+
+    if platform.system() == 'Linux':
+        self.cpp_info.system_libs = ["dl"]
+
+    if not is_header_only_project(self):
+        self.cpp_info.libs = [self.name]
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def package_id(self):
+    """
+    Mix-in implementation of ConanFile.package_id.
+
+    Configures the package_id (used for binary compatibility) according to
+    whether or not the package is declared as header-only.
+
+    Detects whether the package is header-only by checking (in this order):
+      - self.options.header_only (bool)
+      - self.info.options.header_only (bool)
+      - self._is_header_only (bool)
+    """
+    if is_header_only_project(self):
+        self.info.clear()
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def run_like_main(fn):
+    try:
+        print(fn())
+    except RuntimeError as ex:
+        print(str(ex), file=sys.stderr)
+        sys.exit(1)
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
 def generate_conan_find_requirements(self):
     """
     Generates file 'conan_find_requirements.cmake' in the build directory,
@@ -244,24 +470,28 @@ def generate_conan_find_requirements(self):
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
 def conanfile_requirements(self, deps, override_deps=[], platform_deps={}):
+    """
+    Calls self.requires for each of the given dependencies.
+
+    If a dependency name appears in _both_ of deps and override_deps, then
+    it is included as though it were just in deps, but with the additional
+    keyword arg `override=True`.
+    """
     if platform.system() in platform_deps:
         deps += platform_deps[platform.system()]
+
+    deps = set(deps)
+    override_deps = set(override_deps)
 
     for dep_name in deps:
         self.requires(dep_name,
                       visible=True,
                       transitive_headers=True,
                       transitive_libs=True,
-                      force=True)
+                      force=True,
+                      override=(dep_name in override_deps))
 
     for override_name in override_deps:
-        self.requires(override_name,
-                      override=True)
-
-
-def run_like_main(fn):
-    try:
-        print(fn())
-    except RuntimeError as ex:
-        print(str(ex), file=sys.stderr)
-        sys.exit(1)
+        if override_name not in deps:
+            self.requires(override_name,
+                          override=True)
