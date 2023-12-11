@@ -329,14 +329,13 @@ def default_cmake_build(self):
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
-def default_cmake_lib_package(self):
+def default_conan_lib_package(self):
     """
     Mix-in implementation of ConanFile.package.
 
     Copies license files, header files, and all known library types
-    (.a, .so, .lib, .dll, and .dylib).  Also does cmake install.
+    (.a, .so, .lib, .dll, and .dylib).
     """
-    from conan.tools.cmake import CMake
     from conan.tools.files import copy
 
     src_build = self.build_folder
@@ -357,6 +356,20 @@ def default_cmake_lib_package(self):
     #----- --- -- -  -  -   -
     copy(self, pattern="*.dll", src=src_build, dst=dst_bin, keep_path=False)
     copy(self, pattern="*.dylib", src=src_build, dst=dst_lib, keep_path=False)
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def default_cmake_lib_package(self):
+    """
+    Mix-in implementation of ConanFile.package.
+
+    Copies license files, header files, and all known library types
+    (.a, .so, .lib, .dll, and .dylib).  Also does cmake install.
+    """
+    from conan.tools.cmake import CMake
+
+    default_conan_lib_package(self)
 
     cmake = CMake(self)
     cmake.configure()
