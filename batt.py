@@ -186,6 +186,15 @@ def get_version(no_check_conan = (os.getenv('NO_CHECK_CONAN') == '1')):
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
 def is_header_only_project(project):
+    """
+    Detects whether the package is header-only by checking (in this order):
+      - self.options.header_only (bool)
+      - self.info.options.header_only (bool)
+      - self._is_header_only (bool)
+
+    Returns True iff any of these checks indicates `self` is a header-only
+    package.
+    """
     options_header_only = False
     try:
         options_header_only = (
@@ -229,6 +238,20 @@ VISIBLE={
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
+def default_init_cmake(self):
+    """
+    Initializes, configures, and returns a CMake object.
+    """
+    from conan.tools.cmake import CMake
+    cmake = CMake(self)
+    cmake.verbose = VERBOSE
+
+    cmake.configure()
+    return cmake
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
 def set_version_from_git_tags(self):
     """
     Mix-in implementation of ConanFile.set_version.
@@ -237,6 +260,22 @@ def set_version_from_git_tags(self):
     """
     self.version = get_version(no_check_conan=True)
     verbose(f'VERSION={self.version}')
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def default_config_options(self):
+    if self.settings.os == "Windows":
+        del self.options.fPIC
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def default_imports(self):
+    from conan.tools.files import copy
+    copy(self, "*.dll", dst="bin", src="bin") # From bin to bin
+    copy(self, "*.dylib*", dst="bin", src="lib") # From lib to bin
+    default_config_options(self)
 
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -320,10 +359,7 @@ def default_cmake_build(self):
 
     Uses CMake to configure and build the package.
     """
-    from conan.tools.cmake import CMake
-    cmake = CMake(self)
-    cmake.verbose = VERBOSE
-    cmake.configure()
+    cmake = default_init_cmake(self)
     cmake.build()
 
 
@@ -371,8 +407,7 @@ def default_cmake_lib_package(self):
 
     default_conan_lib_package(self)
 
-    cmake = CMake(self)
-    cmake.configure()
+    cmake = default_init_cmake(self)
     cmake.install()
 
 
@@ -398,6 +433,10 @@ def default_lib_package_info(self):
     """
     if hasattr(self, "_get_cxx_flags"):
         self.cpp_info.cxxflags = list(self._get_cxx_flags())
+    else:
+        self.cpp_info.cxxflags = ["-std=c++17", "-D_GNU_SOURCE", "-D_BITS_UIO_EXT_H=1"]
+
+    self.cpp_info.names["pkg_config"] = self.name
 
     if platform.system() == 'Linux':
         self.cpp_info.system_libs = ["dl"]
