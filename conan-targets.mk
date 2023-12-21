@@ -45,22 +45,30 @@ else
 endif
 #----- --- -- -  -  -   -
 
+#----- --- -- -  -  -   -
+# By default, set BATT_BUILD_TESTS to 1.
+#
+ifeq ($(BATT_BUILD_TESTS),)
+  CONAN_ENV := $(CONAN_ENV) BATT_BUILD_TESTS=1
+endif
+#----- --- -- -  -  -   -
+
 CONAN_CONFIG_FLAGS := $(shell BUILD_TYPE=$(BUILD_TYPE) "$(SCRIPT_DIR)/conan-config-flags.sh")
 
 $(info CONAN_CONFIG_FLAGS is $(CONAN_CONFIG_FLAGS))
 
 ifeq ($(CONAN_VERSION),2)
-  CONAN_INSTALL    := conan install    $(CONAN_CONFIG_FLAGS) --build=missing $(OPTIONS)
-  CONAN_BUILD      := conan build      $(CONAN_CONFIG_FLAGS) $(OPTIONS)
-  CONAN_EXPORT_PKG := conan export-pkg $(CONAN_CONFIG_FLAGS) $(OPTIONS)
-  CONAN_CREATE     := conan create     $(CONAN_CONFIG_FLAGS) $(OPTIONS)
-  CONAN_REMOVE     := conan remove --confirm
+  CONAN_INSTALL    := $(CONAN_ENV) conan install    $(CONAN_CONFIG_FLAGS) --build=missing $(OPTIONS)
+  CONAN_BUILD      := $(CONAN_ENV) conan build      $(CONAN_CONFIG_FLAGS) $(OPTIONS)
+  CONAN_EXPORT_PKG := $(CONAN_ENV) conan export-pkg $(CONAN_CONFIG_FLAGS) $(OPTIONS)
+  CONAN_CREATE     := $(CONAN_ENV) conan create     $(CONAN_CONFIG_FLAGS) $(OPTIONS)
+  CONAN_REMOVE     := $(CONAN_ENV) conan remove --confirm
 else
-  CONAN_INSTALL    := conan install    $(CONAN_CONFIG_FLAGS) --build=missing
-  CONAN_BUILD      := conan build --install-folder "$(BUILD_DIR)"
-  CONAN_EXPORT_PKG := conan export-pkg $(CONAN_CONFIG_FLAGS)
-  CONAN_CREATE     := conan create     $(CONAN_CONFIG_FLAGS)
-  CONAN_REMOVE     := conan remove -f
+  CONAN_INSTALL    := $(CONAN_ENV) conan install    $(CONAN_CONFIG_FLAGS) --build=missing
+  CONAN_BUILD      := $(CONAN_ENV) conan build --install-folder "$(BUILD_DIR)"
+  CONAN_EXPORT_PKG := $(CONAN_ENV) conan export-pkg $(CONAN_CONFIG_FLAGS)
+  CONAN_CREATE     := $(CONAN_ENV) conan create     $(CONAN_CONFIG_FLAGS)
+  CONAN_REMOVE     := $(CONAN_ENV) conan remove -f
 endif
 
 #----- --- -- -  -  -   -
