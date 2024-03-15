@@ -22,14 +22,12 @@ fi
 
 real_pwd=$(realpath $(pwd))
 
-conan_version="$(docker run ${docker_image} conan --version | sed -E 's,.*[^0-9]([0-9]+\.[0-9]+\.[0-9]+).*,\1,g')"
+conan_version="$(docker run --user $(id -u):$(id -g) --env CONAN_HOME=/tmp/.conan2 --env CONAN_USER_HOME=/tmp ${docker_image} conan --version | sed -E 's,.*[^0-9]([0-9]+\.[0-9]+\.[0-9]+).*,\1,g')"
 conan2_dir="${HOME}/.conan_${conan_version}"
 
-mkdir -p "${HOME}/.conan"
-mkdir -p "${HOME}/.conan2"
+mkdir -p "${conan2_dir}"
 
-DOCKER_ENV=$(env | { grep -Ei 'release|conan' || true ; } | xargs -I {} echo '--env' {})
-
+DOCKER_ENV=$(env | { grep -Ei 'release' || true ; } | xargs -I {} echo '--env' {})
 
 # Run the passed arguments as a shell command in a fresh docker
 # container based on our CI image.
