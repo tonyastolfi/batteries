@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2022-2023 Anthony Paul Astolfi
+# Copyright (C) 2022-2024 Anthony Paul Astolfi
 #
 set -Eeuo pipefail
 if [ "${DEBUG:-}" == "1" ]; then
@@ -22,6 +22,9 @@ fi
 
 real_pwd=$(realpath $(pwd))
 
+conan_version="$(docker run ${docker_image} conan --version | sed -E 's,.*[^0-9]([0-9]+\.[0-9]+\.[0-9]+).*,\1,g')"
+conan2_dir="${HOME}/.conan_${conan_version}"
+
 mkdir -p "${HOME}/.conan"
 mkdir -p "${HOME}/.conan2"
 
@@ -42,10 +45,9 @@ docker run ${DOCKER_FLAGS_INTERACTIVE} \
        -v "$(pwd)":"$(pwd)" \
        -v "$real_pwd":"$real_pwd" \
        -v "$HOME/.cache":"$HOME/.cache" \
-       -v "$HOME/.conan":"$HOME/.conan" \
-       -v "$HOME/.conan2":"$HOME/.conan2" \
+       -v "${conan2_dir}":"${conan2_dir}" \
        -w "$(pwd)" \
        ${DOCKER_ENV} \
        ${EXTRA_DOCKER_FLAGS:-} \
        ${docker_image} \
-       bash -c "export CONAN_USER_HOME=${HOME} && export CONAN_HOME=${HOME}/.conan2 && { test -f ${project_dir}/_batt-docker-profile && source ${project_dir}/_batt-docker-profile || true; } && $*"
+       bash -c "export CONAN_USER_HOME=${HOME} && export CONAN_HOME=${conan2_dir} && { test -f ${project_dir}/_batt-docker-profile && source ${project_dir}/_batt-docker-profile || true; } && $*"
