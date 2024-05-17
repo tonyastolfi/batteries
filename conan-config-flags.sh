@@ -15,3 +15,7 @@ source "${script_dir}/common.sh"
 conan_profile=$(test -f '/etc/conan_profile.default' && echo '/etc/conan_profile.default' || echo 'default')
 
 echo -n "--profile \"${conan_profile}\" -s build_type=${BUILD_TYPE:-Release}"
+
+if [ -f "${project_dir}/conan.lock" ]; then
+    echo -n " --lockfile=\"${project_dir}/conan.lock\""
+fi
