@@ -17,5 +17,5 @@ conan_profile=$(test -f '/etc/conan_profile.default' && echo '/etc/conan_profile
 echo -n "--profile \"${conan_profile}\" -s build_type=${BUILD_TYPE:-Release}"
 
 if [ -f "${project_dir}/conan.lock" ]; then
-    echo -n " --lockfile=\"${project_dir}/conan.lock\""
+    echo -n " --lockfile=\"${project_dir}/conan.lock\" --lockfile-partial"
 fi
