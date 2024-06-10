@@ -29,19 +29,37 @@ if [ "${DEBUG:-}" == "1" ]; then
 fi
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
+source "${script_dir}/common.sh"
+
+supported_platforms_file="${project_dir}/supported_platforms.json"
+lock_file="${project_dir}/conan.lock"
+tmp_lock_file="${project_dir}/tmp.conan.lock"
+
+# Clean up any old left-over tmp lockfiles.
+#
+rm -f "${tmp_lock_file}"
+
+# If CLEAN=1 env var is set, then remove existing lockfile first.
+#
+if [ "${CLEAN}" == "1" ]; then
+    rm -f "${lock_file}"
+fi
 
 source "${script_dir}/common.sh"
-if [ -f "${project_dir}/supported_platforms.json" ]; then
-    cat supported_platforms.json \
+if [ -f "${supported_platforms_file}" ]; then
+
+    # Enumerate the contents of 'supported_platforms.json'
+    #
+    cat "${supported_platforms_file}" \
         | jq -r '.[]|to_entries|map("-s " + .key + "=" + .value)|join(" ")' \
-        | xargs -t -L 1 "${script_dir}/conan-lock-merge.sh"
+        | xargs -L 1 "${script_dir}/conan-lock-merge.sh"
 
-    cat "${project_dir}/conan.lock" \
+    cat "${lock_file}" \
         | jq '.requires|=sort | .build_requires|=sort | .python_requires|=sort | .config_requires |=sort' \
-             > "${project_dir}/tmp.conan.lock"
+             > "${tmp_lock_file}"
 
-    mv -f "${project_dir}/tmp.conan.lock" "${project_dir}/conan.lock"
+    mv -f "${tmp_lock_file}" "${lock_file}"
 else
-    echo "Error: project missing file 'supported_platforms.json'" >2
+    echo "Error: project missing file '${supported_platforms_file}'" >2
     exit 1
 fi
