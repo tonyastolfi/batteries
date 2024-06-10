@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2023 Anthony Paul Astolfi
+# Copyright 2023-2024 Anthony Paul Astolfi
 #
 set -Eeuo pipefail
 if [ "${DEBUG:-}" == "1" ]; then
@@ -15,4 +15,4 @@ if [ "${FORCE:-}" == "1" ]; then
 fi
 
 cd "${script_dir}"
-git remote | xargs -n 1 -I {} git push ${extra_args} {} script
+git remote | xargs -n 1 -I {} git push ${extra_args} {} HEAD:script
