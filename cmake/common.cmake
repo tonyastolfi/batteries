@@ -45,8 +45,11 @@ macro (batt_add_library name)
 
   add_library(${name} ${${name}_Sources})
 
-  if (NOT "$ENV{${name}_BUILD_TESTS}" STREQUAL "0")
+  if (NOT ("$ENV{${name}_BUILD_TESTS}" STREQUAL "0") AND
+      NOT ("${${name}_TestSources}" STREQUAL ""))
+    
     add_executable(${name}_Test ${${name}_TestSources})
+    
   endif ()
   
 endmacro ()
