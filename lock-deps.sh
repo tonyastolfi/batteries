@@ -41,7 +41,7 @@ rm -f "${tmp_lock_file}"
 
 # If CLEAN=1 env var is set, then remove existing lockfile first.
 #
-if [ "${CLEAN}" == "1" ]; then
+if [ "${CLEAN:-0}" == "1" ]; then
     rm -f "${lock_file}"
 fi
 
