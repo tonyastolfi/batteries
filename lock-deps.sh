@@ -60,6 +60,6 @@ if [ -f "${supported_platforms_file}" ]; then
 
     mv -f "${tmp_lock_file}" "${lock_file}"
 else
-    echo "Error: project missing file '${supported_platforms_file}'" >2
+    echo "Error: project missing file '${supported_platforms_file}'" >&2
     exit 1
 fi
