@@ -29,26 +29,50 @@ endif ()
 
 macro (batt_add_library name)
 
-  file(GLOB_RECURSE ${name}_TestSources
-    LIST_DIRECTORIES false
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.test.cpp
-    )
-  
+  #+++++++++++-+-+--+----- --- -- -  -  -   -
+  # Find source files.
+  #
   file(GLOB_RECURSE ${name}_Sources
     LIST_DIRECTORIES false
     ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
     )
 
+  #+++++++++++-+-+--+----- --- -- -  -  -   -
+  # Find test source files and remove them from the sources list.
+  #
+  file(GLOB_RECURSE ${name}_TestSources
+    LIST_DIRECTORIES false
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.test.cpp
+    )
+    
   foreach (_file "FORCE_LIST_NOT_EMPTY;${${name}_TestSources}")
     list(REMOVE_ITEM ${name}_Sources ${_file})
   endforeach ()
 
-  add_library(${name} ${${name}_Sources})
+  #+++++++++++-+-+--+----- --- -- -  -  -   -
+  # Handle header-only library case.
+  #
+  if ("${${name}_Sources}" STREQUAL "")
+    set(${name}_HeaderOnly TRUE)
+  else ()
+    set(${name}_HeaderOnly FALSE)
+  endif ()
 
+  if (${${name}_HeaderOnly})
+    add_library(${name} ${${name}_Sources})
+  else()
+    add_library(${name} INTERFACE)
+  endif()
+
+  #+++++++++++-+-+--+----- --- -- -  -  -   -
+  # Add unit test executable.
+  #
   if (NOT ("$ENV{${name}_BUILD_TESTS}" STREQUAL "0") AND
       NOT ("${${name}_TestSources}" STREQUAL ""))
     
     add_executable(${name}_Test ${${name}_TestSources})
+
+    target_link_libraries(${name}_Test PRIVATE ${name})
     
   endif ()
   
