@@ -44,7 +44,7 @@ macro (batt_add_library name)
     LIST_DIRECTORIES false
     ${CMAKE_CURRENT_SOURCE_DIR}/*.test.cpp
     )
-    
+
   foreach (_file "FORCE_LIST_NOT_EMPTY;${${name}_TestSources}")
     list(REMOVE_ITEM ${name}_Sources ${_file})
   endforeach ()
@@ -58,10 +58,10 @@ macro (batt_add_library name)
     set(${name}_HeaderOnly FALSE)
   endif ()
 
-  if (${${name}_HeaderOnly})
-    add_library(${name} ${${name}_Sources})
-  else()
+  if (${name}_HeaderOnly)
     add_library(${name} INTERFACE)
+  else()
+    add_library(${name} ${${name}_Sources})
   endif()
 
   #+++++++++++-+-+--+----- --- -- -  -  -   -
@@ -69,11 +69,11 @@ macro (batt_add_library name)
   #
   if (NOT ("$ENV{${name}_BUILD_TESTS}" STREQUAL "0") AND
       NOT ("${${name}_TestSources}" STREQUAL ""))
-    
+
     add_executable(${name}_Test ${${name}_TestSources})
 
     target_link_libraries(${name}_Test PRIVATE ${name})
-    
+
   endif ()
-  
+
 endmacro ()
