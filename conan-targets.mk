@@ -1,6 +1,6 @@
 ##=##=##=#==#=#==#===#+==#+==========+==+=+=+=+=+=++=+++=+++++=-++++=-+++++++++++
 #
-# Copyright 2023, Anthony Paul Astolfi
+# Copyright 2023-2024, Anthony Paul Astolfi
 #
 #+++++++++++-+-+--+----- --- -- -  -  -   -
 
@@ -21,10 +21,12 @@
 CONAN_VERSION := $(shell conan --version | sed -E 's,[Cc]onan version 2(\.[0-9]+)*,2,g' || echo '1')
 $(info conan-targets.mk: Detected Conan Version==$(CONAN_VERSION))
 
+#----- --- -- -  -  -   -
 ifeq ($(BUILD_TYPE),)
 export BUILD_TYPE := RelWithDebInfo
 endif
 
+#----- --- -- -  -  -   -
 BUILD_DIR := $(PROJECT_DIR)/build/$(BUILD_TYPE)
 ifeq ($(CONAN_VERSION),2)
   BUILD_BIN_DIR := $(BUILD_DIR)
@@ -35,13 +37,25 @@ else
 endif
 
 #----- --- -- -  -  -   -
-# Force some requirements to build from source to workaround
-# OS-specific bugs.
-#
-BUILD_FROM_SRC :=
+CONAN_CONFIG_FLAGS := $(shell BUILD_TYPE=$(BUILD_TYPE) "$(SCRIPT_DIR)/conan-config-flags.sh")
+
+$(info CONAN_CONFIG_FLAGS is $(CONAN_CONFIG_FLAGS))
+
+#----- --- -- -  -  -   -
+CONAN_HOME_DIR := $(shell $(CONAN_ENV) conan config home)
+EXTERNAL_FILE_LOCK := "$(dir "$(CONAN_HOME_DIR)")/_batt_conan_lock"
+
+#----- --- -- -  -  -   -
 ifeq ($(OS),Windows_NT)
+  MUTEX :=
 else
   UNAME_S := $(shell uname -s)
+  ifeq ($(UNAME_S),Linux)
+    MUTEX := flock $(EXTERNAL_FILE_LOCK) --exclusive --timeout 500
+  endif
+  ifeq ($(UNAME_S),Darwin)
+    MUTEX :=
+  endif
 endif
 #----- --- -- -  -  -   -
 
@@ -53,23 +67,11 @@ ifeq ($(BATT_BUILD_TESTS),)
 endif
 #----- --- -- -  -  -   -
 
-CONAN_CONFIG_FLAGS := $(shell BUILD_TYPE=$(BUILD_TYPE) "$(SCRIPT_DIR)/conan-config-flags.sh")
-
-$(info CONAN_CONFIG_FLAGS is $(CONAN_CONFIG_FLAGS))
-
-ifeq ($(CONAN_VERSION),2)
-  CONAN_INSTALL    := $(CONAN_ENV) conan install    $(CONAN_CONFIG_FLAGS) --build=missing $(OPTIONS)
-  CONAN_BUILD      := $(CONAN_ENV) conan build      $(CONAN_CONFIG_FLAGS) $(OPTIONS)
-  CONAN_EXPORT_PKG := $(CONAN_ENV) conan export-pkg $(CONAN_CONFIG_FLAGS) $(OPTIONS)
-  CONAN_CREATE     := $(CONAN_ENV) conan create     $(CONAN_CONFIG_FLAGS) $(OPTIONS)
-  CONAN_REMOVE     := $(CONAN_ENV) conan remove --confirm
-else
-  CONAN_INSTALL    := $(CONAN_ENV) conan install    $(CONAN_CONFIG_FLAGS) --build=missing
-  CONAN_BUILD      := $(CONAN_ENV) conan build --install-folder "$(BUILD_DIR)"
-  CONAN_EXPORT_PKG := $(CONAN_ENV) conan export-pkg $(CONAN_CONFIG_FLAGS)
-  CONAN_CREATE     := $(CONAN_ENV) conan create     $(CONAN_CONFIG_FLAGS)
-  CONAN_REMOVE     := $(CONAN_ENV) conan remove -f
-endif
+CONAN_INSTALL    := $(CONAN_ENV) $(MUTEX) conan install    $(CONAN_CONFIG_FLAGS) --build=missing $(OPTIONS)
+CONAN_BUILD      := $(CONAN_ENV)          conan build      $(CONAN_CONFIG_FLAGS) $(OPTIONS)
+CONAN_EXPORT_PKG := $(CONAN_ENV)          conan export-pkg $(CONAN_CONFIG_FLAGS) $(OPTIONS)
+CONAN_CREATE     := $(CONAN_ENV)          conan create     $(CONAN_CONFIG_FLAGS) $(OPTIONS)
+CONAN_REMOVE     := $(CONAN_ENV)          conan remove --confirm
 
 #----- --- -- -  -  -   -
 export NO_COLOR=1
