@@ -4,8 +4,11 @@
 #
 set -Eeuo pipefail
 
-conan list --cache --format compact '*:*' 2>/dev/null \
+set -x
+
+conan list --cache --format compact '*:*' \
     | grep -E '/.*#[0-9a-f]+:[0-9a-f]+' \
     | grep -v 'requires:' \
     | sed -E 's,$ +,,g' \
-    | sort
+    | sort \
+    || true
