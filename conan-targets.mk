@@ -43,7 +43,7 @@ $(info CONAN_CONFIG_FLAGS is $(CONAN_CONFIG_FLAGS))
 
 #----- --- -- -  -  -   -
 CONAN_HOME_DIR := $(shell $(CONAN_ENV) conan config home)
-EXTERNAL_FILE_LOCK := "$(dir "$(CONAN_HOME_DIR)")/_batt_conan_lock"
+EXTERNAL_FILE_LOCK := $(dir $(CONAN_HOME_DIR))/_batt_conan_lock
 
 #----- --- -- -  -  -   -
 ifeq ($(OS),Windows_NT)
@@ -51,7 +51,7 @@ ifeq ($(OS),Windows_NT)
 else
   UNAME_S := $(shell uname -s)
   ifeq ($(UNAME_S),Linux)
-    MUTEX := flock $(EXTERNAL_FILE_LOCK) --exclusive --timeout 500
+    MUTEX := flock "$(EXTERNAL_FILE_LOCK)" --exclusive --timeout 500
   endif
   ifeq ($(UNAME_S),Darwin)
     MUTEX :=
