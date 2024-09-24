@@ -2,6 +2,8 @@
 #
 set -Eeuo pipefail
 
+set -x
+
 script_dir=$(cd $(dirname $0) && pwd)
 source "${script_dir}/common.sh"
 
