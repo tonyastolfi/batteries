@@ -43,7 +43,7 @@ $(info CONAN_CONFIG_FLAGS is $(CONAN_CONFIG_FLAGS))
 
 #----- --- -- -  -  -   -
 CONAN_HOME_DIR := $(shell $(CONAN_ENV) conan config home)
-EXTERNAL_FILE_LOCK := $(dir $(CONAN_HOME_DIR))/_batt_conan_lock
+EXTERNAL_FILE_LOCK := $(dir $(CONAN_HOME_DIR))_batt_conan_lock
 
 #----- --- -- -  -  -   -
 ifeq ($(OS),Windows_NT)
