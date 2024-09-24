@@ -51,7 +51,7 @@ ifeq ($(OS),Windows_NT)
 else
   UNAME_S := $(shell uname -s)
   ifeq ($(UNAME_S),Linux)
-    MUTEX := flock "$(EXTERNAL_FILE_LOCK)" --exclusive --timeout 500
+    MUTEX := flock --exclusive --timeout 500 "$(EXTERNAL_FILE_LOCK)"
   endif
   ifeq ($(UNAME_S),Darwin)
     MUTEX :=
