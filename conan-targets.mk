@@ -18,6 +18,10 @@
 #
 #----- --- -- -  -  -   -
 
+ifeq ($(SCRIPT_DIR),)
+  SCRIPT_DIR := $(TOOLS_DIR)
+endif
+
 CONAN_VERSION := $(shell conan --version | sed -E 's,[Cc]onan version 2(\.[0-9]+)*,2,g' || echo '1')
 $(info conan-targets.mk: Detected Conan Version==$(CONAN_VERSION))
 
@@ -27,7 +31,7 @@ export BUILD_TYPE := RelWithDebInfo
 endif
 
 #----- --- -- -  -  -   -
-BUILD_DIR := $(PROJECT_DIR)/build/$(BUILD_TYPE)
+export BUILD_DIR := $(PROJECT_DIR)/build/$(BUILD_TYPE)
 ifeq ($(CONAN_VERSION),2)
   BUILD_BIN_DIR := $(BUILD_DIR)
   BUILD_LIB_DIR := $(BUILD_DIR)
@@ -97,6 +101,11 @@ install: setup-conan
 build: setup-conan
 	(cd "$(BUILD_DIR)" && $(CONAN_BUILD) "$(PROJECT_DIR)")
 	"$(SCRIPT_DIR)/generate-vscode-config.sh"
+
+#----- --- -- -  -  -   -
+.PHONY: test
+test:
+	$(SCRIPT_DIR)/run-tests.sh
 
 #----- --- -- -  -  -   -
 .PHONY: export-pkg

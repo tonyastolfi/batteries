@@ -8,7 +8,7 @@ source "${script_dir}/common.sh"
 require_env_var BUILD_TYPE
 require_env_var project_dir
 
-build_dir="${project_dir}/build/${BUILD_TYPE}"
+build_dir="${BUILD_DIR:-${project_dir}/build/${BUILD_TYPE}}"
 
 mkdir -p "${build_dir}"
 cd "${build_dir}"
