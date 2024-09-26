@@ -8,6 +8,19 @@ if [ "${DEBUG:-}" == "1" ]; then
 fi
 
 script_dir=$(cd $(dirname $0) && pwd)
+script_name=$(basename $0)
+
+# Use the name of the current script to figure out if the submodule is
+# `script` or `tools`.
+#
+if [ "${script_name}" == "upgrade-script.sh" ]; then
+    submodule_relpath=script
+elif [ "${script_name}" == "upgrade-tools.sh" ]; then
+    submodule_relpath=tools
+else
+    echo "Could not figure out what this script is! ${script_name}" >&2
+    exit 1
+fi
 
 # The first arg is the project directory; if not specified, try to
 # find the git top-level directory.
@@ -29,10 +42,10 @@ echo
 
 # Calculate whether we are up to date.
 #
-old_commit=$(git submodule status | grep 'script' | awk '{print $1}' | sed -E 's,[^0-9a-fA-F],,g')
+old_commit=$(git submodule status | grep "${submodule_relpath}" | awk '{print $1}' | sed -E 's,[^0-9a-fA-F],,g')
 
-echo "------ Fetching remote branches for submodule 'script'..."
-cd "${project_dir}/script"
+echo "------ Fetching remote branches for submodule '${submodule_relpath}'..."
+cd "${project_dir}/${submodule_relpath}"
 git fetch origin
 
 current_commit=$(find_git_hash HEAD)
@@ -65,7 +78,7 @@ if [ "${DRY_RUN:-0}" == "1" ]; then
 else
     echo "------ Running git submodule update..."
     git submodule update --remote
-    new_commit=$(git submodule status | grep 'script' | awk '{print $1}' | sed -E 's,[^0-9a-fA-F],,g')
+    new_commit=$(git submodule status | grep "${submodule_relpath}" | awk '{print $1}' | sed -E 's,[^0-9a-fA-F],,g')
     echo "OK"
     echo
 
@@ -98,12 +111,12 @@ else
         echo "(Already up-to-date)"
     else
         if [ "${project_is_dirty}" == "0" ]; then
-            git add script
-            git commit -m "Upgrade script submodule to '${latest_commit}' (performed by upgrade-script.sh)."
+            git add ${submodule_relpath}
+            git commit -m "Upgrade ${submodule_relpath} submodule to '${latest_commit}' (performed by upgrade-script.sh)."
         else
             echo "Warning: not committing submodule change; working tree is dirty"
         fi
-        echo "Successfully upgraded script submodule to latest version."
+        echo "Successfully upgraded ${submodule_relpath} submodule to latest version."
     fi
 fi
 echo "OK"
