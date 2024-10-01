@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2022 Anthony Paul Astolfi
+# Copyright 2022-2024 Anthony Paul Astolfi
 #
 # script/conan-login.sh - Log in to Conan Package Repo.
 #

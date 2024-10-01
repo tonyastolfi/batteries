@@ -12,7 +12,7 @@ build_dir="${BUILD_DIR:-${project_dir}/build/${BUILD_TYPE}}"
 
 mkdir -p "${build_dir}"
 cd "${build_dir}"
-build_dir="$(realpath)"
+build_dir="$(realpath .)"
 
 function run_test() {
     test_exe="$1"
@@ -30,7 +30,14 @@ function run_test() {
     
 }
 
-for name in $(find "${project_dir}/build/${BUILD_TYPE}" -type f -perm +0111 -name '*Test');
+os_name=$(uname -s)
+if [ "${os_name}" == "Darwin" ]; then
+    with_execute_permission="-perm +0111"
+else
+    with_execute_permission="-perm /111"
+fi
+
+for name in $(find "${project_dir}/build/${BUILD_TYPE}" -type f ${with_execute_permission} -name '*Test');
 do
     run_test "${name}"
 done

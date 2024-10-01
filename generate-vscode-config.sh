@@ -56,7 +56,7 @@ fi
 
 os_name=$(uname -s)
 if [ "${os_name}" == "Darwin" ]; then
-    with_execute_permission="-perm -0111"
+    with_execute_permission="-perm +0111"
 else
     with_execute_permission="-perm /111"
 fi
