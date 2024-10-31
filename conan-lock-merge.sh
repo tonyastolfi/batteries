@@ -38,19 +38,23 @@ fi
 
 # Create lock file and do the merge, sending output to the log file.
 #
-(
-    conan lock create "${project_dir}" ${conan_lock_create_flags} \
-          --lockfile="" \
-          --lockfile-out='tmp.conan.lock' \
-          ${settings}
+{
+    (
+        conan lock create ${conan_lock_create_flags} \
+              --build=missing \
+              --lockfile="" \
+              --lockfile-out='tmp.conan.lock' \
+              ${settings} \
+              "${project_dir}"
 
-    if [ -e "${project_dir}/conan.lock" ]; then
-        conan lock merge \
-              --lockfile="${project_dir}/conan.lock" \
-              --lockfile='tmp.conan.lock' \
+        if [ -e "${project_dir}/conan.lock" ]; then
+            conan lock merge \
+                  --lockfile="${project_dir}/conan.lock" \
+                  --lockfile='tmp.conan.lock' \
               --lockfile-out="${project_dir}/conan.lock"
-        rm 'tmp.conan.lock'
-    else
-        mv 'tmp.conan.lock' "${project_dir}/conan.lock"
-    fi
-) 2>&1 | cat >>"${log_file}"
+            rm 'tmp.conan.lock'
+        else
+            mv 'tmp.conan.lock' "${project_dir}/conan.lock"
+        fi
+    ) 2>&1 | cat >>"${log_file}"
+} || cat >&2 "${log_file}"

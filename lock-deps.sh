@@ -31,6 +31,7 @@ fi
 tools_dir="$(cd "$(dirname "$0")" && realpath .)"
 source "${tools_dir}/common.sh"
 
+build_dir="${project_dir}/build"
 supported_platforms_file="${project_dir}/supported_platforms.json"
 lock_file="${project_dir}/conan.lock"
 tmp_lock_file="${project_dir}/tmp.conan.lock"
