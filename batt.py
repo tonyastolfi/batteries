@@ -506,7 +506,7 @@ def generate_conan_find_requirements(self):
 
         # (override==True implies direct==False, but does not set it explicitly)
         #
-        if CONAN_VERSION_2 and (not requirement.direct or requirement.override):
+        if CONAN_VERSION_2 and not (requirement.direct or requirement.override):
             print("... skipping direct=False requirement")
             continue
 
