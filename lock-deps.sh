@@ -28,8 +28,8 @@ if [ "${DEBUG:-}" == "1" ]; then
     set -x
 fi
 
-script_dir="$(cd "$(dirname "$0")" && pwd)"
-source "${script_dir}/common.sh"
+tools_dir="$(cd "$(dirname "$0")" && realpath .)"
+source "${tools_dir}/common.sh"
 
 supported_platforms_file="${project_dir}/supported_platforms.json"
 lock_file="${project_dir}/conan.lock"
@@ -45,19 +45,23 @@ if [ "${CLEAN:-0}" == "1" ]; then
     rm -f "${lock_file}"
 fi
 
-source "${script_dir}/common.sh"
 if [ -f "${supported_platforms_file}" ]; then
 
     # Enumerate the contents of 'supported_platforms.json'
     #
     cat "${supported_platforms_file}" \
-        | jq -r '.[]|to_entries|map("-s " + .key + "=" + .value)|join(" ")' \
-        | xargs -L 1 "${script_dir}/conan-lock-merge.sh"
+        | jq -r '.[] | to_entries | map("-s " + .key + "=" + .value) | join(" ")' \
+        | xargs -L 1 "${tools_dir}/conan-lock-merge.sh"
 
-    cat "${lock_file}" \
-        | jq '.requires|=sort | .build_requires|=sort | .python_requires|=sort | .config_requires |=sort' \
-             > "${tmp_lock_file}"
+    filter=$(echo "$(cat <<EOF
+      .requires        |= if type == "array" then sort else [] end |
+      .build_requires  |= if type == "array" then sort else [] end |
+      .python_requires |= if type == "array" then sort else [] end |
+      .config_requires |= if type == "array" then sort else [] end
+EOF
+    )")
 
+    cat "${lock_file}" | jq "${filter}" > "${tmp_lock_file}"
     mv -f "${tmp_lock_file}" "${lock_file}"
 else
     echo "Error: project missing file '${supported_platforms_file}'" >&2
