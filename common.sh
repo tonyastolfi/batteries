@@ -1,9 +1,9 @@
 ######=###=##=#=#=#=#=#==#==#====#+==#+==============+==+==+==+=+==+=+=+=+=+=+=+
-# Copyright 2022-2023 Anthony Paul Astolfi
+# Copyright 2022-2024 Anthony Paul Astolfi
 #
 # script/common.sh - Common Bash Script code.
 #
-if [ "$script_dir" == "" ]; then
+if [ "${script_dir:-${tools_dir}}" == "" ]; then
     echo $(cat <<EOF
            Set script_dir before including this script!
            (example: 'script_dir=\$(cd \$(dirname \$0) && pwd)')
