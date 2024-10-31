@@ -12,6 +12,8 @@ EOF
     return 1
 fi
 
+script_dir=${script_dir:-${tools_dir}}
+
 # Determine the project root directory.  First attempt to find the
 # local git top-level dir relative to the parent directory of this
 # file; if this fails, then use the parent of the script dir.
