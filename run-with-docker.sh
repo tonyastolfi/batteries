@@ -3,49 +3,85 @@
 # Copyright (C) 2022-2024 Anthony Paul Astolfi
 #
 set -Eeuo pipefail
-if [ "${DEBUG:-}" == "1" ]; then
+if [ "${DEBUG:-0}" == "1" ]; then
     set -x
 fi
 
-script_dir=$(cd "$(dirname "$0")" && pwd)
-source "${script_dir}/common.sh"
+tools_dir="$(cd "$(dirname "$0")" && realpath .)"
+source "${tools_dir}/common.sh"
 
-docker_image=${BATT_DOCKER_IMAGE:-$("${script_dir}/ci-docker-image.sh")}
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+# Calculate the Docker image to use.
+#
+docker_image=$("${tools_dir}/docker-user-image.sh")
 
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 # Figure out if the current shell is a TTY.
 #
 if [ -t 0 ]; then
-    DOCKER_FLAGS_INTERACTIVE=-it
+    docker_flags_interactive=-it
 else
-    DOCKER_FLAGS_INTERACTIVE=
+    docker_flags_interactive=
 fi
 
-real_pwd=$(realpath $(pwd))
-
-conan_version="$(docker run --user $(id -u):$(id -g) --env CONAN_HOME=/tmp/.conan2 --env CONAN_USER_HOME=/tmp ${docker_image} conan --version | sed -E 's,.*[^0-9]([0-9]+\.[0-9]+\.[0-9]+).*,\1,g')"
-conan2_dir="${HOME}/.conan_${conan_version}"
-
-mkdir -p "${conan2_dir}"
-
-DOCKER_ENV=$(env | { grep -Ei 'release' || true ; } | xargs -I {} echo '--env' {})
-
-# Run the passed arguments as a shell command in a fresh docker
-# container based on our CI image.
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+# Calculate volume mappings.
 #
-docker run ${DOCKER_FLAGS_INTERACTIVE} \
+volume_mappings=()
+
+# Add HOME (if defined).
+#
+if [ "${HOME:-}" != "" ] && [ -e "${HOME:-}" ]; then
+    volume_mappings+=(-v "${HOME}":"${HOME}")
+fi
+
+# Add the current real path.
+#
+real_pwd=$(realpath "$(pwd)")
+if [ -e "${real_pwd}" ]; then
+    volume_mappings+=(-v "${real_pwd}":"${real_pwd}")
+fi
+
+# Add /local
+#
+if [ -e "/local" ]; then
+    volume_mappings+=(-v "/local":"/local")
+fi
+
+# If the conan home dir is linked, map the linked location.
+#
+conan_home=${CONAN_HOME:-${HOME}/.conan2}
+if [ -e "${conan_home}" ]; then
+    {
+        real_conan_home=$(cd "${conan_home}" && dirname "$(realpath .)")
+        volume_mappings+=(-v "${real_conan_home}":"${real_conan_home}")
+    } || true
+    {
+        real_conan_parent=$(cd "${conan_home}" && dirname "$(realpath ..)")
+        if [ "${HOME}" != "${real_conan_parent}" ]; then
+            volume_mappings+=(-v "${real_conan_parent}":"${real_conan_parent}")
+        fi
+    } || true
+fi
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+# Capture the current environment.
+#
+docker_env=$(env | { grep -Ei 'release' || true ; } | xargs -I {} echo '--env' {})
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+# Run docker!
+#
+docker run \
        --ulimit memlock=-1:-1 \
        --cap-add SYS_ADMIN --device /dev/fuse \
        --privileged \
-       -v /etc/passwd:/etc/passwd \
-       -v /etc/group:/etc/group \
-       --user $(id -u):$(id -g) \
-       --network host \
-       -v "$(pwd)":"$(pwd)" \
-       -v "$real_pwd":"$real_pwd" \
-       -v "$HOME/.cache":"$HOME/.cache" \
-       -v "${conan2_dir}":"${conan2_dir}" \
-       -w "$(pwd)" \
-       ${DOCKER_ENV} \
+       "${volume_mappings[@]}" \
+       -w "${real_pwd}" \
+       ${docker_flags_interactive} \
+       --rm \
+       ${docker_env} \
+       ${DOCKER_FLAGS:-} \
        ${EXTRA_DOCKER_FLAGS:-} \
-       ${docker_image} \
-       bash -c "export CONAN_USER_HOME=${HOME} && export CONAN_HOME=${conan2_dir} && { test -f ${project_dir}/_batt-docker-profile && source ${project_dir}/_batt-docker-profile || true; } && $*"
+       "${docker_image}" \
+       bash -c "$*"

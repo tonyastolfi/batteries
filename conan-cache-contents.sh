@@ -3,12 +3,12 @@
 # Lists the packages (full refs) in the local Conan cache.
 #
 set -Eeuo pipefail
-
-set -x
+if [ "${DEBUG:-}" == "1" ]; then
+    set -x
+fi
 
 conan list --cache --format compact '*:*' \
-    | grep -E '/.*#[0-9a-f]+:[0-9a-f]+' \
-    | grep -v 'requires:' \
+    | { grep -E '/.*#[0-9a-f]+:[0-9a-f]+' || true; } \
+    | { grep -v 'requires:' || true; } \
     | sed -E 's,$ +,,g' \
-    | sort \
-    || true
+    | sort

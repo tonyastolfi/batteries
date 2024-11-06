@@ -35,11 +35,11 @@ conan_recipe_channel=${RELEASE_CONAN_CHANNEL:-${default_conan_recipe_channel}}
 # The working tree must be clean before we continue...
 #
 working_tree_is_clean || {
-    echo $(cat <<EOF
+    echo >&2 $(cat <<EOF
            Error: the working tree has uncommitted changes; please commit all
            and retry.
 EOF
-        ) >&2
+        )
     exit 1;
 }
 
