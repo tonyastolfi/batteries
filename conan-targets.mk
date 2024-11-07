@@ -108,6 +108,11 @@ test:
 	$(SCRIPT_DIR)/run-tests.sh
 
 #----- --- -- -  -  -   -
+.PHONY: code-coverage
+code-coverage: $(BUILD_DIR)
+  (gcovr --gcov-ignore-parse-errors && gcovr --gcov-ignore-parse-errors --cobertura -o $(BUILD_DIR)/code-coverage-results.xml)
+
+#----- --- -- -  -  -   -
 .PHONY: export-pkg
 export-pkg: setup-conan
 	$(CONAN_EXPORT_PKG) "$(PROJECT_DIR)"
