@@ -305,6 +305,21 @@ def cmake_in_src_layout(self):
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
+def cmake_unified_src_layout(self):
+    """
+    Mix-in implementation of ConanFile.layout.
+
+    Uses conan.tools.cmake.cmake_layout, with the following changes:
+      - src_folder="src"
+      - no separate include dir
+    """
+    from conan.tools.cmake import cmake_layout
+    cmake_layout(self, src_folder="src")
+    self.cpp.source.includedirs = ['.']
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
 def default_cmake_generate(self):
     """
     Mix-in implementation of ConanFile.generate.
