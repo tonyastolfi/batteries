@@ -110,7 +110,7 @@ test:
 #----- --- -- -  -  -   -
 .PHONY: code-coverage
 code-coverage: $(BUILD_DIR)
-  (gcovr --gcov-ignore-parse-errors && gcovr --gcov-ignore-parse-errors --cobertura -o $(BUILD_DIR)/code-coverage-results.xml)
+	(gcovr --gcov-ignore-parse-errors && gcovr --gcov-ignore-parse-errors --cobertura -o $(BUILD_DIR)/code-coverage-results.xml)
 
 #----- --- -- -  -  -   -
 .PHONY: export-pkg
