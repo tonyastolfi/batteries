@@ -368,6 +368,21 @@ def default_cmake_generate(self):
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
 #
+def _run_cmake_build(cmake):
+    # Using CMake._build here so we can specify the environment to use;
+    # onetbb requires dynamic linkage, but out-of-box it seems that
+    # the correct LD_LIBRARY_PATH isn't set up without using the conanrun
+    # environment.  This results in linker failures.
+    # See https://insidelabs-git.mathworks.com/cor/tools/-/issues/2.
+    #
+    if hasattr(cmake, '_build'):
+        cmake._build(env=["conanbuild", "conanrun"])
+    else:
+        cmake.build()
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
 def default_cmake_build(self):
     """
     Mix-in implementation of ConanFile.build.
@@ -375,7 +390,28 @@ def default_cmake_build(self):
     Uses CMake to configure and build the package.
     """
     cmake = default_init_cmake(self)
-    cmake.build()
+    _run_cmake_build(cmake)
+
+
+#==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
+#
+def build_cmake_with_optional_test(self):
+    """
+    Mix-in implementation of ConanFile.build.
+
+    Based on the default implementation given by Conan's built-in cmake_lib
+    template.  This function adds `cmake.test()` after the build step, to
+    run any tests that are defined in the CMakeLists.txt for the project.
+    This is on by default, with opt-out (by adding `-c tools.build:skip_test=True`
+    to the CLI args).  The build step is also on by default with opt-out
+    (`-c user.build:skip_build=True`), so that, if desired, only the tests
+    can be run (no build step).
+    """
+    cmake = default_init_cmake(self)
+    if not self.conf.get("user.build:skip_build", default=False):
+        _run_cmake_build(cmake)
+    if not self.conf.get("tools.build:skip_test", default=False):
+        cmake.test()
 
 
 #==#==========+==+=+=++=+++++++++++-+-+--+----- --- -- -  -  -   -
