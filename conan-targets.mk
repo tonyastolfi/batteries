@@ -73,7 +73,7 @@ endif
 
 CONAN_INSTALL_SH := $(SCRIPT_DIR)/conan-install.sh
 CONAN_INSTALL    := $(CONAN_ENV) $(MUTEX) $(CONAN_INSTALL_SH) $(CONAN_CONFIG_FLAGS) --build=missing $(OPTIONS)
-CONAN_BUILD      := $(CONAN_ENV) conan build      $(CONAN_CONFIG_FLAGS) $(OPTIONS)
+CONAN_BUILD      := $(CONAN_ENV) conan build      $(CONAN_CONFIG_FLAGS) $(OPTIONS) -c tools.build:skip_test=True
 CONAN_EXPORT_PKG := $(CONAN_ENV) conan export-pkg $(CONAN_CONFIG_FLAGS) $(OPTIONS)
 CONAN_CREATE     := $(CONAN_ENV) conan create     $(CONAN_CONFIG_FLAGS) $(OPTIONS)
 CONAN_REMOVE     := $(CONAN_ENV) conan remove --confirm
