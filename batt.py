@@ -563,6 +563,16 @@ def generate_conan_find_requirements(self):
 
         package_name = str(requirement.ref).split('/')[0]
         candidates = set()
+
+        if package_name == "abseil":
+            candidates.add("absl")
+
+        if package_name == "greg7mdp-gtl":
+            candidates.add("gtl")
+
+        if package_name == "robin-hood-hashing":
+            candidates.add("robin_hood")
+
         for candidate in (file_name for file_name in cmake_config_files
                           if (package_name.lower() in file_name.lower() and
                               'config' in file_name.lower())):
