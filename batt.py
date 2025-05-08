@@ -485,7 +485,7 @@ def default_lib_package_info(self):
     if hasattr(self, "_get_cxx_flags"):
         self.cpp_info.cxxflags = list(self._get_cxx_flags())
     else:
-        self.cpp_info.cxxflags = ["-std=c++17", "-D_GNU_SOURCE", "-D_BITS_UIO_EXT_H=1"]
+        self.cpp_info.cxxflags = ["-D_GNU_SOURCE", "-D_BITS_UIO_EXT_H=1"]
 
     self.cpp_info.names["pkg_config"] = self.name
 
