@@ -573,6 +573,9 @@ def generate_conan_find_requirements(self):
         if package_name == "robin-hood-hashing":
             candidates.add("robin_hood")
 
+        if package_name in ['cmake', 'ninja']:
+            continue
+
         for candidate in (file_name for file_name in cmake_config_files
                           if (package_name.lower() in file_name.lower() and
                               'config' in file_name.lower())):
