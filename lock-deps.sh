@@ -46,6 +46,19 @@ if [ "${CLEAN:-0}" == "1" ]; then
     rm -f "${lock_file}"
 fi
 
+conan lock create --build=missing "--lockfile-out=${lock_file}" "${project_dir}"
+
+cat "${lock_file}" \
+    | jq 'to_entries|map(.value |= (if type == "array" then map(if type == "string" then sub("#.+"; "") else . end) else . end))|from_entries' \
+         >"${tmp_lock_file}"
+
+rm -f "${lock_file}"
+mv -f "${tmp_lock_file}" "${lock_file}"
+
+exit 0
+#=#=#==#==#===============+=+=+=+=++=++++++++++++++-++-+--+-+----+---------------
+# DEPRECATED
+#
 if [ -f "${supported_platforms_file}" ]; then
 
     # Enumerate the contents of 'supported_platforms.json'
